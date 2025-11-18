@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Könyvnyilvántartó</title>
+<style>
+body {
+    font-family: Arial;
+    margin: 0;
+    padding: 0;
+    background: #f4f4f4;
+}
+nav {
+    background: #333;
+    padding: 10px;
+}
+nav button {
+    background: #555;
+    color: pink;
+    border: none;
+    padding: 10px 15px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+nav button:hover {
+    background: #777;
+}
+
+.page {
+    display: none;
+    padding: 20px;
+}
+
+input, select {
+    padding: 5px;
+    width: 250px;
+}
+
+table {
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+table th, table td {
+    padding: 4px 8px;
+    border: 1px solid #999;
+}
+
+#log {
+    background: #222;
+    color: #0f0;
+    padding: 10px;
+    height: 200px;
+    overflow-y: scroll;
+    font-size: 13px;
+}
+
+</style>
+</head>
+<body>
+
+<nav>
+    <button onclick="mutat('ujkonyv')">Könyv rögzítése</button>
+    <button onclick="mutat('sorozatok')">Sorozatok</button>
+    <button onclick="mutat('lista')">Lista</button>
+</nav>
+
+<!-- ============================
+     1) ÚJ KÖNYV FELVÉTELE
+============================ -->
+<div class="page" id="ujkonyv">
+    <h1>Új könyv felvétele</h1>
+
+    <label>Szerző *</label><br>
+    <input id="k_szerzo"><br>
+
+    <label>Cím *</label><br>
+    <input id="k_cim"><br>
+
+    <label>Eredeti cím</label><br>
+    <input id="k_eredeti"><br>
+
+    <label>Korábbi cím</label><br>
+    <input id="k_korabbi"><br>
+
+    <label>Sorozat</label><br>
+    <input id="k_sorozat"><br>
+
+    <label>Ssz</label><br>
+    <input id="k_ssz"><br>
+
+    <label>URL</label><br>
+    <input id="k_url"><br>
+
+    <label>Év</label><br>
+    <input id="k_ev"><br><br>
+
+    <button onclick="ujKonyvKuldes()">Küldés</button>
+</div>
+
+<!-- ============================
+     2) SOROZATOK OLDAL
+============================ -->
+<div class="page" id="sorozatok">
+    <h1>Sorozatok kezelése</h1>
+
+    <button onclick="betoltesSorozatok()">Sorozatok újratöltése</button>
+
+    <table id="tabla_sorozatok">
+        <thead>
+            <tr>
+                <th>Szerző</th>
+                <th>Cím</th>
+                <th>Sorozat</th>
+                <th>Ssz</th>
+                <th>Megvásárolva</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<!-- ============================
+     3) LISTA OLDAL
+============================ -->
+<div class="page" id="lista">
+    <h1>Lista megtekintése</h1>
+
+    <button onclick="syncLista()">Lista frissítése (hiányzó megvásárolt könyvek átvétele)</button>
+    <br><br>
+
+    <h3>Szűrés</h3>
+    <label>Szerző:</label><br>
+    <input id="ls_szerzo" oninput="listaSzures()"><br>
+
+    <label>Cím:</label><br>
+    <input id="ls_cim" oninput="listaSzures()"><br>
+
+    <table id="tabla_lista">
+        <thead>
+            <tr>
+                <th>Szerző</th>
+                <th>Cím</th>
+                <th>Sorozat</th>
+                <th>Megv.</th>
+                <th>Művelet</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <!-- SZERKESZTŐ PANEL -->
+    <div id="editPanel"
+         style="display:none; background:#eef; padding:15px; margin-top:20px; border:1px solid #99f;">
+
+        <h3>Rekord szerkesztése</h3>
+
+        <input type="hidden" id="edit_id">
+
+        <label>Szerző</label><br>
+        <input id="edit_szerzo"><br>
+
+        <label>Cím</label><br>
+        <input id="edit_cim"><br>
+
+        <label>Eredeti cím</label><br>
+        <input id="edit_eredeti"><br>
+
+        <label>Korábbi cím</label><br>
+        <input id="edit_korabbi"><br>
+
+        <label>Sorozat</label><br>
+        <input id="edit_sorozat"><br>
+
+        <label>Ssz</label><br>
+        <input id="edit_ssz"><br>
+
+        <label>URL</label><br>
+        <input id="edit_url"><br>
+
+        <label>Év</label><br>
+        <input id="edit_ev"><br>
+
+        <label>Megvásárolva</label><br>
+        <select id="edit_megv">
+            <option value="">Nem</option>
+            <option value="x">Igen</option>
+        </select><br><br>
+
+        <button onclick="saveEdit()">Mentés</button>
+        <button onclick="closeEdit()">Mégse</button>
+    </div>
+</div>
+
+<!-- ============================
+     LOG
+============================ -->
+<h3 style="margin-left:20px;">Log</h3>
+<div id="log"></div>
+
+<!-- ============================
+     JAVASCRIPT
+============================ -->
+<script>
+
+// IDE ÍRD A WEBAPP /exec URL-JÉT !!!
+const API_URL = "https://script.google.com/macros/s/AKfycbwTxU3Vp0FVQwUbi2oQ46dA2O8NiqM0DDv_3r1at5hcQ7nbeej9jLZ5u31qiwmSr-Mq/exec";
+
+/* Oldalváltás */
+function mutat(id) {
+    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+    document.getElementById(id).style.display = 'block';
+}
+
+/* LOGOLÓ */
+function log(msg) {
+    const l = document.getElementById("log");
+    l.innerHTML += msg + "<br>";
+    l.scrollTop = l.scrollHeight;
+}
+
+/* =======================
+   1) ÚJ KÖNYV FELVÉTELE
+======================= */
+function ujKonyvKuldes() {
+    log("Új könyv küldése...");
+
+    const url =
+        API_URL +
+        "?action=addBookToLista" +
+        "&szerzo=" + encodeURIComponent(k_szerzo.value) +
+        "&cim=" + encodeURIComponent(k_cim.value) +
+        "&eredeti_cim=" + encodeURIComponent(k_eredeti.value) +
+        "&korabbi_cim=" + encodeURIComponent(k_korabbi.value) +
+        "&sorozat=" + encodeURIComponent(k_sorozat.value) +
+        "&ssz=" + encodeURIComponent(k_ssz.value) +
+        "&url=" + encodeURIComponent(k_url.value) +
+        "&ev=" + encodeURIComponent(k_ev.value) +
+        "&megv=" +
+        "&callback=ujKonyvValasz" +
+        "&_=" + Date.now();
+
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function ujKonyvValasz(data) {
+    log(JSON.stringify(data, null, 2));
+}
+
+/* =======================
+   2) SOROZATOK BETÖLTÉSE
+======================= */
+let sorozatok = [];
+
+function betoltesSorozatok() {
+    log("----------------------");
+    log("Sorozatok betöltése...");
+
+    const url =
+        API_URL +
+        "?action=getSorozatok" +
+        "&callback=sorozatokValasz" +
+        "&_=" + Date.now();
+
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function sorozatokValasz(data) {
+    log("Sorozatok érkeztek.");
+
+    sorozatok = data.items || [];
+
+    const tbody = document.querySelector("#tabla_sorozatok tbody");
+    tbody.innerHTML = "";
+
+    sorozatok.forEach(item => {
+        const tr = document.createElement("tr");
+
+        const checked = item["Megvásárolva"] === "x" ? "checked" : "";
+
+        tr.innerHTML = `
+            <td>${item["Szerző"] || ""}</td>
+            <td>${item["Cím"] || ""}</td>
+            <td>${item["Sorozat"] || ""}</td>
+            <td>${item["Ssz"] || ""}</td>
+            <td>
+                <input type="checkbox"
+                       onchange="pipavaltozas('${item["ID"]}', this.checked)"
+                       ${checked}>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+/* PIPA VÁLTOZÁS */
+function pipavaltozas(id, chk) {
+    const ertek = chk ? "x" : "";
+    log(`Pipa változott (ID:${id}, érték:${ertek})`);
+
+    const url =
+        API_URL +
+        "?action=updateSorozatMegv" +
+        "&ID=" + encodeURIComponent(id) +
+        "&megv=" + encodeURIComponent(ertek) +
+        "&callback=pipavalasz" +
+        "&_=" + Date.now();
+
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+function pipavalasz(data) {
+    log("Pipa frissítés válasz:");
+    log(JSON.stringify(data, null, 2));
+}
+
+/* =======================
+   3) LISTA BETÖLTÉSE
+======================= */
+let lista = [];
+
+function betoltesLista() {
+    log("--------------------");
+    log("Lista betöltése...");
+
+    const url =
+        API_URL +
+        "?action=getLista" +
+        "&callback=listaValasz" +
+        "&_=" + Date.now();
+
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function listaValasz(data) {
+    lista = data.items || [];
+    listaMegjelenites();
+}
+
+function listaMegjelenites() {
+    const tbody = document.querySelector("#tabla_lista tbody");
+    tbody.innerHTML = "";
+
+    const fszerzo = ls_szerzo.value.toLowerCase();
+    const fcim = ls_cim.value.toLowerCase();
+
+    lista.forEach(item => {
+        if (item["Szerző"].toLowerCase().includes(fszerzo) &&
+            item["Cím"].toLowerCase().includes(fcim)) {
+
+            const tr = document.createElement("tr");
+
+            tr.innerHTML = `
+                <td>${item["Szerző"]}</td>
+                <td>${item["Cím"]}</td>
+                <td>${item["Sorozat"] || ""}</td>
+                <td>${item["Megvásárolva"] || ""}</td>
+                <td><button onclick="editRecord('${item["ID"]}')">Szerkesztés</button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+    });
+}
+
+function listaSzures() {
+    listaMegjelenites();
+}
+
+/* =======================
+   4) SZINKRONIZÁLÁS
+======================= */
+function syncLista() {
+    log("Lista szinkron indul...");
+
+    const url =
+        API_URL +
+        "?action=syncLista" +
+        "&callback=syncValasz" +
+        "&_=" + Date.now();
+
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function syncValasz(data) {
+    log("Szinkron válasz:");
+    log(JSON.stringify(data, null, 2));
+    betoltesLista();
+}
+
+/* =======================
+   5) REKORD SZERKESZTÉS
+======================= */
+function editRecord(id) {
+    const item = lista.find(x => x["ID"] === id);
+    if (!item) return;
+
+    edit_id.value      = item["ID"];
+    edit_szerzo.value  = item["Szerző"];
+    edit_cim.value     = item["Cím"];
+    edit_eredeti.value = item["Eredeti cím"] || "";
+    edit_korabbi.value = item["Korábbi cím"] || "";
+    edit_sorozat.value = item["Sorozat"] || "";
+    edit_ssz.value     = item["Ssz"] || "";
+    edit_url.value     = item["URL"] || "";
+    edit_ev.value      = item["Év"] || "";
+    edit_megv.value    = item["Megvásárolva"] || "";
+
+    document.getElementById("editPanel").style.display = "block";
+}
+
+function closeEdit() {
+    document.getElementById("editPanel").style.display = "none";
+}
+
+function saveEdit() {
+    log("Mentés indul...");
+
+    const url =
+        API_URL +
+        "?action=updateLista" +
+        "&ID=" + encodeURIComponent(edit_id.value) +
+        "&szerzo=" + encodeURIComponent(edit_szerzo.value) +
+        "&cim=" + encodeURIComponent(edit_cim.value) +
+        "&eredeti_cim=" + encodeURIComponent(edit_eredeti.value) +
+        "&korabbi_cim=" + encodeURIComponent(edit_korabbi.value) +
+        "&sorozat=" + encodeURIComponent(edit_sorozat.value) +
+        "&ssz=" + encodeURIComponent(edit_ssz.value) +
+        "&url=" + encodeURIComponent(edit_url.value) +
+        "&ev=" + encodeURIComponent(edit_ev.value) +
+        "&megv=" + encodeURIComponent(edit_megv.value) +
+        "&callback=saveEditValasz" +
+        "&_=" + Date.now();
+
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function saveEditValasz(data) {
+    log("Mentés válasza:");
+    log(JSON.stringify(data, null, 2));
+    closeEdit();
+    betoltesLista();
+}
+
+</script>
+</body>
+</html>
