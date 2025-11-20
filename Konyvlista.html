@@ -53,7 +53,6 @@ table th, table td {
     overflow-y: scroll;
     font-size: 13px;
 }
-
 </style>
 </head>
 <body>
@@ -88,8 +87,11 @@ table th, table td {
     <label>Ssz</label><br>
     <input id="k_ssz"><br>
 
-    <label>URL</label><br>
+    <label>URL (ha nem töltesz fel képet, ide írhatsz képlinket)</label><br>
     <input id="k_url"><br>
+
+    <label>Borítókép</label><br>
+    <input type="file" id="k_file" accept="image/*"><br><br>
 
     <label>Év</label><br>
     <input id="k_ev"><br><br>
@@ -201,9 +203,8 @@ table th, table td {
      JAVASCRIPT
 ============================ -->
 <script>
-
-// IDE ÍRD A WEBAPP /exec URL-JÉT !!!
-const API_URL = "https://script.google.com/macros/s/AKfycbwTxU3Vp0FVQwUbi2oQ46dA2O8NiqM0DDv_3r1at5hcQ7nbeej9jLZ5u31qiwmSr-Mq/exec";
+// WebApp URL – EZT MÁR HELYESEN BEÁLLÍTOTTAD:
+const API_URL = "https://script.google.com/macros/s/AKfycbyAqh6dkxzfuy-7zZ55WAy5OfBJYFdZPLuPJOpbZ_uiFmjY4u2HipP9n05gpUEo7ST3/exec";
 
 /* Oldalváltás */
 function mutat(id) {
@@ -218,25 +219,46 @@ function log(msg) {
     l.scrollTop = l.scrollHeight;
 }
 
-/* =======================
-   1) ÚJ KÖNYV FELVÉTELE
-======================= */
+/* FÁJL → BASE64 */
+function fileToBase64(file, callback) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64 = e.target.result.split(",")[1];
+        callback(base64);
+    };
+    reader.readAsDataURL(file);
+}
+
+/* ====== 1) ÚJ KÖNYV FELVÉTELE – KÉT LÉPÉSBEN ====== */
+let lastManualUrl = "";
+
 function ujKonyvKuldes() {
-    log("Új könyv küldése...");
+    log("Új könyv indítása...");
+
+    const file = document.getElementById("k_file").files[0];
+    lastManualUrl = (document.getElementById("k_url").value || "").trim();
+
+    if (file) {
+        log("Kép konvertálása BASE64-re...");
+        fileToBase64(file, function(base64data) {
+            uploadImageOnly(base64data, file.name);
+        });
+    } else {
+        log("Nincs kép → csak könyv adatainak mentése");
+        addBookOnly(lastManualUrl);
+    }
+}
+
+/* 1. lépés: kép feltöltése */
+function uploadImageOnly(base64, filename) {
+    log("Kép feltöltése indul...");
 
     const url =
         API_URL +
-        "?action=addBookToLista" +
-        "&szerzo=" + encodeURIComponent(k_szerzo.value) +
-        "&cim=" + encodeURIComponent(k_cim.value) +
-        "&eredeti_cim=" + encodeURIComponent(k_eredeti.value) +
-        "&korabbi_cim=" + encodeURIComponent(k_korabbi.value) +
-        "&sorozat=" + encodeURIComponent(k_sorozat.value) +
-        "&ssz=" + encodeURIComponent(k_ssz.value) +
-        "&url=" + encodeURIComponent(k_url.value) +
-        "&ev=" + encodeURIComponent(k_ev.value) +
-        "&megv=" +
-        "&callback=ujKonyvValasz" +
+        "?action=uploadImageOnly" +
+        "&base64=" + encodeURIComponent(base64) +
+        "&filename=" + encodeURIComponent(filename) +
+        "&callback=uploadImageOnlyValasz" +
         "&_=" + Date.now();
 
     const s = document.createElement("script");
@@ -244,13 +266,57 @@ function ujKonyvKuldes() {
     document.body.appendChild(s);
 }
 
-function ujKonyvValasz(data) {
+function uploadImageOnlyValasz(data) {
+    log("Kép feltöltés válasz:");
     log(JSON.stringify(data, null, 2));
+
+    if (!data.success) {
+        log("❌ Képfeltöltési hiba: " + data.error);
+        return;
+    }
+
+    const kepUrl = data.url || lastManualUrl;
+    log("Használt kép URL: " + kepUrl);
+
+    addBookOnly(kepUrl);
 }
 
-/* =======================
-   2) SOROZATOK BETÖLTÉSE
-======================= */
+/* 2. lépés: könyv mentése */
+function addBookOnly(kepUrl) {
+    log("Könyv mentése indul...");
+
+    const url =
+        API_URL +
+        "?action=addBookOnly" +
+        "&szerzo="      + encodeURIComponent(k_szerzo.value) +
+        "&cim="         + encodeURIComponent(k_cim.value) +
+        "&eredeti_cim=" + encodeURIComponent(k_eredeti.value) +
+        "&korabbi_cim=" + encodeURIComponent(k_korabbi.value) +
+        "&sorozat="     + encodeURIComponent(k_sorozat.value) +
+        "&ssz="         + encodeURIComponent(k_ssz.value) +
+        "&url="         + encodeURIComponent(kepUrl || "") +
+        "&ev="          + encodeURIComponent(k_ev.value) +
+        "&megv="        + "" +
+        "&callback=addBookOnlyValasz" +
+        "&_=" + Date.now();
+
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function addBookOnlyValasz(data) {
+    log("Könyv mentés válasz:");
+    log(JSON.stringify(data, null, 2));
+
+    if (data.success) {
+        log("✔ Könyv sikeresen mentve!");
+    } else {
+        log("❌ Hiba a könyv mentésénél: " + data.error);
+    }
+}
+
+/* ====== 2) SOROZATOK BETÖLTÉSE ====== */
 let sorozatok = [];
 
 function betoltesSorozatok() {
@@ -269,7 +335,7 @@ function betoltesSorozatok() {
 }
 
 function sorozatokValasz(data) {
-    log("Sorozatok érkeztek.");
+    log("Sorozatok érkeztek:");
 
     sorozatok = data.items || [];
 
@@ -278,7 +344,6 @@ function sorozatokValasz(data) {
 
     sorozatok.forEach(item => {
         const tr = document.createElement("tr");
-
         const checked = item["Megvásárolva"] === "x" ? "checked" : "";
 
         tr.innerHTML = `
@@ -292,7 +357,6 @@ function sorozatokValasz(data) {
                        ${checked}>
             </td>
         `;
-
         tbody.appendChild(tr);
     });
 }
@@ -314,14 +378,13 @@ function pipavaltozas(id, chk) {
     s.src = url;
     document.body.appendChild(s);
 }
+
 function pipavalasz(data) {
     log("Pipa frissítés válasz:");
     log(JSON.stringify(data, null, 2));
 }
 
-/* =======================
-   3) LISTA BETÖLTÉSE
-======================= */
+/* ====== 3) LISTA BETÖLTÉSE ====== */
 let lista = [];
 
 function betoltesLista() {
@@ -348,18 +411,18 @@ function listaMegjelenites() {
     const tbody = document.querySelector("#tabla_lista tbody");
     tbody.innerHTML = "";
 
-    const fszerzo = ls_szerzo.value.toLowerCase();
-    const fcim = ls_cim.value.toLowerCase();
+    const fszerzo = (ls_szerzo.value || "").toLowerCase();
+    const fcim    = (ls_cim.value || "").toLowerCase();
 
     lista.forEach(item => {
-        if (item["Szerző"].toLowerCase().includes(fszerzo) &&
-            item["Cím"].toLowerCase().includes(fcim)) {
+        const szerzo = (item["Szerző"] || "").toLowerCase();
+        const cim    = (item["Cím"] || "").toLowerCase();
 
+        if (szerzo.includes(fszerzo) && cim.includes(fcim)) {
             const tr = document.createElement("tr");
-
             tr.innerHTML = `
-                <td>${item["Szerző"]}</td>
-                <td>${item["Cím"]}</td>
+                <td>${item["Szerző"] || ""}</td>
+                <td>${item["Cím"] || ""}</td>
                 <td>${item["Sorozat"] || ""}</td>
                 <td>${item["Megvásárolva"] || ""}</td>
                 <td><button onclick="editRecord('${item["ID"]}')">Szerkesztés</button></td>
@@ -373,9 +436,7 @@ function listaSzures() {
     listaMegjelenites();
 }
 
-/* =======================
-   4) SZINKRONIZÁLÁS
-======================= */
+/* ====== 4) SZINKRONIZÁLÁS ====== */
 function syncLista() {
     log("Lista szinkron indul...");
 
@@ -396,16 +457,14 @@ function syncValasz(data) {
     betoltesLista();
 }
 
-/* =======================
-   5) REKORD SZERKESZTÉS
-======================= */
+/* ====== 5) REKORD SZERKESZTÉS ====== */
 function editRecord(id) {
     const item = lista.find(x => x["ID"] === id);
     if (!item) return;
 
     edit_id.value      = item["ID"];
-    edit_szerzo.value  = item["Szerző"];
-    edit_cim.value     = item["Cím"];
+    edit_szerzo.value  = item["Szerző"] || "";
+    edit_cim.value     = item["Cím"] || "";
     edit_eredeti.value = item["Eredeti cím"] || "";
     edit_korabbi.value = item["Korábbi cím"] || "";
     edit_sorozat.value = item["Sorozat"] || "";
@@ -422,21 +481,21 @@ function closeEdit() {
 }
 
 function saveEdit() {
-    log("Mentés indul...");
+    log("Mentés indul (szerkesztés)...");
 
     const url =
         API_URL +
         "?action=updateLista" +
-        "&ID=" + encodeURIComponent(edit_id.value) +
-        "&szerzo=" + encodeURIComponent(edit_szerzo.value) +
-        "&cim=" + encodeURIComponent(edit_cim.value) +
-        "&eredeti_cim=" + encodeURIComponent(edit_eredeti.value) +
-        "&korabbi_cim=" + encodeURIComponent(edit_korabbi.value) +
-        "&sorozat=" + encodeURIComponent(edit_sorozat.value) +
-        "&ssz=" + encodeURIComponent(edit_ssz.value) +
-        "&url=" + encodeURIComponent(edit_url.value) +
-        "&ev=" + encodeURIComponent(edit_ev.value) +
-        "&megv=" + encodeURIComponent(edit_megv.value) +
+        "&ID="           + encodeURIComponent(edit_id.value) +
+        "&szerzo="       + encodeURIComponent(edit_szerzo.value) +
+        "&cim="          + encodeURIComponent(edit_cim.value) +
+        "&eredeti_cim="  + encodeURIComponent(edit_eredeti.value) +
+        "&korabbi_cim="  + encodeURIComponent(edit_korabbi.value) +
+        "&sorozat="      + encodeURIComponent(edit_sorozat.value) +
+        "&ssz="          + encodeURIComponent(edit_ssz.value) +
+        "&url="          + encodeURIComponent(edit_url.value) +
+        "&ev="           + encodeURIComponent(edit_ev.value) +
+        "&megv="         + encodeURIComponent(edit_megv.value) +
         "&callback=saveEditValasz" +
         "&_=" + Date.now();
 
@@ -446,12 +505,16 @@ function saveEdit() {
 }
 
 function saveEditValasz(data) {
-    log("Mentés válasza:");
+    log("Mentés válasza (szerkesztés):");
     log(JSON.stringify(data, null, 2));
     closeEdit();
     betoltesLista();
 }
 
+/* Induláskor mutassuk az új könyv oldalt */
+window.onload = function() {
+    mutat('ujkonyv');
+};
 </script>
 </body>
 </html>
