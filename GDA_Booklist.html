@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Könyvnyilvántartó</title>
+<style>
+body {
+    font-family: Arial;
+    background: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+nav {
+    background: #333;
+    padding: 10px;
+}
+nav button {
+    background: #555;
+    color: pink;
+    border: none;
+    padding: 10px 15px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+nav button:hover {
+    background: #777;
+}
+.page {
+    display: none;
+    padding: 20px;
+}
+input, select {
+    padding: 5px;
+    width: 250px;
+}
+table {
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+table th, table td {
+    padding: 4px 8px;
+    border: 1px solid #999;
+}
+#log {
+    background: #222;
+    color: #0f0;
+    padding: 10px;
+    height: 200px;
+    overflow-y: auto;
+    font-size: 13px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+    <button onclick="mutat('ujkonyv')">Könyv rögzítése</button>
+    <button onclick="mutat('lista')">Lista</button>
+    <button onclick="mutat('import')">CSV/TSV importálása</button>
+</nav>
+
+<!-- 1) ÚJ KÖNYV -->
+<div class="page" id="ujkonyv">
+    <h1>Új könyv felvétele</h1>
+
+    <label>Szerző *</label><br>
+    <input id="k_szerzo" list="authors_list"><br>
+    <datalist id="authors_list"></datalist><br>
+
+    <label>Cím *</label><br>
+    <input id="k_cim"><br>
+
+    <label>Eredeti cím</label><br>
+    <input id="k_eredeti"><br>
+
+    <label>Korábbi cím</label><br>
+    <input id="k_korabbi"><br>
+
+    <label>Sorozat</label><br>
+    <input id="k_sorozat" list="series_list"><br>
+    <datalist id="series_list"></datalist><br>
+
+    <label>Ssz</label><br>
+    <input id="k_ssz"><br>
+
+    <label>URL (ha nincs feltöltött kép)</label><br>
+    <input id="k_url"><br>
+
+    <label>Borítókép</label><br>
+    <input type="file" id="k_file" accept="image/*"><br><br>
+
+    <label>Year</label><br>
+    <input id="k_ev"><br><br>
+
+    <label>Megvásárolva</label><br>
+    <input type="checkbox" id="k_purchased"><br><br>
+
+    <button onclick="ujKonyvKuldes()">Küldés</button>
+</div>
+
+<!-- 2) LISTA -->
+<div class="page" id="lista">
+    <h1>Lista</h1>
+
+    <button onclick="betoltesLista()">Frissítés</button>
+    <br><br>
+
+    <h3>Szűrés</h3>
+    <label>Szerző:</label><br>
+    <input id="ls_szerzo" oninput="listaSzures()"><br>
+    <label>Cím:</label><br>
+    <input id="ls_cim" oninput="listaSzures()"><br>
+
+    <table id="tabla_lista">
+        <thead>
+            <tr>
+                <th>Szerző</th>
+                <th>Cím</th>
+                <th>Sorozat</th>
+                <th>Megv.</th>
+                <th>Művelet</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div id="editPanel" style="display:none; background:#eef; padding:15px; margin-top:20px; border:1px solid #99f;">
+        <h3>Rekord szerkesztése</h3>
+
+        <input type="hidden" id="edit_id">
+
+        <label>Szerző</label><br>
+        <input id="edit_szerzo"><br>
+
+        <label>Cím</label><br>
+        <input id="edit_cim"><br>
+
+        <label>Eredeti cím</label><br>
+        <input id="edit_eredeti"><br>
+
+        <label>Korábbi cím</label><br>
+        <input id="edit_korabbi"><br>
+
+        <label>Sorozat</label><br>
+        <input id="edit_sorozat"><br>
+
+        <label>Ssz</label><br>
+        <input id="edit_ssz"><br>
+
+        <label>URL</label><br>
+        <input id="edit_url"><br>
+
+        <label>Year</label><br>
+        <input id="edit_ev"><br>
+
+        <label>Megvásárolva</label><br>
+        <select id="edit_megv">
+            <option value="">Nem</option>
+            <option value="x">Igen</option>
+        </select><br><br>
+
+        <button onclick="saveEdit()">Mentés</button>
+        <button onclick="closeEdit()">Mégse</button>
+    </div>
+</div>
+
+<!-- 3) CSV/TSV IMPORT -->
+<div class="page" id="import">
+    <h1>CSV / TSV importálása</h1>
+
+    <p>Elvárt struktúra (List fül fejléc sorrendje):</p>
+    <pre>ID,Author,Title,Original_Title,Previous_Title,Series,Number,URL,Year,Purchased</pre>
+
+    <p>A fájl lehet vesszővel, pontosvesszővel vagy TAB-bal tagolt.</p>
+
+    <input type="file" id="csvFile" accept=".csv,.tsv,.txt"><br><br>
+    <button onclick="importCsv()">Importálás</button>
+
+    <h3>Eredmény:</h3>
+    <div id="importResult"></div>
+</div>
+
+<h3 style="margin-left:20px;">Log</h3>
+<div id="log"></div>
+
+<script>
+/********** API URL **********/
+const API_URL = "https://script.google.com/macros/s/AKfycbwd6GRg2W6hf8CLpUzMr3d6_zBSOvlJjg1o_0MEi3BvDRe08g5AXoicimqMag6rZ9JOJA/exec";
+
+/********** OLDALVÁLTÁS **********/
+function mutat(id) {
+    document.querySelectorAll(".page").forEach(p => p.style.display = "none");
+    document.getElementById(id).style.display = "block";
+    if (id === "lista") betoltesLista();
+}
+
+/********** LOG **********/
+function log(msg) {
+    const l = document.getElementById("log");
+    const now = new Date().toLocaleTimeString();
+    l.innerHTML += "[" + now + "] " + msg + "<br>";
+    l.scrollTop = l.scrollHeight;
+}
+
+/********** BASE64 **********/
+function fileToBase64(file, callback) {
+    const reader = new FileReader();
+    reader.onload = e => callback(e.target.result.split(",")[1]);
+    reader.readAsDataURL(file);
+}
+
+/********** 1) ÚJ KÖNYV **********/
+let lastManualUrl = "";
+
+function ujKonyvKuldes() {
+    log("Új könyv indítása…");
+    const file = document.getElementById("k_file").files[0];
+    lastManualUrl = document.getElementById("k_url").value.trim();
+
+    if (file) {
+        fileToBase64(file, base64 => uploadImageOnly(base64, file.name));
+    } else {
+        addBookOnly(lastManualUrl);
+    }
+}
+
+function uploadImageOnly(base64, filename) {
+    const url = API_URL +
+        "?action=uploadImageOnly" +
+        "&base64=" + encodeURIComponent(base64) +
+        "&filename=" + encodeURIComponent(filename) +
+        "&callback=uploadImageOnlyValasz";
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function uploadImageOnlyValasz(data) {
+    if (!data.success) {
+        log("❌ Képfeltöltés hiba: " + data.error);
+        return;
+    }
+    const kepUrl = data.url || lastManualUrl;
+    addBookOnly(kepUrl);
+}
+
+function addBookOnly(kepUrl) {
+    const purchased = document.getElementById("k_purchased").checked ? "x" : "";
+    const url = API_URL +
+        "?action=addBookOnly" +
+        "&szerzo="       + encodeURIComponent(k_szerzo.value) +
+        "&cim="          + encodeURIComponent(k_cim.value) +
+        "&eredeti_cim="  + encodeURIComponent(k_eredeti.value) +
+        "&korabbi_cim="  + encodeURIComponent(k_korabbi.value) +
+        "&sorozat="      + encodeURIComponent(k_sorozat.value) +
+        "&ssz="          + encodeURIComponent(k_ssz.value) +
+        "&url="          + encodeURIComponent(kepUrl) +
+        "&ev="           + encodeURIComponent(k_ev.value) +
+        "&megv="         + encodeURIComponent(purchased) +
+        "&callback=addBookOnlyValasz";
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function addBookOnlyValasz(data) {
+    if (data.success) log("✔ Könyv mentve!");
+    else log("❌ Hiba: " + data.error);
+}
+
+/********** 2) LISTA **********/
+let lista = [];
+
+function betoltesLista() {
+    const url = API_URL + "?action=getLista&callback=listaValasz";
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function listaValasz(data) {
+    lista = data.items || [];
+    listaMegjelenites();
+}
+
+function listaMegjelenites() {
+    const tbody = document.querySelector("#tabla_lista tbody");
+    tbody.innerHTML = "";
+
+    const fszerzo = ls_szerzo.value.toLowerCase();
+    const fcim    = ls_cim.value.toLowerCase();
+
+    lista.forEach(item => {
+        if (
+            (item["Author"] || "").toLowerCase().includes(fszerzo) &&
+            (item["Title"]  || "").toLowerCase().includes(fcim)
+        ) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${item["Author"] || ""}</td>
+                <td>${item["Title"] || ""}</td>
+                <td>${item["Series"] || ""}</td>
+                <td>${item["Purchased"] || ""}</td>
+                <td><button onclick="editRecord('${item["ID"]}')">Szerkesztés</button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+    });
+}
+
+function listaSzures() { listaMegjelenites(); }
+
+/********** 3) SZERKESZTÉS **********/
+function editRecord(id) {
+    const item = lista.find(x => x["ID"] === id);
+    if (!item) return;
+
+    edit_id.value      = item["ID"];
+    edit_szerzo.value  = item["Author"] || "";
+    edit_cim.value     = item["Title"] || "";
+    edit_eredeti.value = item["Original_Title"] || "";
+    edit_korabbi.value = item["Previous_Title"] || "";
+    edit_sorozat.value = item["Series"] || "";
+    edit_ssz.value     = item["Number"] || "";
+    edit_url.value     = item["URL"] || "";
+    edit_ev.value      = item["Year"] || "";
+    edit_megv.value    = item["Purchased"] || "";
+
+    document.getElementById("editPanel").style.display = "block";
+}
+
+function closeEdit() {
+    document.getElementById("editPanel").style.display = "none";
+}
+
+function saveEdit() {
+    const url = API_URL +
+        "?action=updateLista" +
+        "&ID="           + encodeURIComponent(edit_id.value) +
+        "&szerzo="       + encodeURIComponent(edit_szerzo.value) +
+        "&cim="          + encodeURIComponent(edit_cim.value) +
+        "&eredeti_cim="  + encodeURIComponent(edit_eredeti.value) +
+        "&korabbi_cim="  + encodeURIComponent(edit_korabbi.value) +
+        "&sorozat="      + encodeURIComponent(edit_sorozat.value) +
+        "&ssz="          + encodeURIComponent(edit_ssz.value) +
+        "&url="          + encodeURIComponent(edit_url.value) +
+        "&ev="           + encodeURIComponent(edit_ev.value) +
+        "&megv="         + encodeURIComponent(edit_megv.value) +
+        "&callback=saveEditValasz";
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function saveEditValasz(data) {
+    if (data.success) log("✔ Rekord frissítve");
+    else log("❌ Hiba: " + data.error);
+    closeEdit();
+    betoltesLista();
+}
+
+/********** 4) DATALIST **********/
+function loadDropdownLists() {
+    const url = API_URL +
+        "?action=getUniqueLists" +
+        "&callback=loadDropdownListsCallback";
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function loadDropdownListsCallback(data) {
+    fillDatalist(document.getElementById("authors_list"), data.authors, "Author");
+    fillDatalist(document.getElementById("series_list"),  data.series,  "Series");
+}
+
+function fillDatalist(datalistElem, list, keyName) {
+    datalistElem.innerHTML = "";
+    (list || []).forEach(item => {
+        if (item[keyName]) {
+            const opt = document.createElement("option");
+            opt.value = item[keyName];
+            datalistElem.appendChild(opt);
+        }
+    });
+}
+
+/********** 5) CSV/TSV IMPORT **********/
+function importCsv() {
+    const fileInput = document.getElementById('csvFile');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert("Válassz ki egy CSV/TSV fájlt!");
+        return;
+    }
+
+    log("CSV/TSV import indítása...");
+    document.getElementById("importResult").innerHTML = "Import indul...";
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const text = e.target.result;
+
+        // elválasztó felismerése: TAB > ; > ,
+        let delimiter = ",";
+        if (text.indexOf("\t") !== -1) delimiter = "\t";
+        else if (text.indexOf(";") !== -1) delimiter = ";";
+
+        // Profi sor-feldolgozó: kezeli az idézőjeleket is
+        function parseLine(line) {
+            const result = [];
+            let current = "";
+            let insideQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const c = line[i];
+                if (c === '"') {
+                    insideQuotes = !insideQuotes;
+                } else if (c === delimiter && !insideQuotes) {
+                    result.push(current);
+                    current = "";
+                } else {
+                    current += c;
+                }
+            }
+            result.push(current);
+            return result;
+        }
+
+        const rows = text.split(/\r?\n/).filter(r => r.trim() !== "");
+        if (rows.length < 2) {
+            document.getElementById("importResult").innerHTML = "Nincs importálható sor.";
+            log("Import megszakítva: nincs adat.");
+            return;
+        }
+
+        const header = parseLine(rows[0]).map(h => h.trim());
+        const expected = ["ID","Author","Title","Original_Title","Previous_Title","Series","Number","URL","Year","Purchased"];
+
+        // Fejléc ellenőrzés – pontos egyezés
+        let headerOk = (header.length === expected.length);
+        if (headerOk) {
+            for (let i = 0; i < expected.length; i++) {
+                if (header[i] !== expected[i]) {
+                    headerOk = false;
+                    break;
+                }
+            }
+        }
+
+        if (!headerOk) {
+            const msg = "HIBA: A CSV/TSV fejléc nem egyezik a List fül szerkezetével!<br>" +
+                        "Elvárt fejléc:<br>" +
+                        expected.join(", ");
+            document.getElementById("importResult").innerHTML = msg;
+            log("Import leállt: hibás fejléc.");
+            return;
+        }
+
+        const idxAuthor         = header.indexOf("Author");
+        const idxTitle          = header.indexOf("Title");
+        const idxOriginal_Title = header.indexOf("Original_Title");
+        const idxPrevious_Title = header.indexOf("Previous_Title");
+        const idxSeries         = header.indexOf("Series");
+        const idxNumber         = header.indexOf("Number");
+        const idxURL            = header.indexOf("URL");
+        const idxYear           = header.indexOf("Year");
+
+        let imported = 0;
+        const resDiv = document.getElementById("importResult");
+        resDiv.innerHTML = "";
+
+        function sendNext(i) {
+            if (i >= rows.length) {
+                const summary = "✔ Import kész. Összesen " + imported + " sor beszúrva.";
+                resDiv.innerHTML += "<br><b>" + summary + "</b>";
+                log(summary);
+                return;
+            }
+
+            const line = rows[i];
+            const cols = parseLine(line);
+
+            // ha teljesen üres sor, lépjünk tovább
+            if (cols.every(c => c.trim() === "")) {
+                sendNext(i + 1);
+                return;
+            }
+
+            const book = {
+                Author:         (cols[idxAuthor]         || "").trim(),
+                Title:          (cols[idxTitle]          || "").trim(),
+                Original_Title: (cols[idxOriginal_Title] || "").trim(),
+                Previous_Title: (cols[idxPrevious_Title] || "").trim(),
+                Series:         (cols[idxSeries]         || "").trim(),
+                Number:         (cols[idxNumber]         || "").trim(),
+                URL:            (cols[idxURL]            || "").trim(),
+                Year:           (cols[idxYear]           || "").trim()
+            };
+
+            const callbackName = "importCsvCallback_" + i;
+            window[callbackName] = function(data) {
+                if (data && data.success) {
+                    imported++;
+                    const b = data.inserted || book;
+                    const lineMsg = "✔ Sor betöltve: Author='" + (b.Author || "") +
+                        "', Title='" + (b.Title || "") +
+                        "', Series='" + (b.Series || "") +
+                        "', Year='" + (b.Year || "") + "'";
+                    resDiv.innerHTML += lineMsg + "<br>";
+                    log(lineMsg);
+                } else {
+                    const errMsg = "❌ Sor hiba (" + i + "): " + (data && data.error ? data.error : "ismeretlen hiba");
+                    resDiv.innerHTML += errMsg + "<br>";
+                    log(errMsg);
+                }
+                delete window[callbackName];
+                sendNext(i + 1);
+            };
+
+            const url = API_URL +
+                "?action=importCsvRow" +
+                "&Author="         + encodeURIComponent(book.Author) +
+                "&Title="          + encodeURIComponent(book.Title) +
+                "&Original_Title=" + encodeURIComponent(book.Original_Title) +
+                "&Previous_Title=" + encodeURIComponent(book.Previous_Title) +
+                "&Series="         + encodeURIComponent(book.Series) +
+                "&Number="         + encodeURIComponent(book.Number) +
+                "&URL="            + encodeURIComponent(book.URL) +
+                "&Year="           + encodeURIComponent(book.Year) +
+                "&callback="       + callbackName;
+
+            const s = document.createElement("script");
+            s.src = url;
+            document.body.appendChild(s);
+        }
+
+        sendNext(1); // 0 = fejléc, onnan 1-től adat
+    };
+
+    reader.readAsText(file); // nincs kódolás paraméter – böngésző szerint
+}
+
+/********** INDULÁS **********/
+window.onload = function() {
+    loadDropdownLists();
+    mutat("ujkonyv");
+};
+</script>
+</body>
+</html>
