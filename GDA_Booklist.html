@@ -166,11 +166,12 @@ table th, table td {
         <label>Year</label><br>
         <input id="edit_ev"><br>
 
-        <label>Megvásárolva</label><br>
-        <select id="edit_megv">
-            <option value="">Nem</option>
-            <option value="x">Igen</option>
-        </select><br><br>
+        <label>
+        <input type="checkbox" id="edit_megv">
+        Megvásárolva
+        </label>
+        <br><br>
+
 
         <button onclick="saveEdit()">Mentés</button>
         <button onclick="closeEdit()">Mégse</button>
@@ -199,7 +200,7 @@ table th, table td {
 <script>
 /********** API URL **********/
 // Google Apps Script webapp URL-je, amely a backend logikát valósítja meg
-const API_URL = "https://script.google.com/macros/s/AKfycbzttXkRakUf6nIXzAOKLssxP-wRGStGLHCh5eMmpqdFrp1sbGmRbXXu1MScvttpVRTMvA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyt8y-OxY5sflOm5jv6FqPxJ4S2QXvdSylJjIYT_AoXxJGGzXIF2qYsMrQL-Q6-jQJ2Hw/exec";
 
 /********** OLDALVÁLTÁS (egyszerű "view switch") **********/
 function mutat(id) {
@@ -387,7 +388,7 @@ function listaMegjelenites() {
                 <td>${item["Number"] || ""}</td>
                 <td>${urlCell}</td>
                 <td>${item["Year"] || ""}</td>
-                <td>${item["Purchased"] || ""}</td>
+                <td><input type="checkbox" disabled ${item["Purchased"] === "x" ? "checked" : ""}></td>
                 <td><button onclick="editRecord('${item["ID"]}')">Szerkesztés</button></td>
             `;
             tbody.appendChild(tr);
@@ -417,7 +418,8 @@ function editRecord(id) {
     edit_ssz.value     = item["Number"] || "";
     edit_url.value     = item["URL"] || "";
     edit_ev.value      = item["Year"] || "";
-    edit_megv.value    = item["Purchased"] || "";
+    document.getElementById("edit_megv").checked = (item["Purchased"] === "x");
+;
 
     document.getElementById("editPanel").style.display = "block";
 }
@@ -430,36 +432,86 @@ function closeEdit() {
 }
 
 /**
- * Módosított könyvadatok mentése a backend segítségével
+ * Szerkesztett könyv mentése.  
+ * A backend (Apps Script) pontos paraméterneveket vár,
+ * ezért MINDEN mezőnévnek pontosan egyeznie kell.
  */
 function saveEdit() {
-    const url = API_URL +
+
+    log("Szerkesztés mentése...");
+
+    // A JSONP hívás URL-jének összeállítása
+    const url =
+        API_URL +
         "?action=updateLista" +
+
+        // 1) ID: kötelező a sor azonosításához
         "&ID="           + encodeURIComponent(edit_id.value) +
+
+        // 2) Szerző (Author)
         "&szerzo="       + encodeURIComponent(edit_szerzo.value) +
+
+        // 3) Cím (Title)
         "&cim="          + encodeURIComponent(edit_cim.value) +
+
+        // 4) Eredeti cím (Original_Title)
+        // BACKEND: p.eredeti_cim → book["Original_Title"]
         "&eredeti_cim="  + encodeURIComponent(edit_eredeti.value) +
+
+        // 5) Korábbi cím (Previous_Title)
+        // BACKEND: p.korabbi_cim → book["Previous_Title"]
         "&korabbi_cim="  + encodeURIComponent(edit_korabbi.value) +
+
+        // 6) Sorozat (Series)
         "&sorozat="      + encodeURIComponent(edit_sorozat.value) +
-        "&ssz="          + encodeURIComponent(edit_ssz.value) +
+
+        // 7) Sorszám (Number)
+        // BACKEND: p.ssz → book["Number"]
+        "&ssz=" + encodeURIComponent(edit_ssz.value) +
+
+        // 8) URL (URL)
         "&url="          + encodeURIComponent(edit_url.value) +
+
+        // 9) Kiadás éve (Year)
         "&ev="           + encodeURIComponent(edit_ev.value) +
-        "&megv="         + encodeURIComponent(edit_megv.value) +
+
+        // 10) Megvásárolva (Purchased)
+        // Checkbox → true = "x", false = ""
+        "&megv="         + encodeURIComponent(
+                             document.getElementById("edit_megv").checked ? "x" : ""
+                         ) +
+
+        // 11) Válasz callback függvény
         "&callback=saveEditValasz";
-    const s = document.createElement("script");
-    s.src = url;
-    document.body.appendChild(s);
+
+
+    // A JSONP script elem létrehozása és futtatása
+    const script = document.createElement("script");
+    script.src = url;
+    document.body.appendChild(script);
+
+    // Szerkesztő panel bezárása
+    hideEditPanel();
 }
 
+
+
 /**
- * Szerkesztés válasza – siker esetén újratöltjük a listát
+ * A backend JSONP válaszának kezelése szerkesztés után.
+ * 
+ * Ez a függvény KÖTELEZŐ ahhoz, hogy a saveEdit() lefusson!
+ * A backend ezt hívja meg: saveEditValasz({success:true})
  */
 function saveEditValasz(data) {
-    if (data.success) log("✔ Rekord frissítve");
-    else log("❌ Hiba: " + data.error);
-    closeEdit();
-    betoltesLista();
+    if (data && data.success) {
+        log("✔ Rekord frissítve");      // log panelre
+        loadLista();                     // lista frissítése
+    } else {
+        log("❌ Hiba: " + (data?.error || "Ismeretlen hiba"));
+        alert("Hiba történt mentés közben!");
+    }
 }
+
 
 /********** 4) DATALIST – egyedi szerző- és sorozatlisták betöltése **********/
 function loadDropdownLists() {
