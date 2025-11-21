@@ -1,9 +1,14 @@
-<!-- CSV import kiegészítve Original_Title és Previous_Title kezeléssel -->
+<!--
+Könyvnyilvántartó – teljes, kommentekkel ellátott HTML/JS fájl.
+Ez a verzió minden mezőt (Author, Title, Original_Title, Previous_Title, Series, Number, URL, Year, Purchased)
+kezeli az új felvétel, lista, szerkesztés és CSV/TSV import funkciókban.
+-->
+
 <!DOCTYPE html>
 <html lang="hu">
 <head>
 <meta charset="UTF-8">
-<title>BOOKLIST</title>
+<title>Könyvnyilvántartó</title>
 <style>
 body {
     font-family: Arial;
@@ -60,7 +65,7 @@ table th, table td {
     <button onclick="mutat('import')">CSV/TSV importálása</button>
 </nav>
 
-<!-- 1) ÚJ KÖNYV -->
+<!-- 1) ÚJ KÖNYV – Új rekord rögzítése minden mezővel -->
 <div class="page" id="ujkonyv">
     <h1>Új könyv felvétele</h1>
 
@@ -99,7 +104,7 @@ table th, table td {
     <button onclick="ujKonyvKuldes()">Küldés</button>
 </div>
 
-<!-- 2) LISTA -->
+<!-- 2) LISTA – Táblázatos lista, szűrés, szerkesztés -->
 <div class="page" id="lista">
     <h1>Lista</h1>
 
@@ -114,10 +119,16 @@ table th, table td {
 
     <table id="tabla_lista">
         <thead>
+            <!-- Lista tábla: minden mező külön oszlopban -->
             <tr>
                 <th>Szerző</th>
                 <th>Cím</th>
+                <th>Eredeti cím</th>
+                <th>Korábbi cím</th>
                 <th>Sorozat</th>
+                <th>Ssz</th>
+                <th>URL</th>
+                <th>Év</th>
                 <th>Megv.</th>
                 <th>Művelet</th>
             </tr>
@@ -125,6 +136,7 @@ table th, table td {
         <tbody></tbody>
     </table>
 
+    <!-- Szerkesztő panel: egy kiválasztott rekord módosításához -->
     <div id="editPanel" style="display:none; background:#eef; padding:15px; margin-top:20px; border:1px solid #99f;">
         <h3>Rekord szerkesztése</h3>
 
@@ -165,7 +177,7 @@ table th, table td {
     </div>
 </div>
 
-<!-- 3) CSV/TSV IMPORT -->
+<!-- 3) CSV/TSV IMPORT – Tömeges betöltés a List lap struktúrája szerint -->
 <div class="page" id="import">
     <h1>CSV / TSV importálása</h1>
 
@@ -186,16 +198,20 @@ table th, table td {
 
 <script>
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbwd6GRg2W6hf8CLpUzMr3d6_zBSOvlJjg1o_0MEi3BvDRe08g5AXoicimqMag6rZ9JOJA/exec";
+// Google Apps Script webapp URL-je, amely a backend logikát valósítja meg
+const API_URL = "https://script.google.com/macros/s/AKfycbzttXkRakUf6nIXzAOKLssxP-wRGStGLHCh5eMmpqdFrp1sbGmRbXXu1MScvttpVRTMvA/exec";
 
-/********** OLDALVÁLTÁS **********/
+/********** OLDALVÁLTÁS (egyszerű "view switch") **********/
 function mutat(id) {
+    // Minden oldalt elrejtünk...
     document.querySelectorAll(".page").forEach(p => p.style.display = "none");
+    // ...majd a kért oldalt láthatóvá tesszük
     document.getElementById(id).style.display = "block";
+    // Lista fülre váltáskor automatikus frissítés
     if (id === "lista") betoltesLista();
 }
 
-/********** LOG **********/
+/********** LOG – események megjelenítése alul **********/
 function log(msg) {
     const l = document.getElementById("log");
     const now = new Date().toLocaleTimeString();
@@ -203,7 +219,7 @@ function log(msg) {
     l.scrollTop = l.scrollHeight;
 }
 
-/********** BASE64 **********/
+/********** BASE64 – kép → szöveg a feltöltéshez **********/
 function fileToBase64(file, callback) {
     const reader = new FileReader();
     reader.onload = e => callback(e.target.result.split(",")[1]);
@@ -213,18 +229,28 @@ function fileToBase64(file, callback) {
 /********** 1) ÚJ KÖNYV **********/
 let lastManualUrl = "";
 
+/**
+ * Új könyv felvétele:
+ * - ha van feltöltött kép → először kép feltöltése (uploadImageOnly)
+ * - egyébként közvetlenül addBookOnly
+ */
 function ujKonyvKuldes() {
     log("Új könyv indítása…");
     const file = document.getElementById("k_file").files[0];
     lastManualUrl = document.getElementById("k_url").value.trim();
 
     if (file) {
+        // kép konvertálása base64-re, majd feltöltés
         fileToBase64(file, base64 => uploadImageOnly(base64, file.name));
     } else {
+        // nincs kép, közvetlenül könyv felvétele (csak URL vagy üres)
         addBookOnly(lastManualUrl);
     }
 }
 
+/**
+ * Kép feltöltése a backend API-ra (csak a képfájl)
+ */
 function uploadImageOnly(base64, filename) {
     const url = API_URL +
         "?action=uploadImageOnly" +
@@ -236,6 +262,9 @@ function uploadImageOnly(base64, filename) {
     document.body.appendChild(s);
 }
 
+/**
+ * Képfeltöltés válaszkezelő – ha sikeres, továbbmegyünk a könyv felvételére
+ */
 function uploadImageOnlyValasz(data) {
     if (!data.success) {
         log("❌ Képfeltöltés hiba: " + data.error);
@@ -245,6 +274,9 @@ function uploadImageOnlyValasz(data) {
     addBookOnly(kepUrl);
 }
 
+/**
+ * A könyv tényleges felvétele a táblázatba (kép-URL-t már ismerjük)
+ */
 function addBookOnly(kepUrl) {
     const purchased = document.getElementById("k_purchased").checked ? "x" : "";
     const url = API_URL +
@@ -264,14 +296,49 @@ function addBookOnly(kepUrl) {
     document.body.appendChild(s);
 }
 
+/**
+ * Könyvfelvétel válasza
+ */
+/**
+ * Új könyv felvételének backend válasza.
+ * Duplikáció esetén is idáig jutunk, csak success = false értékkel.
+ */
 function addBookOnlyValasz(data) {
-    if (data.success) log("✔ Könyv mentve!");
-    else log("❌ Hiba: " + data.error);
+
+    // Ha a mentés sikeres → zöld visszajelzés
+    if (data.success) {
+        log("✔ Könyv mentve!");
+        return;
+    }
+
+    // Ha duplikált a rekord → külön kiemelt üzenet
+    if (data.error === "Duplikált rekord") {
+
+        const author = data.duplicate?.Author || book.Author;
+        const title  = data.duplicate?.Title  || book.Title;
+
+        const warn =
+            `❌ Duplikáció (${i}): ${author} – ${title} → kihagyva.`;
+
+        resDiv.innerHTML += warn + "<br>";
+        log(warn);
+
+        duplicateRows.push({ Author: author, Title: title });
+    }
+
+
+
+    // Egyéb hiba esetén → alapértelmezett log üzenet
+    log("❌ Hiba: " + (data.error || "Ismeretlen hiba"));
 }
 
-/********** 2) LISTA **********/
+
+/********** 2) LISTA – betöltés, szűrés és megjelenítés **********/
 let lista = [];
 
+/**
+ * Lista adatok lekérése a backendtől
+ */
 function betoltesLista() {
     const url = API_URL + "?action=getLista&callback=listaValasz";
     const s = document.createElement("script");
@@ -279,11 +346,17 @@ function betoltesLista() {
     document.body.appendChild(s);
 }
 
+/**
+ * Lista adatok fogadása (JSONP válasz)
+ */
 function listaValasz(data) {
     lista = data.items || [];
     listaMegjelenites();
 }
 
+/**
+ * Lista tábla újrarenderelése szűrők alapján
+ */
 function listaMegjelenites() {
     const tbody = document.querySelector("#tabla_lista tbody");
     tbody.innerHTML = "";
@@ -296,11 +369,24 @@ function listaMegjelenites() {
             (item["Author"] || "").toLowerCase().includes(fszerzo) &&
             (item["Title"]  || "").toLowerCase().includes(fcim)
         ) {
+            // új sor létrehozása a lista táblához
             const tr = document.createElement("tr");
+
+            // ha van URL érték, akkor kattintható linket jelenítünk meg
+            const urlCell = (item["URL"] || "").trim()
+                ? `<a href="${item["URL"]}" target="_blank">link</a>`
+                : "";
+
             tr.innerHTML = `
-                <td>${item["Author"] || ""}</td>
+                <td>${item["Author"]
+ || ""}</td>
                 <td>${item["Title"] || ""}</td>
+                <td>${item["Original_Title"] || ""}</td>
+                <td>${item["Previous_Title"] || ""}</td>
                 <td>${item["Series"] || ""}</td>
+                <td>${item["Number"] || ""}</td>
+                <td>${urlCell}</td>
+                <td>${item["Year"] || ""}</td>
                 <td>${item["Purchased"] || ""}</td>
                 <td><button onclick="editRecord('${item["ID"]}')">Szerkesztés</button></td>
             `;
@@ -309,9 +395,15 @@ function listaMegjelenites() {
     });
 }
 
+/**
+ * Szűrőmezők változásakor a lista újrarenderelése
+ */
 function listaSzures() { listaMegjelenites(); }
 
-/********** 3) SZERKESZTÉS **********/
+/********** 3) SZERKESZTÉS – meglévő rekord módosítása **********/
+/**
+ * Szerkesztés indítása: a kiválasztott ID-hez tartozó rekord betöltése a panelbe
+ */
 function editRecord(id) {
     const item = lista.find(x => x["ID"] === id);
     if (!item) return;
@@ -330,10 +422,16 @@ function editRecord(id) {
     document.getElementById("editPanel").style.display = "block";
 }
 
+/**
+ * Szerkesztő panel elrejtése
+ */
 function closeEdit() {
     document.getElementById("editPanel").style.display = "none";
 }
 
+/**
+ * Módosított könyvadatok mentése a backend segítségével
+ */
 function saveEdit() {
     const url = API_URL +
         "?action=updateLista" +
@@ -353,6 +451,9 @@ function saveEdit() {
     document.body.appendChild(s);
 }
 
+/**
+ * Szerkesztés válasza – siker esetén újratöltjük a listát
+ */
 function saveEditValasz(data) {
     if (data.success) log("✔ Rekord frissítve");
     else log("❌ Hiba: " + data.error);
@@ -360,7 +461,7 @@ function saveEditValasz(data) {
     betoltesLista();
 }
 
-/********** 4) DATALIST **********/
+/********** 4) DATALIST – egyedi szerző- és sorozatlisták betöltése **********/
 function loadDropdownLists() {
     const url = API_URL +
         "?action=getUniqueLists" +
@@ -370,11 +471,17 @@ function loadDropdownLists() {
     document.body.appendChild(s);
 }
 
+/**
+ * Egyedi szerző- és sorozatlista feltöltése a datalist elemekbe
+ */
 function loadDropdownListsCallback(data) {
     fillDatalist(document.getElementById("authors_list"), data.authors, "Author");
     fillDatalist(document.getElementById("series_list"),  data.series,  "Series");
 }
 
+/**
+ * Általános segédfüggvény: datalist feltöltése egy field alapján
+ */
 function fillDatalist(datalistElem, list, keyName) {
     datalistElem.innerHTML = "";
     (list || []).forEach(item => {
@@ -387,9 +494,14 @@ function fillDatalist(datalistElem, list, keyName) {
 }
 
 /********** 5) CSV/TSV IMPORT **********/
+/**
+ * CSV/TSV fájl feldolgozása a List lap elvárt fejlécével.
+ * Támogatott mezők: ID, Author, Title, Original_Title, Previous_Title, Series, Number, URL, Year, Purchased
+ */
 function importCsv() {
     const fileInput = document.getElementById('csvFile');
     const file = fileInput.files[0];
+    let duplicateRows = [];   // <<---- 1. HELY: duplikált sorok gyűjtése
 
     if (!file) {
         alert("Válassz ki egy CSV/TSV fájlt!");
@@ -440,7 +552,7 @@ function importCsv() {
         const header = parseLine(rows[0]).map(h => h.trim());
         const expected = ["ID","Author","Title","Original_Title","Previous_Title","Series","Number","URL","Year","Purchased"];
 
-        // Fejléc ellenőrzés – pontos egyezés
+        // Fejléc ellenőrzés – pontos egyezés az elvárt List fejlécével
         let headerOk = (header.length === expected.length);
         if (headerOk) {
             for (let i = 0; i < expected.length; i++) {
@@ -473,13 +585,34 @@ function importCsv() {
         const resDiv = document.getElementById("importResult");
         resDiv.innerHTML = "";
 
+        /**
+         * Rekurzív feldolgozás: egy sor beküldése az API-nak,
+         * majd a callback után a következő sorra lépés.
+         */
         function sendNext(i) {
-            if (i >= rows.length) {
-                const summary = "✔ Import kész. Összesen " + imported + " sor beszúrva.";
-                resDiv.innerHTML += "<br><b>" + summary + "</b>";
-                log(summary);
-                return;
+        if (i >= rows.length) {
+
+            const summary = "✔ Import kész. Összesen " + imported + " sor beszúrva.";
+            resDiv.innerHTML += "<br><b>" + summary + "</b>";
+            log(summary);
+
+            // --- DUPLIKÁLT SOROK KILISTÁZÁSA ---
+            if (duplicateRows.length > 0) {
+                resDiv.innerHTML += "<br><h4>Kihagyott (duplikált) sorok:</h4>";
+
+                duplicateRows.forEach((d, idx) => {
+                    resDiv.innerHTML +=
+                        (idx+1) + ". " +
+                        "'" + d.Author + "' – '" + d.Title + "'" +
+                        (d.Original_Title ? " (" + d.Original_Title + ")" : "") +
+                        (d.Year ? ", " + d.Year : "") +
+                        "<br>";
+                });
             }
+
+            return;
+        }
+
 
             const line = rows[i];
             const cols = parseLine(line);
@@ -490,6 +623,7 @@ function importCsv() {
                 return;
             }
 
+            // A CSV egy sora → könyv objektum
             const book = {
                 Author:         (cols[idxAuthor]         || "").trim(),
                 Title:          (cols[idxTitle]          || "").trim(),
@@ -504,23 +638,54 @@ function importCsv() {
             const callbackName = "importCsvCallback_" + i;
             window[callbackName] = function(data) {
                 if (data && data.success) {
+
+                    // --- SIKERES IMPORT ---
                     imported++;
                     const b = data.inserted || book;
-                    const lineMsg = "✔ Sor betöltve: Author='" + (b.Author || "") +
+
+                    const lineMsg =
+                        "✔ Sor betöltve: Author='" + (b.Author || "") +
                         "', Title='" + (b.Title || "") +
                         "', Series='" + (b.Series || "") +
                         "', Year='" + (b.Year || "") + "'";
+
                     resDiv.innerHTML += lineMsg + "<br>";
                     log(lineMsg);
+
                 } else {
-                    const errMsg = "❌ Sor hiba (" + i + "): " + (data && data.error ? data.error : "ismeretlen hiba");
-                    resDiv.innerHTML += errMsg + "<br>";
-                    log(errMsg);
+
+                    // --- DUPLIKÁCIÓ ESETÉN ---
+                    if (data && data.error &&
+                        data.error.indexOf("Duplikált rekord") !== -1) {
+
+                        const warn =
+                            "❌ Duplikáció (" + i + "): A könyv már szerepel → kihagyva.";
+
+                        resDiv.innerHTML += warn + "<br>";
+                        log(warn);
+
+                        // Duplikált sor hozzáadása a listához
+                        duplicateRows.push(book);
+
+                    } else {
+
+                        // --- EGYÉB HIBA ---
+                        const errMsg =
+                            "❌ Sor hiba (" + i + "): " +
+                            (data && data.error ? data.error : "ismeretlen hiba");
+
+                        resDiv.innerHTML += errMsg + "<br>";
+                        log(errMsg);
+                    }
                 }
+
+
+
                 delete window[callbackName];
                 sendNext(i + 1);
             };
 
+            // Backend importCsvRow action hívása minden sorra
             const url = API_URL +
                 "?action=importCsvRow" +
                 "&Author="         + encodeURIComponent(book.Author) +
@@ -544,7 +709,7 @@ function importCsv() {
     reader.readAsText(file); // nincs kódolás paraméter – böngésző szerint
 }
 
-/********** INDULÁS **********/
+/********** INDULÁS – oldal betöltésekor **********/
 window.onload = function() {
     loadDropdownLists();
     mutat("ujkonyv");
