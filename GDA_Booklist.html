@@ -533,7 +533,7 @@ input[list].pulse {
 
 <script>
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbygEh-AaKUYKOYB_pZu8zDtnWjXYvjPFWO_p7Dkw06kFu8xl6aif0Adj7tr_Qrmsl-yCA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbw4E4-yf_MhRZ8E744wyJpGW4WlzYZuJ3JUrLokEPRnHSbf0-yZvOPP85Z7ib3JVIpPUg/exec";
 
 /********** OLDALVÁLTÁS **********/
 function mutat(id) {
@@ -736,15 +736,25 @@ function saveBookFromModal() {
 }
 
 function uploadImageOnlyForModal(base64, filename) {
+
+    log("DEBUG: uploadImageOnlyForModal called (" + filename + ")");
+
     const url = API_URL +
         "?action=uploadImageOnly" +
         "&base64=" + encodeURIComponent(base64) +
         "&filename=" + encodeURIComponent(filename) +
         "&callback=uploadImageOnlyForModalValasz";
+
     const s = document.createElement("script");
-    s.src = url;
+    s.src = url + "&_=" + Date.now(); // cache elkerülése
+    s.onerror = () => {
+        log("❌ JSONP betöltési hiba");
+    };
     document.body.appendChild(s);
 }
+
+
+
 
 function uploadImageOnlyForModalValasz(data) {
     if (!data.success) {
