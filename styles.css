@@ -48,73 +48,93 @@ body {
     padding: 0 16px;
 }
 
-/* NAV háttér – élénk pink → kék átmenet */
+/* NAV háttér – rózsaszín → szürke → kék (finom) */
 nav {
-    background: linear-gradient(135deg, #f472b6, #3b82f6);
-    border-radius: var(--radius-xl);
-    padding: 12px;
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-    position: sticky;
-    top: 16px;
-    z-index: 20;
+background: linear-gradient(135deg, #f9cfe3, #d9d9df, #a7c7ff);
+border-radius: var(--radius-xl);
+padding: 12px;
+display: flex;
+gap: 10px;
+justify-content: center;
+align-items: center;
+box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+position: sticky;
+top: 16px;
+z-index: 20;
 }
+
 
 
 /* NAV gombok – erős színek */
 nav button {
-    border: none;
-    padding: 12px 22px;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
+border: none;
+padding: 12px 44px; /* doubled width */
+border-radius: 999px;
+cursor: pointer;
+font-size: 15px;
+font-weight: 600;
+letter-spacing: 0.03em;
 
-    /* Erősebb átmenetes háttér */
-    background: linear-gradient(135deg, #f472b6, #3b82f6);
-    color: #ffffff;
 
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    transition: background 0.25s ease, transform 0.15s ease, box-shadow 0.2s ease;
+/* new gradient: pink → grey → blue */
+background: linear-gradient(135deg, #f9cfe3, #d9d9df, #a7c7ff);
+color: #ffffff;
+
+
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+transition: background 0.25s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 /* Hover – még erősebb árnyalatok */
 nav button:hover {
-    background: linear-gradient(135deg, #ec4899, #2563eb);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+background: linear-gradient(135deg, #f8bddc, #cfcfd5, #97baff);
+transform: translateY(-2px);
+box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
 /* Aktív fül – erősen kiemelve */
 nav button.active {
-    background: linear-gradient(135deg, #fbcfe8, #93c5fd);
-    color: #1e3a8a;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-    transform: translateY(-1px);
+background: linear-gradient(135deg, #fbe6f2, #e3e3e8, #c7d9ff);
+color: #1e3a8a;
+box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+transform: translateY(-1px);
 }
 
 
 
-/* PAGES */
 .page {
     display: none;
-    margin-top: 24px;
-    padding: 24px 24px 28px;
-    border-radius: var(--radius-xl);
-    background: var(--card-bg);
-    box-shadow: var(--shadow-soft);
+    margin-top: -20px; /* közelebb a fejléchez */
+    padding: 40px 24px 28px;
+
+    border-radius: 30px;
+    
+    /* finom átmenet a fejlécből */
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.15),
+        #f3f4f6 40%
+    );
+
+    box-shadow: 0 10px 28px rgba(0,0,0,0.12);
 }
+
+
 
 /* HEADINGS & TEXT */
 .page h1 {
     margin-top: 0;
     margin-bottom: 12px;
-    font-size: 24px;
+    font-size: 26px;
+
+    /* háttér eltávolítva */
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
 }
+
+
 
 h3 {
     margin-top: 18px;
@@ -200,12 +220,16 @@ input[list] {
 /* TABLE */
 .table-wrapper {
     margin-top: 10px;
-    border-radius: 12px;
-    border: 1px solid var(--border-soft);
-    overflow: hidden;
-    background: #f9fafb;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    border-radius: 16px;
+
+    /* ÚJ: pasztell kék átmenet */
+    background: linear-gradient(135deg, #c7d2fe, #e0e7ff);
+
+    border: 1px solid #d1d5db;
+    padding: 12px; /* hogy a keret szebb legyen */
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
 }
+
 .table-scroll { overflow-x: auto; }
 
 table {
@@ -359,28 +383,32 @@ a.link:hover { text-decoration: underline; }
 input[list].pulse {
     animation: datalistPulse 0.6s ease-out;
 }
-/* ---- FEJLÉC ---- */
+/* ---- FEJLÉC – alacsonyabb + rózsaszín → szürke → kék ---- */
 .header {
-    width: 100%;
-    padding: 55px 20px;
-    text-align: center;
+width: 100%;
+padding: 28px 20px; /* reduced height */
+text-align: center;
 
-    /* Blue → Lavender → Pink */
-    background: linear-gradient(135deg, #3b82f6, #c084fc, #f9a8d4);
 
-    border-radius: 0 0 30px 30px;
-    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.25);
+/* new gradient: pink → grey → blue */
+background: linear-gradient(135deg, #f9cfe3, #d9d9df, #a7c7ff);
+
+
+border-radius: 0 0 40px 40px;
+box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
 }
 
-.header-title {
-    font-family: 'Great Vibes', cursive;
-    font-size: 72px;
-    font-weight: normal;
-    color: #ffffff;
 
-    text-shadow:
-        0 3px 6px rgba(0,0,0,0.25),
-        0 0 14px rgba(255,255,255,0.7);
+.header-title {
+font-family: 'Great Vibes', cursive;
+font-size: 72px;
+font-weight: normal;
+color: #e06699; /* pink text */
+
+
+text-shadow:
+0 3px 6px rgba(0,0,0,0.25),
+0 0 14px rgba(255,255,255,0.7);
 }
 /* ---- FEJLÉC IKON ---- */
 .header-icon {
@@ -391,5 +419,10 @@ input[list].pulse {
         0 0 12px rgba(255,255,255,0.7);
 }
 
+.header-icon-img {
+    height: 70px;
+    width: auto;
+    opacity: 0.95;
+}
 
 

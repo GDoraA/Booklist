@@ -17,14 +17,8 @@
 
 <!-- FEJLÉC -->
 <div class="header">
-    <div style="display:flex; justify-content:center; align-items:center; gap:16px;">
-        
-        <!-- A feltöltött könyves ikon -->
-        <img src="/mnt/data/c9399f51-f5ac-48bf-84bb-5077d3c8b946.png"
-             alt="Books icon"
-             class="header-icon-img">
-
-        <div class="header-title">GDA könyvei</div>
+    <div class="header-title">
+        📖 GDA könyvei
     </div>
 </div>
 
@@ -34,19 +28,35 @@
 
 
     <nav>
-        <button id="tab_lista" class="active" onclick="mutat('lista')">Lista</button>
-        <button id="tab_import" onclick="mutat('import')">CSV/TSV importálása</button>
+        <button id="tab_lista" class="active" onclick="mutat('lista')">
+            📝 Lista
+        </button>
+
+        <button id="tab_import" onclick="mutat('import')">
+            📥 Import
+        </button>
     </nav>
+
 
     <!-- LISTA -->
     <div class="page" id="lista">
         <h1>Könyvlista</h1>
 
-        <div class="stats-bar">
-            <div class="stat-card">Összes könyv: <span id="stat_total">0</span></div>
-            <div class="stat-card" style="background:#dcfce7;color:#15803d;">Megvásárolt: <span id="stat_purchased">0</span></div>
-            <div class="stat-card" style="background:#fee2e2;color:#b91c1c;">Nincs még meg: <span id="stat_missing">0</span></div>
-        </div>
+            <div class="stats-bar">
+                <div class="stat-card" style="background:#dce8ff;color:#335a96;">
+                    Összes könyv: <span id="stat_total">0</span>
+                </div>
+
+                <div class="stat-card" style="background:#f9e5ef;color:#9b3d68;">
+                    Megvásárolt: <span id="stat_purchased">0</span>
+                </div>
+
+                <div class="stat-card" style="background:#ececef;color:#5a5d6b;">
+                    Nincs még meg: <span id="stat_missing">0</span>
+                </div>
+            </div>
+
+
 
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
             <button class="btn btn-primary" onclick="openBookModal('new')">Új könyv felvétele</button>
