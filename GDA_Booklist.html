@@ -372,7 +372,8 @@ input[list].pulse {
         <div class="filters">
             <div>
                 <label>Szerző</label><br>
-                <input id="ls_szerzo" oninput="listaSzures()">
+                <input id="ls_szerzo" list="authors_list_filter" oninput="listaSzures()">
+                <datalist id="authors_list_filter"></datalist>
             </div>
             <div>
                 <label>Cím</label><br>
@@ -380,7 +381,8 @@ input[list].pulse {
             </div>
             <div>
                 <label>Sorozat</label><br>
-                <input id="ls_sorozat" oninput="listaSzures()">
+                <input id="ls_sorozat" list="series_list_filter" oninput="listaSzures()">
+                <datalist id="series_list_filter"></datalist>
             </div>
             <div>
                 <label>Év (tól)</label><br>
@@ -407,17 +409,15 @@ input[list].pulse {
                         <tr>
                             <th class="sortable" onclick="setSort('Author')">Szerző</th>
                             <th class="sortable" onclick="setSort('Title')">Cím</th>
-                            <th class="sortable" onclick="setSort('Original_Title')">Eredeti cím</th>
-                            <th class="sortable" onclick="setSort('Previous_Title')">Korábbi cím</th>
                             <th class="sortable" onclick="setSort('Series')">Sorozat</th>
-                            <th class="sortable" onclick="setSort('Number')">Ssz</th>
-                            <th>URL</th>
                             <th class="sortable" onclick="setSort('Year')">Év</th>
                             <th class="sortable" onclick="setSort('Purchased')">Megv.</th>
                             <th class="sortable" onclick="setSort('For_sale')">Eladó</th>
+                            <th class="sortable" onclick="setSort('Price')">Ár</th>
                             <th>Művelet</th>
                         </tr>
                     </thead>
+
                     <tbody></tbody>
                 </table>
             </div>
@@ -499,6 +499,16 @@ input[list].pulse {
                 <input type="checkbox" id="bm_forsale" style="width:auto;">
                 <label style="margin:0;">Eladó</label>
             </div>
+            <div>
+                <label>Ár</label><br>
+                <input id="bm_ar" type="number" step="1">
+            </div>
+
+            <div>
+                <label>Megjegyzés</label><br>
+                <input id="bm_megjegy">
+            </div>
+
         </div>
 
         <div class="modal-image-section">
@@ -516,7 +526,7 @@ input[list].pulse {
 
 <script>
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbyt8y-OxY5sflOm5jv6FqPxJ4S2QXvdSylJjIYT_AoXxJGGzXIF2qYsMrQL-Q6-jQJ2Hw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbygEh-AaKUYKOYB_pZu8zDtnWjXYvjPFWO_p7Dkw06kFu8xl6aif0Adj7tr_Qrmsl-yCA/exec";
 
 /********** OLDALVÁLTÁS **********/
 function mutat(id) {
@@ -560,7 +570,11 @@ function dropdownListsCallback(data) {
     fillDatalist(document.getElementById("authors_list_modal"), data.authors, "Author");
     fillDatalist(document.getElementById("series_list_modal"), data.series, "Series");
 
-    // fuzzy keresés aktiválása
+    // Szűrőmezők datalist feltöltése
+    fillDatalist(document.getElementById("authors_list_filter"), data.authors, "Author");
+    fillDatalist(document.getElementById("series_list_filter"), data.series, "Series");
+
+    // fuzzy keresés modal mezőkben
     enableFuzzyDatalist("bm_szerzo", "authors_list_modal");
     enableFuzzyDatalist("bm_sorozat", "series_list_modal");
 
@@ -572,7 +586,12 @@ function dropdownListsCallback(data) {
         document.getElementById("bm_szerzo").classList.remove("pulse");
         document.getElementById("bm_sorozat").classList.remove("pulse");
     }, 700);
+
+    // 🔥 Fuzzy keresés a SZŰRŐ mezőkre
+    enableFuzzyDatalist("ls_szerzo", "authors_list_filter");
+    enableFuzzyDatalist("ls_sorozat", "series_list_filter");
 }
+
 
 function fillDatalist(dl, list, key) {
     dl.innerHTML = "";
@@ -612,7 +631,6 @@ function openBookModal(mode, id) {
         document.getElementById("modalTitle").textContent = "Új könyv felvétele";
         document.getElementById("bm_id").value = "";
         document.getElementById("bm_existing_url").value = "";
-
         document.getElementById("bm_szerzo").value = "";
         document.getElementById("bm_cim").value = "";
         document.getElementById("bm_eredeti").value = "";
@@ -623,6 +641,9 @@ function openBookModal(mode, id) {
         document.getElementById("bm_url").value = "";
         document.getElementById("bm_purchased").checked = false;
         document.getElementById("bm_forsale").checked = false;
+        document.getElementById("bm_ar").value      = "";
+        document.getElementById("bm_megjegy").value = "";
+
 
         const img = document.getElementById("bm_preview");
         img.style.display = "none";
@@ -649,6 +670,8 @@ function openBookModal(mode, id) {
         document.getElementById("bm_url").value      = item["URL"] || "";
         document.getElementById("bm_purchased").checked = (item["Purchased"] === "x");
         document.getElementById("bm_forsale").checked   = (item["For_sale"] === "x");
+        document.getElementById("bm_ar").value      = item["Price"] || "";
+        document.getElementById("bm_megjegy").value = item["Comment"] || "";
 
         const img = document.getElementById("bm_preview");
         if (item["URL"]) {
@@ -688,7 +711,10 @@ function saveBookFromModal() {
         Number:         document.getElementById("bm_ssz").value.trim(),
         Year:           document.getElementById("bm_ev").value.trim(),
         Purchased:      document.getElementById("bm_purchased").checked ? "x" : "",
-        For_sale:       document.getElementById("bm_forsale").checked ? "x" : ""
+        For_sale:       document.getElementById("bm_forsale").checked ? "x" : "",
+        Price:    document.getElementById("bm_ar").value.trim(),
+        Comment:  document.getElementById("bm_megjegy").value.trim()
+
     };
 
     const manualUrl = document.getElementById("bm_url").value.trim();
@@ -753,6 +779,8 @@ function finalizeSaveBook(kepUrl) {
             "&ev="           + encodeURIComponent(d.Year) +
             "&megv="         + encodeURIComponent(d.Purchased) +
             "&elado="        + encodeURIComponent(d.For_sale) +
+            "&ar="           + encodeURIComponent(d.Price) +
+            "&megjegy="      + encodeURIComponent(d.Comment) +
             "&callback=modalAddBookValasz";
 
         const s = document.createElement("script");
@@ -773,6 +801,8 @@ function finalizeSaveBook(kepUrl) {
             "&ev="           + encodeURIComponent(d.Year) +
             "&megv="         + encodeURIComponent(d.Purchased) +
             "&elado="        + encodeURIComponent(d.For_sale) +
+            "&ar="           + encodeURIComponent(d.Price) +
+            "&megjegy="      + encodeURIComponent(d.Comment) +
             "&callback=modalUpdateBookValasz";
 
         const s = document.createElement("script");
@@ -932,12 +962,17 @@ function listaMegjelenites() {
         let av = a[f] || "";
         let bv = b[f] || "";
 
-        if (f === "Year" || f === "Number") {
-            av = parseInt(av, 10); if (isNaN(av)) av = 0;
-            bv = parseInt(bv, 10); if (isNaN(bv)) bv = 0;
+        // 1) Számmezők – numerikus rendezés
+        if (f === "Year" || f === "Number" || f === "Price") {
+            av = parseFloat(av); if (isNaN(av)) av = 0;
+            bv = parseFloat(bv); if (isNaN(bv)) bv = 0;
+
+        // 2) Checkbox mezők – boolean rendezés
         } else if (f === "Purchased" || f === "For_sale") {
             av = av === "x" ? 1 : 0;
             bv = bv === "x" ? 1 : 0;
+
+        // 3) Szöveges mezők
         } else {
             av = String(av).toLowerCase();
             bv = String(bv).toLowerCase();
@@ -947,6 +982,7 @@ function listaMegjelenites() {
         if (av > bv) return currentSort.dir === "asc" ? 1 : -1;
         return 0;
     });
+
 
     // Statisztikák
     const total = lista.length;
@@ -967,18 +1003,19 @@ function listaMegjelenites() {
         tr.innerHTML = `
             <td>${item["Author"] || ""}</td>
             <td>${item["Title"] || ""}</td>
-            <td>${item["Original_Title"] || ""}</td>
-            <td>${item["Previous_Title"] || ""}</td>
             <td>${item["Series"] || ""}</td>
-            <td>${item["Number"] || ""}</td>
-            <td>${urlCell}</td>
             <td>${item["Year"] || ""}</td>
+
             <td style="text-align:center;">
                 <input type="checkbox" disabled ${item["Purchased"] === "x" ? "checked" : ""}>
             </td>
+
             <td style="text-align:center;">
                 <input type="checkbox" disabled ${item["For_sale"] === "x" ? "checked" : ""}>
             </td>
+
+            <td>${item["Price"] || ""}</td>
+
             <td>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
                     <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">Szerk.</button>
@@ -986,6 +1023,8 @@ function listaMegjelenites() {
                 </div>
             </td>
         `;
+
+
         tbody.appendChild(tr);
     });
 }
@@ -1215,6 +1254,10 @@ function importCsv() {
 window.onload = function() {
     mutat("lista");
 };
+
+// Szűrőmezők datalist-jének betöltése oldalbetöltéskor
+loadDropdownLists();
+
 </script>
 </body>
 </html>
