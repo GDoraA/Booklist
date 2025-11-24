@@ -237,7 +237,7 @@ table {
     width: 100%;
     min-width: 900px;
 }
-table thead { background: #fce7f3; }
+table thead { background: #f9dbe8; }
 
 table th, table td {
     padding: 8px 10px;
@@ -446,4 +446,25 @@ text-shadow:
     opacity: 0.95;
 }
 
+/* Reszponzív görgetés */
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Mobilon kisebb betű, kompaktabb layout */
+@media (max-width: 600px) {
+    table {
+        font-size: 12px;
+        min-width: 650px; /* nem törik össze */
+    }
+
+    table th, table td {
+        padding: 6px 8px;
+    }
+
+    .table-wrapper {
+        padding: 8px;
+    }
+}
 
