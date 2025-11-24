@@ -223,7 +223,7 @@ input[list] {
     border-radius: 16px;
 
     /* ÚJ: pasztell kék átmenet */
-    background: linear-gradient(135deg, #c7d2fe, #e0e7ff);
+    background: linear-gradient(135deg, #f9dbe8, #e0e7ff);
 
     border: 1px solid #d1d5db;
     padding: 12px; /* hogy a keret szebb legyen */
@@ -256,9 +256,30 @@ table th.sortable:hover { background: #fbcfe8; }
 table tbody tr:nth-child(even) { background: #f9f5fa; }
 table tbody tr:hover { background: #e5f0ff; }
 
+/* reszponzív táblázat – mobilbarát */
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 600px) {
+    table {
+        font-size: 12px;
+        min-width: 600px;  /* görgethető marad, nem törik össze */
+    }
+
+    table th, table td {
+        padding: 6px 8px;
+    }
+
+    .table-wrapper {
+        padding: 8px;
+    }
+}
+
 /* LOG */
 #log {
-    background: rgba(17, 24, 39, 0.96);
+    background: rgba(83, 34, 139, 0.96);
     color: #ffe4f9;
     padding: 10px 14px;
     height: 200px;

@@ -502,8 +502,9 @@ function listaMegjelenites() {
 
             <td>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">Szerk.</button>
-                    <button class="btn btn-danger" onclick="deleteRecord('${item["ID"]}')">Törlés</button>
+                    <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
+                    <button class="btn btn-danger" style="background:#f8d7da;color:#8a1c1c;"> 🗑️ Törlés </button>
+
                 </div>
             </td>
         `;
