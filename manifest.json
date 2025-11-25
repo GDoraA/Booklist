@@ -5,6 +5,9 @@
   "display": "standalone",
   "background_color": "#f9e5ef",
   "theme_color": "#a7c7ff",
+
+  "orientation": "portrait",
+
   "icons": [
     {
       "src": "assets/books_256.png",
@@ -16,16 +19,14 @@
       "sizes": "512x512",
       "type": "image/png"
     }
+  ],
+
+  "screenshots": [
+    {
+      "src": "assets/splash.png",
+      "sizes": "1242x2208",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
   ]
 }
-"background_color": "#a7c7ff",
-"display": "standalone",
-"orientation": "portrait",
-"screenshots": [
-  {
-    "src": "assets/splash.png",
-    "sizes": "1242x2208",
-    "type": "image/png",
-    "form_factor": "wide"
-  }
-]
