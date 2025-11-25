@@ -15,10 +15,12 @@
         <meta name="theme-color" content="#a7c7ff">
 
         <script>
-        if ("serviceWorker" in navigator) {
+        // NE regisztrálja a service workert, ha file:// alatt fut
+        if (location.protocol !== "file:" && "serviceWorker" in navigator) {
             navigator.serviceWorker.register("service-worker.js");
         }
         </script>
+
 
 </head>
 
