@@ -380,6 +380,10 @@ function validateYearFilter(input) {
 
 /********** LISTA **********/
 let lista = [];
+// Pagináció
+let currentPage = 1;
+let limit = Infinity;      // "Összes" induláskor
+let filteredList = [];
 
 function betoltesLista() {
     const url = API_URL + "?action=getLista&callback=listaValasz&_=" + Date.now();
@@ -446,17 +450,12 @@ function listaMegjelenites() {
         let av = a[f] || "";
         let bv = b[f] || "";
 
-        // 1) Számmezők – numerikus rendezés
         if (f === "Year" || f === "Number" || f === "Price") {
             av = parseFloat(av); if (isNaN(av)) av = 0;
             bv = parseFloat(bv); if (isNaN(bv)) bv = 0;
-
-        // 2) Checkbox mezők – boolean rendezés
         } else if (f === "Purchased" || f === "For_sale") {
             av = av === "x" ? 1 : 0;
             bv = bv === "x" ? 1 : 0;
-
-        // 3) Szöveges mezők
         } else {
             av = String(av).toLowerCase();
             bv = String(bv).toLowerCase();
@@ -467,8 +466,32 @@ function listaMegjelenites() {
         return 0;
     });
 
+    // Paginációs alap
+    filteredList = filtered;
+    let pageItems = [];
 
-    // Statisztikák
+    const pageInfoEl = document.getElementById("pageInfo");
+
+    if (!Number.isFinite(limit)) {
+        // Összes
+        currentPage = 1;
+        pageItems = filteredList;
+        if (pageInfoEl) pageInfoEl.textContent = "1 / 1";
+    } else {
+        const totalPages = Math.max(1, Math.ceil(filteredList.length / limit));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const start = (currentPage - 1) * limit;
+        const end   = start + limit;
+
+        pageItems = filteredList.slice(start, end);
+
+        if (pageInfoEl) {
+            pageInfoEl.textContent = currentPage + " / " + totalPages;
+        }
+    }
+
+    // Statisztikák (teljes lista alapján)
     const total = lista.length;
     const purchasedCount = lista.filter(i => i["Purchased"] === "x").length;
     const missingCount = total - purchasedCount;
@@ -476,8 +499,8 @@ function listaMegjelenites() {
     document.getElementById("stat_purchased").textContent = purchasedCount;
     document.getElementById("stat_missing").textContent = missingCount;
 
-    // Sorok
-    filtered.forEach(item => {
+    // Sorok – csak az aktuális oldal elemeiből
+    pageItems.forEach(item => {
         const tr = document.createElement("tr");
 
         const urlCell = (item["URL"] || "").trim()
@@ -504,17 +527,20 @@ function listaMegjelenites() {
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
                     <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
                     <button class="btn btn-danger" style="background:#f8d7da;color:#8a1c1c;"> 🗑️ Törlés </button>
-
                 </div>
             </td>
         `;
-
 
         tbody.appendChild(tr);
     });
 }
 
-function listaSzures() { listaMegjelenites(); }
+
+function listaSzures() {
+    currentPage = 1;
+    listaMegjelenites();
+}
+
 
 /********** SZERKESZTÉS – most már MODAL **********/
 function editRecord(id) {
@@ -734,9 +760,59 @@ function importCsv() {
 
     reader.readAsText(file);
 }
+function changeLimit() {
+    const val = document.getElementById("limitSelect").value;
+
+    if (val === "all") {
+        limit = Infinity;
+    } else {
+        limit = parseInt(val, 10);
+        if (isNaN(limit) || limit <= 0) {
+            limit = Infinity;
+        }
+    }
+
+    currentPage = 1;
+    listaMegjelenites();
+}
+
+function firstPage() {
+    currentPage = 1;
+    listaMegjelenites();
+}
+
+function prevPage() {
+    if (!Number.isFinite(limit)) return;
+
+    const totalPages = Math.max(1, Math.ceil(filteredList.length / limit));
+    if (currentPage > 1) {
+        currentPage--;
+        listaMegjelenites();
+    }
+}
+
+function nextPage() {
+    if (!Number.isFinite(limit)) return;
+
+    const totalPages = Math.max(1, Math.ceil(filteredList.length / limit));
+    if (currentPage < totalPages) {
+        currentPage++;
+        listaMegjelenites();
+    }
+}
+
+function lastPage() {
+    if (!Number.isFinite(limit)) return;
+
+    const totalPages = Math.max(1, Math.ceil(filteredList.length / limit));
+    currentPage = totalPages;
+    listaMegjelenites();
+}
 
 /********** INDULÁS **********/
 window.onload = function() {
+    const sel = document.getElementById("limitSelect");
+    if (sel) sel.value = "all";
     mutat("lista");
 };
 

@@ -468,7 +468,21 @@ text-shadow:
     }
 }
 
-/* --- LAPOZÓ SÁV STÍLUSAI (új funkció) --- */
+/* --- STICKY TÁBLÁZAT FEJLÉC --- */
+table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #f9dbe8;
+}
+
+/* --- VERTIKÁLIS GÖRGETÉS A TÁBLÁZATNAK --- */
+.table-scroll {
+    max-height: 70vh;       /* táblázat max magasság */
+    overflow-y: auto;       /* vertikális görgetés */
+}
+
+/* --- LAPOZÓ SÁV STÍLUSAI (már nálad is ott vannak, csak itt összefoglalva) --- */
 .pagination-bar {
     display: flex;
     justify-content: space-between;
