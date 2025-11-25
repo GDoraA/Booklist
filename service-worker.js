@@ -1,10 +1,13 @@
 self.addEventListener("install", e => {
   e.waitUntil(
-    caches.open("gda-cache-v2").then(cache => {
+    caches.open("gda-cache-v3").then(cache => {
       return cache.addAll([
         "/index.html",
         "/styles.css",
-        "/app.js"
+        "/app.js",
+        "/assets/books_256.png",
+        "/assets/books.png",
+        "/assets/splash.png"
       ]);
     })
   );
