@@ -393,9 +393,30 @@ function betoltesLista() {
 }
 
 function listaValasz(data) {
-    lista = data.items || [];
+
+    if (!data || !Array.isArray(data.items)) {
+        log("Hiba: A backend hibás adatot küldött:", data);
+        lista = [];
+        listaMegjelenites();
+        return;
+    }
+
+    // MINDEN BEJÖVŐ MEZŐT STRINGGÉ ALAKÍTUNK
+    lista = data.items.map(item => {
+        const norm = {};
+        for (const key in item) {
+            // null / undefined → ""
+            // minden más → String()
+            norm[key] = (item[key] === null || item[key] === undefined)
+                ? ""
+                : String(item[key]);
+        }
+        return norm;
+    });
+
     listaMegjelenites();
 }
+
 
 let currentSort = { field: "Author", dir: "asc" };
 
