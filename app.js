@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbw4E4-yf_MhRZ8E744wyJpGW4WlzYZuJ3JUrLokEPRnHSbf0-yZvOPP85Z7ib3JVIpPUg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyCz54M52ULU9dYF6j5JkSE7UnDcUlkqGFzVDKf4RfwN1d7FZgfcvOAMn2iXxbw5rkWAA/exec";
 
 /********** OLDALVÁLTÁS **********/
 function mutat(id) {
