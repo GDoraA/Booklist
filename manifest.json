@@ -18,3 +18,14 @@
     }
   ]
 }
+"background_color": "#a7c7ff",
+"display": "standalone",
+"orientation": "portrait",
+"screenshots": [
+  {
+    "src": "assets/splash.png",
+    "sizes": "1242x2208",
+    "type": "image/png",
+    "form_factor": "wide"
+  }
+]
