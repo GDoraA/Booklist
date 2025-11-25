@@ -53,21 +53,19 @@
     <div class="page" id="lista">
         <h1>Könyvlista</h1>
 
-            <div class="stats-bar">
-                <div class="stat-card" style="background:#dce8ff;color:#335a96;">
-                    Összes könyv: <span id="stat_total">0</span>
-                </div>
-
-                <div class="stat-card" style="background:#f9e5ef;color:#9b3d68;">
-                    Megvásárolt: <span id="stat_purchased">0</span>
-                </div>
-
-                <div class="stat-card" style="background:#ececef;color:#5a5d6b;">
-                    Nincs még meg: <span id="stat_missing">0</span>
-                </div>
+        <div class="stats-bar">
+            <div class="stat-card" style="background:#dce8ff;color:#335a96;">
+                Összes könyv: <span id="stat_total">0</span>
             </div>
 
+            <div class="stat-card" style="background:#f9e5ef;color:#9b3d68;">
+                Megvásárolt: <span id="stat_purchased">0</span>
+            </div>
 
+            <div class="stat-card" style="background:#ececef;color:#5a5d6b;">
+                Nincs még meg: <span id="stat_missing">0</span>
+            </div>
+        </div>
 
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
             <button class="btn btn-primary" onclick="openBookModal('new')">➕ Új könyv felvétele</button>
@@ -92,11 +90,13 @@
             </div>
             <div>
                 <label>Év (tól)</label><br>
-                <input id="ls_ev_min" type="number" min="1" max="9999" step="1" oninput="validateYearFilter(this); listaSzures()">
+                <input id="ls_ev_min" type="number" min="1" max="9999" step="1"
+                       oninput="validateYearFilter(this); listaSzures()">
             </div>
             <div>
                 <label>Év (ig)</label><br>
-                <input id="ls_ev_max" type="number" min="1" max="9999" step="1" oninput="validateYearFilter(this); listaSzures()">
+                <input id="ls_ev_max" type="number" min="1" max="9999" step="1"
+                       oninput="validateYearFilter(this); listaSzures()">
             </div>
             <div>
                 <label>Megvásárolva</label><br>
@@ -107,6 +107,30 @@
                 </select>
             </div>
         </div>
+
+        <!-- 🔽 ELEM-SZÁM + LAPOZÁS BLOKK 🔽 -->
+        <div class="pagination-bar">
+            <div>
+                <label>Elemek száma:</label>
+                <select id="limitSelect" onchange="changeLimit()">
+                    <option value="all">Összes</option>
+                    <option value="10">10</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="500">500</option>
+                    <option value="1000">1000</option>
+                </select>
+            </div>
+
+            <div class="pager">
+                <button onclick="firstPage()">⏮️</button>
+                <button onclick="prevPage()">◀️</button>
+                <span id="pageInfo">1 / 1</span>
+                <button onclick="nextPage()">▶️</button>
+                <button onclick="lastPage()">⏭️</button>
+            </div>
+        </div>
+        <!-- 🔼 ELEM-SZÁM + LAPOZÁS BLOKK 🔼 -->
 
         <div class="table-wrapper mt-8">
             <div class="table-scroll">
@@ -129,6 +153,7 @@
             </div>
         </div>
     </div>
+
 
     <!-- IMPORT -->
     <div class="page" id="import">
