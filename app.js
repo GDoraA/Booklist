@@ -653,7 +653,8 @@ function importCsv() {
         const idxURL            = header.indexOf("URL");
         const idxYear           = header.indexOf("Year");
         const idxForSale        = header.indexOf("For_sale");
-
+        const idxPurchased     = header.indexOf("Purchased");
+ 
         let imported = 0;
         const resDiv = document.getElementById("importResult");
         resDiv.innerHTML = "";
@@ -695,7 +696,9 @@ function importCsv() {
                 Number:         (cols[idxNumber]         || "").trim(),
                 URL:            (cols[idxURL]            || "").trim(),
                 Year:           (cols[idxYear]           || "").trim(),
-                For_sale:       (cols[idxForSale]        || "").trim()
+                For_sale:       (cols[idxForSale]        || "").trim(),
+                Purchased:      (cols[idxPurchased]     || "").trim(),
+
             };
 
             const callbackName = "importCsvCallback_" + i;
@@ -748,6 +751,7 @@ function importCsv() {
                 "&URL="            + encodeURIComponent(book.URL) +
                 "&Year="           + encodeURIComponent(book.Year) +
                 "&For_sale="       + encodeURIComponent(book.For_sale) +
+                "&Purchased=" + encodeURIComponent(book.Purchased) +
                 "&callback="       + callbackName;
 
             const s = document.createElement("script");
