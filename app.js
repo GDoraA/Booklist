@@ -653,7 +653,7 @@ function importCsv() {
         const idxURL            = header.indexOf("URL");
         const idxYear           = header.indexOf("Year");
         const idxForSale        = header.indexOf("For_sale");
-        const idxPurchased     = header.indexOf("Purchased");
+        const idxPurchased      = header.indexOf("Purchased");
  
         let imported = 0;
         const resDiv = document.getElementById("importResult");
@@ -696,10 +696,10 @@ function importCsv() {
                 Number:         (cols[idxNumber]         || "").trim(),
                 URL:            (cols[idxURL]            || "").trim(),
                 Year:           (cols[idxYear]           || "").trim(),
-                For_sale:       (cols[idxForSale]        || "").trim(),
-                Purchased:      (cols[idxPurchased]     || "").trim(),
-
+                Purchased:      (cols[idxPurchased]      || "").trim(),
+                For_sale:       (cols[idxForSale]        || "").trim()
             };
+            log("DEBUG IMPORT: " + JSON.stringify(book));
 
             const callbackName = "importCsvCallback_" + i;
             window[callbackName] = function(data) {
@@ -750,8 +750,9 @@ function importCsv() {
                 "&Number="         + encodeURIComponent(book.Number) +
                 "&URL="            + encodeURIComponent(book.URL) +
                 "&Year="           + encodeURIComponent(book.Year) +
+                "&megv="           + encodeURIComponent(book.Purchased) +
                 "&For_sale="       + encodeURIComponent(book.For_sale) +
-                "&Purchased=" + encodeURIComponent(book.Purchased) +
+                "&Purchased="      + encodeURIComponent(book.Purchased) +
                 "&callback="       + callbackName;
 
             const s = document.createElement("script");
