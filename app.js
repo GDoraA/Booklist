@@ -838,7 +838,7 @@ function lastPage() {
 /********** INDULÁS **********/
 window.onload = function() {
     const sel = document.getElementById("limitSelect");
-    if (sel) sel.value = "all";
+    if (sel) sel.value = "50";
     mutat("lista");
 };
 
