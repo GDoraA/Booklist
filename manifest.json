@@ -7,12 +7,12 @@
   "theme_color": "#a7c7ff",
   "icons": [
     {
-      "src": "icon-192.png",
-      "sizes": "192x192",
+      "src": "assets/books_256.png",
+      "sizes": "256x256",
       "type": "image/png"
     },
     {
-      "src": "icon-512.png",
+      "src": "assets/books.png",
       "sizes": "512x512",
       "type": "image/png"
     }
