@@ -447,7 +447,7 @@ function listaMegjelenites() {
         const series = String(item["Series"] || "").toLowerCase();
         const year   = parseInt(item["Year"] || "", 10);
         const purchased = item["Purchased"] || "";
-
+        
         if (fszerzo && !author.includes(fszerzo)) return false;
         if (fcim && !title.includes(fcim)) return false;
         if (fseries && !series.includes(fseries)) return false;
