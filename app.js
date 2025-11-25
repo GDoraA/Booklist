@@ -421,9 +421,9 @@ function listaMegjelenites() {
     const maxYear = parseInt(ls_ev_max.value || "", 10);
 
     let filtered = lista.filter(item => {
-        const author = (item["Author"] || "").toLowerCase();
-        const title  = (item["Title"] || "").toLowerCase();
-        const series = (item["Series"] || "").toLowerCase();
+        const author = String(item["Author"] || "").toLowerCase();
+        const title  = String(item["Title"]  || "").toLowerCase();
+        const series = String(item["Series"] || "").toLowerCase();
         const year   = parseInt(item["Year"] || "", 10);
         const purchased = item["Purchased"] || "";
 

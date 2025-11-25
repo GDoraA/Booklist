@@ -1,6 +1,6 @@
 self.addEventListener("install", e => {
   e.waitUntil(
-    caches.open("gda-cache-v3").then(cache => {
+    caches.open("gda-cache-v4").then(cache => {
       return cache.addAll([
         "/index.html",
         "/styles.css",
