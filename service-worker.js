@@ -1,15 +1,16 @@
-// JAVÍTÁS: új cache név (v6), hogy a régi app.js ne maradjon a cache-ben
-const CACHE_NAME = "gda-cache-v6";
+// JAVÍTÁS: új cache név (v7), hogy a régi app.js ne maradjon a cache-ben
+const CACHE_NAME = "gda-cache-v7";
 
 // JAVÍTÁS: relatív útvonalak, hogy /GDA_booklist/ alatt is működjön
 const ASSETS_TO_CACHE = [
-  "index.html",
-  "styles.css",
-  "app.js",
-  "assets/books_256.png",
-  "assets/books.png",
-  "assets/splash.png"
+  "./index.html",
+  "./styles.css",
+  "./app.js",
+  "./assets/books_256.png",
+  "./assets/books.png",
+  "./assets/splash.png"
 ];
+
 
 self.addEventListener("install", e => {
   e.waitUntil(

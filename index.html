@@ -19,7 +19,8 @@
         <script>
         // NE regisztrálja a service workert, ha file:// alatt fut
         if (location.protocol !== "file:" && "serviceWorker" in navigator) {
-            navigator.serviceWorker.register("service-worker.js");
+            navigator.serviceWorker.register("./service-worker.js");
+
         }
         </script>
 
