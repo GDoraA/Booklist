@@ -521,36 +521,42 @@ function listaMegjelenites() {
     document.getElementById("stat_missing").textContent = missingCount;
 
     // Sorok – csak az aktuális oldal elemeiből
-    pageItems.forEach(item => {
+    pageItems.forEach((item, index) => {
+
         const tr = document.createElement("tr");
 
         const urlCell = (item["URL"] || "").trim()
             ? `<a class="link" href="${item["URL"]}" target="_blank">link</a>`
             : "";
 
-        tr.innerHTML = `
-            <td>${item["Author"] || ""}</td>
-            <td>${item["Title"] || ""}</td>
-            <td>${item["Series"] || ""}</td>
-            <td>${item["Year"] || ""}</td>
+    // app.js – tr.innerHTML módosítása
+    tr.innerHTML = `
+        <!-- app.js – Sorszám oszlop cella -->
+        <td style="text-align:right; padding-right:6px;">
+            ${startIndex + index + 1}
+        </td>
 
-            <td style="text-align:center;">
-                <input type="checkbox" disabled ${item["Purchased"] === "x" ? "checked" : ""}>
-            </td>
+        
+        <td>${item["Author"] || ""}</td>
+        <td>${item["Title"] || ""}</td>
+        <td>${item["Series"] || ""}</td>
+        <td>${item["Year"] || ""}</td>
 
-            <td style="text-align:center;">
-                <input type="checkbox" disabled ${item["For_sale"] === "x" ? "checked" : ""}>
-            </td>
+        <td style="text-align:center;">
+            <input type="checkbox" disabled ${item["Purchased"] === "x" ? "checked" : ""}>
+        </td>
+        <td style="text-align:center;">
+            <input type="checkbox" disabled ${item["For_sale"] === "x" ? "checked" : ""}>
+        </td>
+        <td>${item["Price"] || ""}</td>
+        <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
+                <button class="btn btn-danger" style="background:#f8d7da;color:#8a1c1c;"> 🗑️ Törlés </button>
+            </div>
+        </td>
+    `;
 
-            <td>${item["Price"] || ""}</td>
-
-            <td>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
-                    <button class="btn btn-danger" style="background:#f8d7da;color:#8a1c1c;"> 🗑️ Törlés </button>
-                </div>
-            </td>
-        `;
 
         tbody.appendChild(tr);
     });
