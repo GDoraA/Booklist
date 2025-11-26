@@ -836,15 +836,21 @@ function lastPage() {
 }
 
 window.onload = function() {
-    const sel = document.getElementById("limitSelect");
-    if (sel) sel.value = "50";
 
-    // Induló rekordszám beállítása 50-re
+    // 1) Induló lapméret = 50
     limit = 50;
     currentPage = 1;
 
+    // 2) Felülírjuk a legördülő mezőt is, hogy ne "Összes" maradjon
+    const sel = document.getElementById("limitSelect");
+    if (sel) {
+        sel.value = "50";
+    }
+
+    // 3) Lista betöltése már a jó beállításokkal
     mutat("lista");
 };
+
 
 
 // Szűrőmezők datalist-jének betöltése oldalbetöltéskor
