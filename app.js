@@ -837,19 +837,18 @@ function lastPage() {
 
 window.onload = function() {
 
-    // 1) Induló lapméret = 50
+    // Induló lapméret = 50
     limit = 50;
     currentPage = 1;
 
-    // 2) Felülírjuk a legördülő mezőt is, hogy ne "Összes" maradjon
+    // Dropdown érték felülírása
     const sel = document.getElementById("limitSelect");
-    if (sel) {
-        sel.value = "50";
-    }
+    if (sel) sel.value = "50";
 
-    // 3) Lista betöltése már a jó beállításokkal
+    // Lista betöltése
     mutat("lista");
 };
+
 
 
 
