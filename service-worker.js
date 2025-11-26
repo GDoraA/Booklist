@@ -1,5 +1,5 @@
-// JAVÍTÁS: új cache név (v7), hogy a régi app.js ne maradjon a cache-ben
-const CACHE_NAME = "gda-cache-v7";
+// JAVÍTÁS: új cache név (v8), hogy a régi app.js ne maradjon a cache-ben
+const CACHE_NAME = "gda-cache-v8";
 
 // JAVÍTÁS: relatív útvonalak, hogy /GDA_booklist/ alatt is működjön
 const ASSETS_TO_CACHE = [
