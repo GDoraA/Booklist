@@ -779,7 +779,6 @@ function importCsv() {
                 "&Number="         + encodeURIComponent(book.Number) +
                 "&URL="            + encodeURIComponent(book.URL) +
                 "&Year="           + encodeURIComponent(book.Year) +
-                "&megv="           + encodeURIComponent(book.Purchased) +
                 "&For_sale="       + encodeURIComponent(book.For_sale) +
                 "&Purchased="      + encodeURIComponent(book.Purchased) +
                 "&callback="       + callbackName;
