@@ -519,10 +519,12 @@ function listaMegjelenites() {
     document.getElementById("stat_total").textContent = total;
     document.getElementById("stat_purchased").textContent = purchasedCount;
     document.getElementById("stat_missing").textContent = missingCount;
-
+    // --- PAGINÁCIÓS KEZDŐ INDEX (ÚJ KÓD) ---
+    let startIndex = Number.isFinite(limit)
+        ? (currentPage - 1) * limit
+        : 0;
     // Sorok – csak az aktuális oldal elemeiből
     pageItems.forEach((item, index) => {
-
         const tr = document.createElement("tr");
 
         const urlCell = (item["URL"] || "").trim()
