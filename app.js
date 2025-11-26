@@ -835,19 +835,24 @@ function lastPage() {
     listaMegjelenites();
 }
 
+/********** INDULÁS **********/
 window.onload = function() {
-
-    // Induló lapméret = 50
+    // 1) Induló lapméret 50
     limit = 50;
     currentPage = 1;
 
-    // Dropdown érték felülírása
+    // 2) Lenyíló lista vizuálisan is 50-re álljon
     const sel = document.getElementById("limitSelect");
-    if (sel) sel.value = "50";
+    if (sel) {
+        sel.value = "50";
+    }
 
-    // Lista betöltése
+    // 3) Lista betöltése már a jó beállításokkal
     mutat("lista");
 };
+
+// Szűrőmezők datalist-jének betöltése oldalbetöltéskor
+loadDropdownLists();
 
 
 
