@@ -845,14 +845,14 @@ function lastPage() {
 
 /********** INDULÁS **********/
 window.onload = function() {
-    // 1) Induló lapméret 50
-    limit = 50;
+    // 1) Induló lapméret: Összes
+    limit = Infinity;
     currentPage = 1;
 
-    // 2) Lenyíló lista vizuálisan is 50-re álljon
+    // 2) Lenyíló lista vizuálisan is Összes-re álljon
     const sel = document.getElementById("limitSelect");
     if (sel) {
-        sel.value = "50";
+        sel.value = "all";
     }
 
     // 3) Lista betöltése már a jó beállításokkal
@@ -862,9 +862,4 @@ window.onload = function() {
 // Szűrőmezők datalist-jének betöltése oldalbetöltéskor
 loadDropdownLists();
 
-
-
-
-// Szűrőmezők datalist-jének betöltése oldalbetöltéskor
-loadDropdownLists();
 
