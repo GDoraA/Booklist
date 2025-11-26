@@ -835,12 +835,17 @@ function lastPage() {
     listaMegjelenites();
 }
 
-/********** INDULÁS **********/
 window.onload = function() {
     const sel = document.getElementById("limitSelect");
     if (sel) sel.value = "50";
+
+    // Induló rekordszám beállítása 50-re
+    limit = 50;
+    currentPage = 1;
+
     mutat("lista");
 };
+
 
 // Szűrőmezők datalist-jének betöltése oldalbetöltéskor
 loadDropdownLists();
