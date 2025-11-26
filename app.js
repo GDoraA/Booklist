@@ -460,7 +460,7 @@ function listaMegjelenites() {
         }
 
         if (fmegv === "x" && purchased !== "x") return false;
-        if (fmegv === "no" && purchased === "x") return false;
+
 
         return true;
     });
