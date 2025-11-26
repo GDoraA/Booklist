@@ -382,7 +382,7 @@ function validateYearFilter(input) {
 let lista = [];
 // Pagináció
 let currentPage = 1;
-let limit = Infinity;      // "Összes" induláskor
+let limit = 50;      // "Összes" induláskor
 let filteredList = [];
 
 function betoltesLista() {
