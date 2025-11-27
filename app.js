@@ -946,6 +946,16 @@ function tablaMegjelenites() {
 function tablaSzures() {
     tablaMegjelenites();
 }
+function clearTablaFilters() {
+    document.getElementById("ts_szerzo").value = "";
+    document.getElementById("ts_cim").value = "";
+    document.getElementById("ts_sorozat").value = "";
+    document.getElementById("ts_ev_min").value = "";
+    document.getElementById("ts_ev_max").value = "";
+    document.getElementById("ts_megv").value = "";
+
+    tablaMegjelenites();
+}
 
 /********** INDULÁS **********/
 window.onload = function() {
