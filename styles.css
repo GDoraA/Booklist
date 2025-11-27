@@ -864,9 +864,5 @@ table thead th {
         padding: 15px !important;
     }
 }
-@media (max-width: 600px) {
-    * {
-        outline: 3px solid red !important;
-    }
-}
+
 
