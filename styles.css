@@ -1477,3 +1477,11 @@ table {
         height: 40px !important;           /* 70px → 40px */
     }
 }
+html, body {
+    height: 100% !important;
+    background: #ffffff !important;
+}
+
+body {
+    min-height: 100vh !important;
+}
