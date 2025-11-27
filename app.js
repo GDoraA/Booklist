@@ -588,6 +588,17 @@ function listaMegjelenites() {
  
   // ITT A HELYE A KÁRTYA-NÉZETNEK
 
+function clearListaFilters() {
+    document.getElementById("ls_szerzo").value = "";
+    document.getElementById("ls_cim").value = "";
+    document.getElementById("ls_sorozat").value = "";
+    document.getElementById("ls_ev_min").value = "";
+    document.getElementById("ls_ev_max").value = "";
+    document.getElementById("ls_megv").value = "";
+
+    currentPage = 1;   
+    listaMegjelenites();
+}
 
 
 function listaSzures() {
