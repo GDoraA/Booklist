@@ -645,3 +645,35 @@ table thead th {
         grid-template-columns: 1fr; /* mobilon 1 oszlop */
     }
 }
+/* ===== MOBIL ALAP TIPOGRÁFIA JAVÍTÁS ===== */
+@media (max-width: 600px) {
+
+    body {
+        font-size: 17px;
+        line-height: 1.5;
+    }
+
+    input,
+    select,
+    button {
+        font-size: 17px !important;
+        padding: 10px 12px;
+    }
+
+    label {
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    h1 {
+        font-size: 26px;
+        margin-bottom: 12px;
+    }
+
+    h3 {
+        font-size: 20px;
+        margin-top: 20px;
+        margin-bottom: 12px;
+    }
+
+}
