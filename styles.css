@@ -865,7 +865,8 @@ table thead th {
     }
 }
 @media (max-width: 600px) {
-    body {
-        background: #a31c1c !important;
+    * {
+        outline: 3px solid red !important;
     }
 }
+
