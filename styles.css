@@ -717,3 +717,42 @@ table thead th {
         border-radius: 10px;
     }
 }
+/* ===== MOBIL TÁBLÁZATOS NÉZET OPTIMALIZÁLÁS ===== */
+@media (max-width: 600px) {
+
+    table {
+        font-size: 16px;
+        border-spacing: 0;
+        border-collapse: collapse;
+    }
+
+    th, td {
+        padding: 10px 8px;
+        white-space: nowrap;
+    }
+
+    th {
+        background: #444;       /* erősebb fejléc */
+        color: white;
+        font-size: 15px;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+
+    td {
+        font-size: 16px;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+    }
+}
