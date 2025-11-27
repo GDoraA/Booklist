@@ -756,3 +756,40 @@ table thead th {
         height: 22px;
     }
 }
+/* ===== MOBIL SZŰRŐMEZŐK JAVÍTÁSA ===== */
+@media (max-width: 600px) {
+
+    .filters {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-bottom: 15px;
+    }
+
+    .filters div {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .filters label {
+        font-size: 15px;
+        margin-bottom: 4px;
+        font-weight: 600;
+    }
+
+    .filters input,
+    .filters select {
+        padding: 12px 14px !important;
+        font-size: 17px !important;
+        border-radius: 10px;
+        border: 1px solid #bbb;
+    }
+
+    .btn.btn-secondary,
+    .btn.btn-danger,
+    .btn.btn-primary {
+        font-size: 17px !important;
+        padding: 12px 14px !important;
+        border-radius: 10px !important;
+    }
+}
