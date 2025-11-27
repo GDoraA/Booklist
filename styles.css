@@ -50,7 +50,7 @@ body {
 
 /* NAV háttér – rózsaszín → szürke → kék (finom) */
 nav {
-background: linear-gradient(135deg, #f9cfe3, #d9d9df, #a7c7ff);
+background: linear-gradient(135deg, #c7759d, #585858, #5c79ac);
 border-radius: var(--radius-xl);
 padding: 12px;
 display: flex;
@@ -412,7 +412,7 @@ text-align: center;
 
 
 /* new gradient: pink → grey → blue */
-background: linear-gradient(135deg, #f9cfe3, #d9d9df, #a7c7ff);
+background: linear-gradient(135deg, #e2579a, #46464d, #203b69);
 
 
 border-radius: 0 0 40px 40px;

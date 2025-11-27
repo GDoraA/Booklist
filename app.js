@@ -12,7 +12,7 @@ function mutat(id) {
     if (tabBtn) tabBtn.classList.add("active");
 
     if (id === "lista") betoltesLista();
-    if (id === "tabla") tablaMegjelenites();
+    if (id === "tabla") tablaMegjelenites();   // ← ÚJ SOR
 }
 
 /********** LOG **********/
@@ -67,6 +67,11 @@ function dropdownListsCallback(data) {
     // 🔥 Fuzzy keresés a SZŰRŐ mezőkre
     enableFuzzyDatalist("ls_szerzo", "authors_list_filter");
     enableFuzzyDatalist("ls_sorozat", "series_list_filter");
+
+    // ÚJ: táblázatos nézet fuzzy támogatás
+    enableFuzzyDatalist("ts_szerzo", "authors_list_filter_tabla");
+    enableFuzzyDatalist("ts_sorozat", "series_list_filter_tabla");
+
 }
 
 
@@ -434,8 +439,6 @@ function setSort(field) {
 }
 
 function listaMegjelenites() {
-    const tbody = document.querySelector("#tabla_lista tbody");
-    tbody.innerHTML = "";
 
     const fszerzo = (document.getElementById("ls_szerzo").value || "").toLowerCase();
     const fcim    = (document.getElementById("ls_cim").value || "").toLowerCase();
@@ -444,14 +447,14 @@ function listaMegjelenites() {
     const minYear = parseInt(document.getElementById("ls_ev_min").value || "", 10);
     const maxYear = parseInt(document.getElementById("ls_ev_max").value || "", 10);
 
-
+    // --- Lista szűrése a kártyás nézethez ---
     let filtered = lista.filter(item => {
         const author = String(item["Author"] || "").toLowerCase();
         const title  = String(item["Title"]  || "").toLowerCase();
         const series = String(item["Series"] || "").toLowerCase();
         const year   = parseInt(item["Year"] || "", 10);
         const purchased = item["Purchased"] || "";
-        
+
         if (fszerzo && !author.includes(fszerzo)) return false;
         if (fcim && !title.includes(fcim)) return false;
         if (fseries && !series.includes(fseries)) return false;
@@ -465,11 +468,10 @@ function listaMegjelenites() {
 
         if (fmegv === "x" && purchased !== "x") return false;
 
-
         return true;
     });
 
-    // Rendezés
+    // Rendezés (ugyanúgy, mint eddig)
     filtered.sort((a, b) => {
         const f = currentSort.field;
         let av = a[f] || "";
@@ -494,7 +496,6 @@ function listaMegjelenites() {
     // Paginációs alap
     filteredList = filtered;
     let pageItems = [];
-
     const pageInfoEl = document.getElementById("pageInfo");
 
     if (!Number.isFinite(limit)) {
@@ -523,99 +524,71 @@ function listaMegjelenites() {
     document.getElementById("stat_total").textContent = total;
     document.getElementById("stat_purchased").textContent = purchasedCount;
     document.getElementById("stat_missing").textContent = missingCount;
-    // --- PAGINÁCIÓS KEZDŐ INDEX (ÚJ KÓD) ---
-    let startIndex = Number.isFinite(limit)
-        ? (currentPage - 1) * limit
-        : 0;
-    // Sorok – csak az aktuális oldal elemeiből
-    pageItems.forEach((item, index) => {
-        const tr = document.createElement("tr");
 
-        const urlCell = (item["URL"] || "").trim()
-            ? `<a class="link" href="${item["URL"]}" target="_blank">link</a>`
-            : "";
+    // --- KÁRTYÁS NÉZET RENDERELÉSE ---
+    const cardContainer = document.getElementById("cardContainer");
+    if (cardContainer) {
+        cardContainer.innerHTML = "";
 
-    // app.js – tr.innerHTML módosítása
-        tr.innerHTML = `
-            <td data-label="Ssz.">${startIndex + index + 1}</td>
-            <td data-label="Szerző">${item["Author"] || ""}</td>
-            <td data-label="Cím">${item["Title"] || ""}</td>
-            <td data-label="Sorozat">${item["Series"] || ""}</td>
-            <td data-label="Év">${item["Year"] || ""}</td>
-            <td data-label="Megv.">
-                <input type="checkbox" disabled ${item["Purchased"] === "x" ? "checked" : ""}>
-            </td>
-            <td data-label="Eladó">
-                <input type="checkbox" disabled ${item["For_sale"] === "x" ? "checked" : ""}>
-            </td>
-            <td data-label="Ár">${item["Price"] || ""}</td>
-            <td data-label="Művelet">
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
-                    <button class="btn btn-danger">🗑️ Törlés</button>
+        let startIndex = Number.isFinite(limit)
+            ? (currentPage - 1) * limit
+            : 0;
+
+        pageItems.forEach((item) => {
+            const card = document.createElement("div");
+            card.className = "book-card";
+
+            card.innerHTML = `
+                <div class="card-row">
+                    <span class="label">Szerző:</span>
+                    <span class="value">${item["Author"] || ""}</span>
                 </div>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
+
+                <div class="card-row">
+                    <span class="label">Cím:</span>
+                    <span class="value">${item["Title"] || ""}</span>
+                </div>
+
+                <div class="card-row">
+                    <span class="label">Sorozat:</span>
+                    <span class="value">${item["Series"] || ""}</span>
+                </div>
+
+                <div class="card-row">
+                    <span class="label">Év:</span>
+                    <span class="value">${item["Year"] || ""}</span>
+                </div>
+
+                <div class="card-row">
+                    <span class="label">Megvásárolva:</span>
+                    <span class="value">${item["Purchased"] === "x" ? "Igen" : "Nem"}</span>
+                </div>
+
+                <div class="card-row">
+                    <span class="label">Eladó:</span>
+                    <span class="value">${item["For_sale"] === "x" ? "Igen" : "Nem"}</span>
+                </div>
+
+                <div class="card-row">
+                    <span class="label">Ár:</span>
+                    <span class="value">${item["Price"] || ""}</span>
+                </div>
+
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
+                    <button class="btn btn-danger" onclick="deleteRecord('${item["ID"]}')">🗑️ Törlés</button>
+                </div>
+            `;
+
+            cardContainer.appendChild(card);
+        });
+    }
+}
+;
  
   // ITT A HELYE A KÁRTYA-NÉZETNEK
 
-// --- ÚJ: Kártyás nézet renderelése ---
-const cardContainer = document.getElementById("cardContainer");
-if (cardContainer) {
-    cardContainer.innerHTML = "";
 
-    pageItems.forEach((item) => {
-        const card = document.createElement("div");
-        card.className = "book-card";
-
-        card.innerHTML = `
-            <div class="card-row">
-                <span class="label">Szerző:</span>
-                <span class="value">${item["Author"] || ""}</span>
-            </div>
-
-            <div class="card-row">
-                <span class="label">Cím:</span>
-                <span class="value">${item["Title"] || ""}</span>
-            </div>
-
-            <div class="card-row">
-                <span class="label">Sorozat:</span>
-                <span class="value">${item["Series"] || ""}</span>
-            </div>
-
-            <div class="card-row">
-                <span class="label">Év:</span>
-                <span class="value">${item["Year"] || ""}</span>
-            </div>
-
-            <div class="card-row">
-                <span class="label">Megvásárolva:</span>
-                <span class="value">${item["Purchased"] === "x" ? "Igen" : "Nem"}</span>
-            </div>
-
-            <div class="card-row">
-                <span class="label">Eladó:</span>
-                <span class="value">${item["For_sale"] === "x" ? "Igen" : "Nem"}</span>
-            </div>
-
-            <div class="card-row">
-                <span class="label">Ár:</span>
-                <span class="value">${item["Price"] || ""}</span>
-            </div>
-
-            <div class="card-actions">
-                <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
-                <button class="btn btn-danger" onclick="deleteRecord('${item["ID"]}')">🗑️ Törlés</button>
-            </div>
-        `;
-
-        cardContainer.appendChild(card);
-    });
-}
-}
 
 function listaSzures() {
     currentPage = 1;
@@ -895,7 +868,7 @@ function lastPage() {
 }
 function tablaMegjelenites() {
 
-    const tbody = document.querySelector("#tabla_lista_kulon tbody");
+    const tbody = document.querySelector("#tabla_lista tbody");
     if (!tbody) return;
     tbody.innerHTML = "";
 
