@@ -864,3 +864,8 @@ table thead th {
         padding: 15px !important;
     }
 }
+@media (max-width: 600px) {
+    body {
+        background: #ffe8e8 !important;
+    }
+}
