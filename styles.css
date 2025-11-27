@@ -426,14 +426,10 @@ font-size: 72px;
 font-weight: normal;
 color: #e06699; /* pink text */
 
-
-text-shadow:
-0 3px 6px rgba(0,0,0,0.25),
-0 0 14px rgba(255,255,255,0.7);
 }
 /* ---- FEJLÉC IKON ---- */
 .header-icon {
-    font-size: 48px;
+    font-size: 72px;
     color: #ffffff;
     text-shadow:
         0 3px 6px rgba(0,0,0,0.25),
@@ -809,15 +805,8 @@ table thead th {
         font-size: 17px !important;
         border-radius: 10px;
         border: 1px solid #ddd;
-        background: #f5f5f5;
     }
 
-    nav button.active {
-        background: #333;
-        color: white;
-        border-color: #222;
-        font-weight: 600;
-    }
 
 }
 /* ===== MOBIL WHITESPACE / SPACING FINOMHANGOLÁS ===== */
@@ -1024,23 +1013,6 @@ table thead th {
         padding: 0 5px;
     }
 
-    nav button {
-        flex: 1;
-        font-size: 16px !important;
-        padding: 12px 10px;
-        border-radius: 10px;
-        background: #f2f2f2;
-        border: 1px solid #ddd;
-        font-weight: 500;
-    }
-
-    nav button.active {
-        background: #333 !important;
-        color: #fff !important;
-        border-color: #222 !important;
-        font-weight: 600;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
 
     /* Mobilon ne legyen túl keskeny az érintési sáv */
     nav button:active {
@@ -1188,6 +1160,9 @@ table thead th {
     h1 + #cardContainer {
         margin-top: 10px !important;
     }
+    .header-title {
+    font-size: 32px !important;
+}
 
 }
 
