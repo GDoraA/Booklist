@@ -677,3 +677,43 @@ table thead th {
     }
 
 }
+/* ===== MOBIL KÁRTYA-NÉZET OPTIMALIZÁLÁS ===== */
+@media (max-width: 600px) {
+
+    .book-card {
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        font-size: 17px;
+    }
+
+    .book-card .card-row {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 10px;
+    }
+
+    .book-card .label {
+        font-weight: 600;
+        font-size: 15px;
+        margin-bottom: 3px;
+    }
+
+    .book-card .value {
+        font-size: 17px;
+        line-height: 1.4;
+    }
+
+    .card-actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .card-actions button {
+        flex: 1;
+        padding: 12px 14px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
+}
