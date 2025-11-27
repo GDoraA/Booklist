@@ -12,6 +12,7 @@ function mutat(id) {
     if (tabBtn) tabBtn.classList.add("active");
 
     if (id === "lista") betoltesLista();
+    if (id === "tabla") tablaMegjelenites();
 }
 
 /********** LOG **********/
@@ -47,7 +48,9 @@ function dropdownListsCallback(data) {
     // Szűrőmezők datalist feltöltése
     fillDatalist(document.getElementById("authors_list_filter"), data.authors, "Author");
     fillDatalist(document.getElementById("series_list_filter"), data.series, "Series");
-
+        // Táblázatos nézet datalist-jei
+    fillDatalist(document.getElementById("authors_list_filter_tabla"), data.authors, "Author");
+    fillDatalist(document.getElementById("series_list_filter_tabla"), data.series, "Series");
     // fuzzy keresés modal mezőkben
     enableFuzzyDatalist("bm_szerzo", "authors_list_modal");
     enableFuzzyDatalist("bm_sorozat", "series_list_modal");
@@ -888,6 +891,76 @@ function lastPage() {
     const totalPages = Math.max(1, Math.ceil(filteredList.length / limit));
     currentPage = totalPages;
     listaMegjelenites();
+}
+function tablaMegjelenites() {
+
+    const tbody = document.querySelector("#tabla_lista_kulon tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    // --- Szűrési mezők ---
+    const fszerzo = (document.getElementById("ts_szerzo").value || "").toLowerCase();
+    const fcim    = (document.getElementById("ts_cim").value || "").toLowerCase();
+    const fseries = (document.getElementById("ts_sorozat").value || "").toLowerCase();
+    const fmegv   = (document.getElementById("ts_megv").value || "");
+    const minYear = parseInt(document.getElementById("ts_ev_min").value || "", 10);
+    const maxYear = parseInt(document.getElementById("ts_ev_max").value || "", 10);
+
+
+    // --- Lista szűrése ---
+    let filtered = lista.filter(item => {
+
+        const author = String(item["Author"] || "").toLowerCase();
+        const title  = String(item["Title"]  || "").toLowerCase();
+        const series = String(item["Series"] || "").toLowerCase();
+        const year   = parseInt(item["Year"] || "", 10);
+        const purchased = item["Purchased"] || "";
+
+        if (fszerzo && !author.includes(fszerzo)) return false;
+        if (fcim && !title.includes(fcim)) return false;
+        if (fseries && !series.includes(fseries)) return false;
+
+        if (!isNaN(minYear)) {
+            if (isNaN(year) || year < minYear) return false;
+        }
+        if (!isNaN(maxYear)) {
+            if (isNaN(year) || year > maxYear) return false;
+        }
+
+        if (fmegv === "x" && purchased !== "x") return false;
+
+        return true;
+    });
+
+    // --- Sorok kiírása ---
+    filtered.forEach((item, index) => {
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${item["Author"] || ""}</td>
+            <td>${item["Title"] || ""}</td>
+            <td>${item["Series"] || ""}</td>
+            <td>${item["Year"] || ""}</td>
+            <td>
+                <input type="checkbox" disabled ${item["Purchased"] === "x" ? "checked" : ""}>
+            </td>
+            <td>
+                <input type="checkbox" disabled ${item["For_sale"] === "x" ? "checked" : ""}>
+            </td>
+            <td>${item["Price"] || ""}</td>
+            <td>
+                <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️</button>
+                <button class="btn btn-danger" onclick="deleteRecord('${item["ID"]}')">🗑️</button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+function tablaSzures() {
+    tablaMegjelenites();
 }
 
 /********** INDULÁS **********/
