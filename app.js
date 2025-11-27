@@ -466,7 +466,12 @@ function listaMegjelenites() {
             if (isNaN(year) || year > maxYear) return false;
         }
 
-        if (fmegv === "x" && purchased !== "x") return false;
+// Vásárlási státusz szűrés
+if (fmegv === "x" && purchased !== "x") return false;      // Megvásárolt
+if (fmegv === "no" && purchased !== "") return false;      // Nincs még meg
+if (fmegv === "all") {
+    // Összes könyv – nincs szűrés
+}
 
         return true;
     });
@@ -911,7 +916,12 @@ function tablaMegjelenites() {
             if (isNaN(year) || year > maxYear) return false;
         }
 
-        if (fmegv === "x" && purchased !== "x") return false;
+// Vásárlási státusz szűrés
+if (fmegv === "x" && purchased !== "x") return false;      // Megvásárolt
+if (fmegv === "no" && purchased !== "") return false;      // Nincs még meg
+if (fmegv === "all") {
+    // Összes könyv – nincs szűrés
+}
 
         return true;
     });
@@ -922,23 +932,29 @@ function tablaMegjelenites() {
         const tr = document.createElement("tr");
 
         tr.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${item["Author"] || ""}</td>
-            <td>${item["Title"] || ""}</td>
-            <td>${item["Series"] || ""}</td>
-            <td>${item["Year"] || ""}</td>
-            <td>
+            <td data-label="Szerző">${item["Author"] || ""}</td>
+            <td data-label="Cím">${item["Title"] || ""}</td>
+            <td data-label="Sorozat">${item["Series"] || ""}</td>
+            <td data-label="Év">${item["Year"] || ""}</td>
+
+            <td data-label="Megvásárolva" style="text-align:center;">
                 <input type="checkbox" disabled ${item["Purchased"] === "x" ? "checked" : ""}>
             </td>
-            <td>
+
+            <td data-label="Eladó" style="text-align:center;">
                 <input type="checkbox" disabled ${item["For_sale"] === "x" ? "checked" : ""}>
             </td>
-            <td>${item["Price"] || ""}</td>
-            <td>
-                <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️</button>
-                <button class="btn btn-danger" onclick="deleteRecord('${item["ID"]}')">🗑️</button>
+
+            <td data-label="Ár">${item["Price"] || ""}</td>
+
+            <td data-label="Művelet">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
+                    <button class="btn btn-danger" style="background:#f8d7da;color:#8a1c1c;"> 🗑️ Törlés </button>
+                </div>
             </td>
         `;
+
 
         tbody.appendChild(tr);
     });
