@@ -897,5 +897,298 @@ table thead th {
         margin-bottom: 10px;
     }
 }
+/* ===== MOBIL TÁBLÁZAT OLVASHATÓSÁG JAVÍTÁSA ===== */
+@media (max-width: 600px) {
+
+    table {
+        width: max-content; /* szépen görgethető */
+        border-spacing: 0;
+        border-collapse: collapse;
+        font-size: 16px;
+    }
+
+    th {
+        padding: 12px 10px;
+        background: #333;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 12px 10px;
+        font-size: 16px;
+        border-bottom: 1px solid #e3e3e3;
+        white-space: nowrap;
+        line-height: 1.4;
+    }
+
+    .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px; /* extra hely a görgetés alatt */
+    }
+
+    /* checkboxok nagyítása érintéshez */
+    input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+    }
+}
+/* ===== MOBIL KÁRTYA-NÉZET FINOMHANGOLÁS ===== */
+@media (max-width: 600px) {
+
+    .book-card {
+        padding: 18px;
+        border-radius: 14px;
+        background: white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+        margin-bottom: 20px;
+    }
+
+    .book-card .card-row {
+        margin-bottom: 12px;
+    }
+
+    .book-card .label {
+        color: #555;
+        font-size: 15px;
+        margin-bottom: 3px;
+    }
+
+    .book-card .value {
+        font-size: 17px;
+        font-weight: 500;
+    }
+
+    .card-actions {
+        margin-top: 18px;
+        display: flex;
+        gap: 12px;
+    }
+
+    .card-actions button {
+        flex: 1;
+        padding: 14px;
+        font-size: 16px;
+        border-radius: 12px;
+    }
+}
+/* ===== MOBIL SZŰRŐMEZŐK FINOMHANGOLÁSA ===== */
+@media (max-width: 600px) {
+
+    .filters {
+        padding: 5px 0;
+    }
+
+    .filters div {
+        padding: 4px 0;
+    }
+
+    .filters label {
+        margin-bottom: 6px;
+    }
+
+    .filters input,
+    .filters select {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Szűrő-gombok egységes mérete */
+    .filters + button,
+    .filters + .btn {
+        margin-top: 12px !important;
+        width: 100%;
+    }
+
+    /* Mobilon ne tapadjanak rá a tartalomra */
+    #lista .filters,
+    #tabla .filters {
+        margin-bottom: 18px;
+        margin-top: 10px;
+    }
+}
+/* ===== MOBIL NAVIGÁCIÓ FINOMHANGOLÁS ===== */
+@media (max-width: 600px) {
+
+    nav {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        margin-bottom: 20px;
+        padding: 0 5px;
+    }
+
+    nav button {
+        flex: 1;
+        font-size: 16px !important;
+        padding: 12px 10px;
+        border-radius: 10px;
+        background: #f2f2f2;
+        border: 1px solid #ddd;
+        font-weight: 500;
+    }
+
+    nav button.active {
+        background: #333 !important;
+        color: #fff !important;
+        border-color: #222 !important;
+        font-weight: 600;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    /* Mobilon ne legyen túl keskeny az érintési sáv */
+    nav button:active {
+        transform: scale(0.97);
+    }
+}
+/* ===== MOBIL HARMONIKUS SPACING ===== */
+@media (max-width: 600px) {
+
+    /* Egységes oldal padding */
+    .page {
+        padding: 12px;
+    }
+
+    /* Címek és szakaszok közti térköz */
+    h1 {
+        margin-top: 5px;
+        margin-bottom: 18px;
+    }
+
+    h3 {
+        margin-top: 18px;
+        margin-bottom: 12px;
+    }
+
+    /* Szűrőmezők és tartalom közti egységes térköz */
+    .filters {
+        margin-bottom: 20px;
+    }
+
+    /* Kártyák és táblázat között ne legyen túl nagy ugrás */
+    #cardContainer,
+    #tablaContainer {
+        margin-top: 5px;
+    }
+
+    /* Kártyák között egységesebb ritmus */
+    .book-card {
+        margin-bottom: 20px;
+    }
+
+    /* Modal spacing */
+    .modal-content {
+        padding: 18px !important;
+        border-radius: 12px;
+    }
+
+    /* Szűrőgombok alatti hely */
+    .filters + button {
+        margin-top: 15px !important;
+    }
+
+}
+/* ===== MOBIL SCROLL-SHADOW A TÁBLÁZATHOZ ===== */
+@media (max-width: 600px) {
+
+    .table-scroll {
+        position: relative;
+        overflow-x: auto;
+    }
+
+    /* Bal oldali halvány árnyék */
+    .table-scroll::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 20px;
+        height: 100%;
+        pointer-events: none;
+        background: linear-gradient(to right, rgba(0,0,0,0.15), transparent);
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    /* Jobb oldali halvány árnyék */
+    .table-scroll::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 20px;
+        height: 100%;
+        pointer-events: none;
+        background: linear-gradient(to left, rgba(0,0,0,0.15), transparent);
+        opacity: 1; /* induláskor látható, mert jobbra görgethető */
+        transition: opacity 0.2s;
+    }
+
+    /* Ha teljesen a bal oldalon vagyunk, a bal árnyék elhalványul */
+    .table-scroll.scrolled-left::before {
+        opacity: 0;
+    }
+
+    .table-scroll.scrolled-right::after {
+        opacity: 0;
+    }
+}
+/* ===== MOBIL VÉGSŐ FINOMHANGOLÁS ===== */
+@media (max-width: 600px) {
+
+    /* Egységes gombméretek mindenhol */
+    button,
+    .btn {
+        padding: 12px 14px !important;
+        font-size: 16px !important;
+        border-radius: 10px !important;
+    }
+
+    /* Szerkeszt/Törlés gombok a táblázatban */
+    table td button {
+        padding: 8px 10px !important;
+        font-size: 14px !important;
+        border-radius: 8px !important;
+        min-width: 38px;
+    }
+
+    /* Néhány helyen túl nagy volt a függőleges ugrás */
+    #cardContainer,
+    #tablaContainer {
+        margin-top: 10px;
+    }
+
+    /* Modal szépítés – egységes térköz */
+    .modal-content {
+        padding: 18px !important;
+        border-radius: 12px;
+        font-size: 16px;
+    }
+
+    /* Inputok helyei egységesek */
+    input,
+    select {
+        margin-bottom: 4px !important;
+    }
+
+    /* Szűrőmező és alatta lévő tartalom harmonizálása */
+    .filters {
+        margin-bottom: 18px !important;
+    }
+
+    /* Fejléc és tartalom közti térköz finomítása */
+    h1 + .filters,
+    h1 + .table-scroll,
+    h1 + #cardContainer {
+        margin-top: 10px !important;
+    }
+
+}
 
 
