@@ -529,3 +529,49 @@ table thead th {
         width: 100%;
     }
 }
+/* --- MOBILE FLEX-TABLE --- */
+@media (max-width: 600px) {
+
+    /* teljes táblázat eltüntetése */
+    table thead {
+        display: none;
+    }
+
+    table, tbody, tr, td {
+        display: block;
+        width: 100%;
+    }
+
+    tr {
+        margin-bottom: 16px;
+        padding: 12px;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    td {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    td:last-child {
+        border-bottom: none;
+    }
+
+    td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #6b7280;
+        margin-right: 10px;
+        flex-shrink: 0;
+    }
+
+    /* művelet gombok */
+    td:last-child {
+        display: block;
+        margin-top: 10px;
+    }
+}

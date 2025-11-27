@@ -532,32 +532,26 @@ function listaMegjelenites() {
             : "";
 
     // app.js – tr.innerHTML módosítása
-    tr.innerHTML = `
-        <!-- app.js – Sorszám oszlop cella -->
-        <td style="text-align:right; padding-right:6px;">
-            ${startIndex + index + 1}
-        </td>
-
-        
-        <td>${item["Author"] || ""}</td>
-        <td>${item["Title"] || ""}</td>
-        <td>${item["Series"] || ""}</td>
-        <td>${item["Year"] || ""}</td>
-
-        <td style="text-align:center;">
-            <input type="checkbox" disabled ${item["Purchased"] === "x" ? "checked" : ""}>
-        </td>
-        <td style="text-align:center;">
-            <input type="checkbox" disabled ${item["For_sale"] === "x" ? "checked" : ""}>
-        </td>
-        <td>${item["Price"] || ""}</td>
-        <td>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
-                <button class="btn btn-danger" style="background:#f8d7da;color:#8a1c1c;"> 🗑️ Törlés </button>
-            </div>
-        </td>
-    `;
+tr.innerHTML = `
+    <td data-label="Ssz.">${startIndex + index + 1}</td>
+    <td data-label="Szerző">${item["Author"] || ""}</td>
+    <td data-label="Cím">${item["Title"] || ""}</td>
+    <td data-label="Sorozat">${item["Series"] || ""}</td>
+    <td data-label="Év">${item["Year"] || ""}</td>
+    <td data-label="Megv.">
+        <input type="checkbox" disabled ${item["Purchased"] === "x" ? "checked" : ""}>
+    </td>
+    <td data-label="Eladó">
+        <input type="checkbox" disabled ${item["For_sale"] === "x" ? "checked" : ""}>
+    </td>
+    <td data-label="Ár">${item["Price"] || ""}</td>
+    <td data-label="Művelet">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
+            <button class="btn btn-danger">🗑️ Törlés</button>
+        </div>
+    </td>
+`;
 
 
         tbody.appendChild(tr);
