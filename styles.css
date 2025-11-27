@@ -1444,3 +1444,36 @@ table {
         font-family: var(--title-font-family);
     }
 }
+/* ============================================================
+   MOBIL FEJLÉC KISEBBÍTÉSE
+   ============================================================ */
+@media (max-width: 600px) {
+
+    /* Fejléc általános mérete */
+    .header {
+        padding: 16px 12px !important;     /* kisebb felső és alsó margó */
+    }
+
+    /* Nagy cím kisebb mobilon */
+    .header-title {
+        font-size: 40px !important;        /* 64px → 40px */
+        margin-bottom: 4px !important;
+    }
+
+    /* Alcím kisebb */
+    .header-subtitle {
+        font-size: 12px !important;
+        letter-spacing: 0.04em;
+    }
+
+    /* Ikon mérete kisebb */
+    .header-icon {
+        font-size: 40px !important;
+        margin-bottom: 4px !important;
+    }
+
+    /* Kép ikon (ha van) */
+    .header-icon-img {
+        height: 40px !important;           /* 70px → 40px */
+    }
+}
