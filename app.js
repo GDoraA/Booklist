@@ -532,32 +532,86 @@ function listaMegjelenites() {
             : "";
 
     // app.js – tr.innerHTML módosítása
-tr.innerHTML = `
-    <td data-label="Ssz.">${startIndex + index + 1}</td>
-    <td data-label="Szerző">${item["Author"] || ""}</td>
-    <td data-label="Cím">${item["Title"] || ""}</td>
-    <td data-label="Sorozat">${item["Series"] || ""}</td>
-    <td data-label="Év">${item["Year"] || ""}</td>
-    <td data-label="Megv.">
-        <input type="checkbox" disabled ${item["Purchased"] === "x" ? "checked" : ""}>
-    </td>
-    <td data-label="Eladó">
-        <input type="checkbox" disabled ${item["For_sale"] === "x" ? "checked" : ""}>
-    </td>
-    <td data-label="Ár">${item["Price"] || ""}</td>
-    <td data-label="Művelet">
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
-            <button class="btn btn-danger">🗑️ Törlés</button>
-        </div>
-    </td>
-`;
-
-
+        tr.innerHTML = `
+            <td data-label="Ssz.">${startIndex + index + 1}</td>
+            <td data-label="Szerző">${item["Author"] || ""}</td>
+            <td data-label="Cím">${item["Title"] || ""}</td>
+            <td data-label="Sorozat">${item["Series"] || ""}</td>
+            <td data-label="Év">${item["Year"] || ""}</td>
+            <td data-label="Megv.">
+                <input type="checkbox" disabled ${item["Purchased"] === "x" ? "checked" : ""}>
+            </td>
+            <td data-label="Eladó">
+                <input type="checkbox" disabled ${item["For_sale"] === "x" ? "checked" : ""}>
+            </td>
+            <td data-label="Ár">${item["Price"] || ""}</td>
+            <td data-label="Művelet">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
+                    <button class="btn btn-danger">🗑️ Törlés</button>
+                </div>
+            </td>
+        `;
         tbody.appendChild(tr);
     });
-}
+ 
+  // ITT A HELYE A KÁRTYA-NÉZETNEK
 
+// --- ÚJ: Kártyás nézet renderelése ---
+const cardContainer = document.getElementById("cardContainer");
+if (cardContainer) {
+    cardContainer.innerHTML = "";
+
+    pageItems.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "book-card";
+
+        card.innerHTML = `
+            <div class="card-row">
+                <span class="label">Szerző:</span>
+                <span class="value">${item["Author"] || ""}</span>
+            </div>
+
+            <div class="card-row">
+                <span class="label">Cím:</span>
+                <span class="value">${item["Title"] || ""}</span>
+            </div>
+
+            <div class="card-row">
+                <span class="label">Sorozat:</span>
+                <span class="value">${item["Series"] || ""}</span>
+            </div>
+
+            <div class="card-row">
+                <span class="label">Év:</span>
+                <span class="value">${item["Year"] || ""}</span>
+            </div>
+
+            <div class="card-row">
+                <span class="label">Megvásárolva:</span>
+                <span class="value">${item["Purchased"] === "x" ? "Igen" : "Nem"}</span>
+            </div>
+
+            <div class="card-row">
+                <span class="label">Eladó:</span>
+                <span class="value">${item["For_sale"] === "x" ? "Igen" : "Nem"}</span>
+            </div>
+
+            <div class="card-row">
+                <span class="label">Ár:</span>
+                <span class="value">${item["Price"] || ""}</span>
+            </div>
+
+            <div class="card-actions">
+                <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
+                <button class="btn btn-danger" onclick="deleteRecord('${item["ID"]}')">🗑️ Törlés</button>
+            </div>
+        `;
+
+        cardContainer.appendChild(card);
+    });
+}
+}
 
 function listaSzures() {
     currentPage = 1;
