@@ -437,12 +437,13 @@ function listaMegjelenites() {
     const tbody = document.querySelector("#tabla_lista tbody");
     tbody.innerHTML = "";
 
-    const fszerzo = (ls_szerzo.value || "").toLowerCase();
-    const fcim    = (ls_cim.value || "").toLowerCase();
-    const fseries = (ls_sorozat.value || "").toLowerCase();
-    const fmegv   = (ls_megv.value || "");
-    const minYear = parseInt(ls_ev_min.value || "", 10);
-    const maxYear = parseInt(ls_ev_max.value || "", 10);
+    const fszerzo = (document.getElementById("ls_szerzo").value || "").toLowerCase();
+    const fcim    = (document.getElementById("ls_cim").value || "").toLowerCase();
+    const fseries = (document.getElementById("ls_sorozat").value || "").toLowerCase();
+    const fmegv   = (document.getElementById("ls_megv").value || "");
+    const minYear = parseInt(document.getElementById("ls_ev_min").value || "", 10);
+    const maxYear = parseInt(document.getElementById("ls_ev_max").value || "", 10);
+
 
     let filtered = lista.filter(item => {
         const author = String(item["Author"] || "").toLowerCase();
@@ -905,7 +906,6 @@ function tablaMegjelenites() {
     const fmegv   = (document.getElementById("ts_megv").value || "");
     const minYear = parseInt(document.getElementById("ts_ev_min").value || "", 10);
     const maxYear = parseInt(document.getElementById("ts_ev_max").value || "", 10);
-
 
     // --- Lista szűrése ---
     let filtered = lista.filter(item => {
