@@ -45,6 +45,9 @@
         <button id="tab_lista" class="active" onclick="mutat('lista')">
             📝 Lista
         </button>
+        <button id="tab_tabla" onclick="mutat('tabla')">
+            📊 Táblázatos lista
+        </button>
 
         <button id="tab_import" onclick="mutat('import')">
             📥 Import
@@ -137,6 +140,52 @@
         <!-- 🔼 ELEM-SZÁM + LAPOZÁS BLOKK 🔼 -->
         <!-- ÚJ: kártya nézet konténere -->
         <div id="cardContainer" class="card-container"></div>
+
+    </div>
+
+    <!-- TÁBLÁZATOS LISTA -->
+    <div class="page" id="tabla">
+        <h1>Táblázatos lista</h1>
+        <h3>🔍 Szűrés</h3>
+        <div class="filters">
+            <div>
+                <label>Szerző</label><br>
+                <input id="ts_szerzo" list="authors_list_filter_tabla" oninput="tablaSzures()">
+                <datalist id="authors_list_filter_tabla"></datalist>
+            </div>
+            <div>
+                <label>Cím</label><br>
+                <input id="ts_cim" oninput="tablaSzures()">
+            </div>
+            <div>
+                <label>Sorozat</label><br>
+                <input id="ts_sorozat" list="series_list_filter_tabla" oninput="tablaSzures()">
+                <datalist id="series_list_filter_tabla"></datalist>
+            </div>
+
+            <div>
+                <label>Év (tól)</label><br>
+                <input id="ts_ev_min" type="number" min="1" max="9999" step="1"
+                    oninput="validateYearFilter(this); tablaSzures()">
+            </div>
+
+            <div>
+                <label>Év (ig)</label><br>
+                <input id="ts_ev_max" type="number" min="1" max="9999" step="1"
+                    oninput="validateYearFilter(this); tablaSzures()">
+            </div>
+
+            <div>
+                <label>Megvásárolva</label><br>
+                <select id="ts_megv" onchange="tablaSzures()">
+                    <option value="">Mindegy</option>
+                    <option value="x">Csak megvett</option>
+                    <option value="no">Csak nincs meg</option>
+                </select>
+            </div>
+        </div>
+
+
         <div class="table-wrapper mt-8">
             <div class="table-scroll">
                 <table id="tabla_lista">
@@ -145,8 +194,6 @@
                             <!-- ÚJ SORSZÁM OSZLOP -->
                             <!-- index.html – Sorszám oszlop stílusos fejléce -->
                             <th style="width:50px; text-align:right;">Ssz.</th>
-
-
                             <th class="sortable" onclick="setSort('Author')">Szerző</th>
                             <th class="sortable" onclick="setSort('Title')">Cím</th>
                             <th class="sortable" onclick="setSort('Series')">Sorozat</th>
@@ -157,14 +204,12 @@
                             <th>Művelet</th>
                         </tr>
                     </thead>
-
-
                     <tbody></tbody>
                 </table>
             </div>
         </div>
+        
     </div>
-
 
     <!-- IMPORT -->
     <div class="page" id="import">
