@@ -253,6 +253,17 @@ function loginWithPassword(email, password) {
     s.src = url;
     document.body.appendChild(s);
 }
+function logout() {
+    // Bejelentkezési adatok törlése
+    localStorage.removeItem("loggedInUserEmail");
+
+    // Email mezőt is töröljük a biztonság kedvéért
+    const emailInput = document.getElementById("loginEmail");
+    if (emailInput) emailInput.value = "";
+
+    // Visszatérés a login képernyőre
+    showLoginScreen();
+}
 
 /********** LOG **********/
 function log(msg) {
