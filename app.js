@@ -42,6 +42,31 @@ function onLoginSuccess() {
     if (loginDiv)  loginDiv.style.display = "none";
     if (pwDiv)     pwDiv.style.display = "none";
     if (appDiv)    appDiv.style.display = "block";
+// Szűrőmezők datalist-jének betöltése oldalbetöltéskor
+loadDropdownLists();
+// Scroll-shadow figyelés a táblázathoz
+document.addEventListener("DOMContentLoaded", () => {
+    const scrollAreas = document.querySelectorAll(".table-scroll");
+
+    scrollAreas.forEach(area => {
+        function updateShadows() {
+            if (area.scrollLeft <= 0) {
+                area.classList.add("scrolled-left");
+            } else {
+                area.classList.remove("scrolled-left");
+            }
+
+            if (area.scrollLeft + area.clientWidth >= area.scrollWidth - 1) {
+                area.classList.add("scrolled-right");
+            } else {
+                area.classList.remove("scrolled-right");
+            }
+        }
+
+        area.addEventListener("scroll", updateShadows);
+        updateShadows(); // inicializálás
+    });
+});
 
     // Az eredeti alkalmazás indulása
     mutat("lista");
@@ -1187,30 +1212,6 @@ window.onload = function() {
 loadDropdownLists();
 
 
-// Szűrőmezők datalist-jének betöltése oldalbetöltéskor
-loadDropdownLists();
-// Scroll-shadow figyelés a táblázathoz
-document.addEventListener("DOMContentLoaded", () => {
-    const scrollAreas = document.querySelectorAll(".table-scroll");
 
-    scrollAreas.forEach(area => {
-        function updateShadows() {
-            if (area.scrollLeft <= 0) {
-                area.classList.add("scrolled-left");
-            } else {
-                area.classList.remove("scrolled-left");
-            }
-
-            if (area.scrollLeft + area.clientWidth >= area.scrollWidth - 1) {
-                area.classList.add("scrolled-right");
-            } else {
-                area.classList.remove("scrolled-right");
-            }
-        }
-
-        area.addEventListener("scroll", updateShadows);
-        updateShadows(); // inicializálás
-    });
-});
 
 
