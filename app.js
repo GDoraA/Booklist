@@ -104,9 +104,15 @@ function onLoginSuccess() {
  * 3. Ha van jelszó → login(email, password)
  */
 function startLogin() {
+
+    // LOGIN GOMB VISSZAJELZÉS
+    const loginButton = document.querySelector("#loginScreen button.btn-primary");
+    showLoading(loginButton);
+
     const email = (document.getElementById("loginEmail").value || "").trim();
     const pwd   = (document.getElementById("loginPassword").value || "").trim();
     const msgEl = document.getElementById("loginMessage");
+
     // Legutóbbi email eltárolása
     localStorage.setItem("lastLoginEmail", email);
 
@@ -123,6 +129,9 @@ function startLogin() {
     const callbackName = "checkUserCallback_" + Date.now();
 
     window[callbackName] = function(data) {
+
+        hideLoading(loginButton);
+
         delete window[callbackName];
 
         if (!data || !data.exists) {
@@ -270,6 +279,24 @@ function loginWithPassword(email, password) {
     const s = document.createElement("script");
     s.src = url;
     document.body.appendChild(s);
+}
+/********** LOADING VISSZAJELZÉS **********/
+
+function showLoading(btn) {
+    if (btn) {
+        btn.dataset.originalText = btn.innerText;
+        btn.innerText = "Betöltés…";
+        btn.disabled = true;
+    }
+    document.body.style.cursor = "wait";
+}
+
+function hideLoading(btn) {
+    if (btn && btn.dataset.originalText) {
+        btn.innerText = btn.dataset.originalText;
+        btn.disabled = false;
+    }
+    document.body.style.cursor = "default";
 }
 function logout() {
     // Bejelentkezési adatok törlése
