@@ -42,34 +42,37 @@ function onLoginSuccess() {
     if (loginDiv)  loginDiv.style.display = "none";
     if (pwDiv)     pwDiv.style.display = "none";
     if (appDiv)    appDiv.style.display = "block";
-// Szűrőmezők datalist-jének betöltése oldalbetöltéskor
-loadDropdownLists();
-// Scroll-shadow figyelés a táblázathoz
-document.addEventListener("DOMContentLoaded", () => {
-    const scrollAreas = document.querySelectorAll(".table-scroll");
+    // Szűrőmezők datalist-jének betöltése oldalbetöltéskor
+    loadDropdownLists();
+    // Scroll-shadow figyelés a táblázathoz
+    document.addEventListener("DOMContentLoaded", () => {
+        const scrollAreas = document.querySelectorAll(".table-scroll");
 
-    scrollAreas.forEach(area => {
-        function updateShadows() {
-            if (area.scrollLeft <= 0) {
-                area.classList.add("scrolled-left");
-            } else {
-                area.classList.remove("scrolled-left");
+        scrollAreas.forEach(area => {
+            function updateShadows() {
+                if (area.scrollLeft <= 0) {
+                    area.classList.add("scrolled-left");
+                } else {
+                    area.classList.remove("scrolled-left");
+                }
+
+                if (area.scrollLeft + area.clientWidth >= area.scrollWidth - 1) {
+                    area.classList.add("scrolled-right");
+                } else {
+                    area.classList.remove("scrolled-right");
+                }
             }
 
-            if (area.scrollLeft + area.clientWidth >= area.scrollWidth - 1) {
-                area.classList.add("scrolled-right");
-            } else {
-                area.classList.remove("scrolled-right");
-            }
-        }
-
-        area.addEventListener("scroll", updateShadows);
-        updateShadows(); // inicializálás
+            area.addEventListener("scroll", updateShadows);
+            updateShadows(); // inicializálás
+        });
     });
-});
 
     // Az eredeti alkalmazás indulása
     mutat("lista");
+    // Session mentése
+    localStorage.setItem("loggedInUserEmail", currentUserEmail);
+
 }
 
 /**
@@ -1204,9 +1207,16 @@ function clearTablaFilters() {
 
 /********** INDULÁS **********/
 window.onload = function() {
-    // A teljes app csak bejelentkezés után indulhat
-    showLoginScreen();
+    const savedEmail = localStorage.getItem("loggedInUserEmail");
+
+    if (savedEmail) {
+        currentUserEmail = savedEmail;
+        onLoginSuccess();
+    } else {
+        showLoginScreen();
+    }
 };
+
 
 // Datalisták betöltése maradhat itt, ez nem zavarja a loginfolyamatot
 loadDropdownLists();
