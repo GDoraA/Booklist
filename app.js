@@ -1,6 +1,8 @@
 
 /********** API URL **********/
 const API_URL = "https://script.google.com/macros/s/AKfycbweN_OimpT_5le4PzbjmOBYuutHyB-m6XghkZ_IP_tdr62hcfm7q1aqqTzwUoW786ilEg/exec";
+/********** LOGIN ÁLLAPOT **********/
+let currentUserEmail = null;
 
 /********** OLDALVÁLTÁS **********/
 function mutat(id) {
@@ -13,6 +15,208 @@ function mutat(id) {
 
     if (id === "lista") betoltesLista();
     if (id === "tabla") tablaMegjelenites();   // ← ÚJ SOR
+}
+/********** LOGIN – SEGÉDFÜGGVÉNYEK **********/
+
+function showLoginScreen() {
+    const loginDiv = document.getElementById("loginScreen");
+    const pwDiv    = document.getElementById("passwordSetup");
+    const appDiv   = document.getElementById("appContent");
+
+    if (loginDiv)  loginDiv.style.display = "block";
+    if (pwDiv)     pwDiv.style.display = "none";
+    if (appDiv)    appDiv.style.display = "none";
+
+    const msg = document.getElementById("loginMessage");
+    if (msg) {
+        msg.style.display = "none";
+        msg.textContent = "";
+    }
+}
+
+function onLoginSuccess() {
+    const loginDiv = document.getElementById("loginScreen");
+    const pwDiv    = document.getElementById("passwordSetup");
+    const appDiv   = document.getElementById("appContent");
+
+    if (loginDiv)  loginDiv.style.display = "none";
+    if (pwDiv)     pwDiv.style.display = "none";
+    if (appDiv)    appDiv.style.display = "block";
+
+    // Az eredeti alkalmazás indulása
+    mutat("lista");
+}
+
+/**
+ * 1. Email ellenőrzése (checkUser)
+ * 2. Ha nincs jelszó → passwordSetup
+ * 3. Ha van jelszó → login(email, password)
+ */
+function startLogin() {
+    const email = (document.getElementById("loginEmail").value || "").trim();
+    const pwd   = (document.getElementById("loginPassword").value || "").trim();
+    const msgEl = document.getElementById("loginMessage");
+
+    if (!email) {
+        if (msgEl) {
+            msgEl.textContent = "Kérlek, add meg az e-mail címedet.";
+            msgEl.style.display = "block";
+        }
+        return;
+    }
+
+    currentUserEmail = email;
+
+    const callbackName = "checkUserCallback_" + Date.now();
+
+    window[callbackName] = function(data) {
+        delete window[callbackName];
+
+        if (!data || !data.exists) {
+            if (msgEl) {
+                msgEl.textContent = "Nincs jogosultságod belépni.";
+                msgEl.style.display = "block";
+            }
+            return;
+        }
+
+        if (data.needsPasswordSetup) {
+            // Első belépés
+            showPasswordSetupScreen(email);
+        } else {
+            // Már van jelszó
+            if (!pwd) {
+                if (msgEl) {
+                    msgEl.textContent = "Kérlek, add meg a jelszavadat is.";
+                    msgEl.style.display = "block";
+                }
+                return;
+            }
+            loginWithPassword(email, pwd);
+        }
+    };
+
+    const url = API_URL +
+        "?action=checkUser" +
+        "&email=" + encodeURIComponent(email) +
+        "&callback=" + callbackName +
+        "&_=" + Date.now();
+
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function showPasswordSetupScreen(email) {
+    const loginDiv = document.getElementById("loginScreen");
+    const pwDiv    = document.getElementById("passwordSetup");
+    const appDiv   = document.getElementById("appContent");
+
+    if (loginDiv)  loginDiv.style.display = "none";
+    if (pwDiv)     pwDiv.style.display = "block";
+    if (appDiv)    appDiv.style.display = "none";
+
+    const info = document.getElementById("passwordSetupEmailInfo");
+    if (info) info.textContent = "E-mail cím: " + email;
+
+    const msg = document.getElementById("passwordSetupMessage");
+    if (msg) {
+        msg.textContent = "";
+        msg.style.display = "none";
+    }
+
+    document.getElementById("newPassword").value = "";
+    document.getElementById("newPassword2").value = "";
+}
+
+function cancelPasswordSetup() {
+    showLoginScreen();
+}
+
+function saveFirstPassword() {
+    const pwd1 = (document.getElementById("newPassword").value || "").trim();
+    const pwd2 = (document.getElementById("newPassword2").value || "").trim();
+    const msg  = document.getElementById("passwordSetupMessage");
+
+    if (!pwd1 || !pwd2) {
+        msg.textContent = "Tölts ki minden mezőt.";
+        msg.style.display = "block";
+        return;
+    }
+
+    if (pwd1.length < 8) {
+        msg.textContent = "A jelszónak legalább 8 karakter hosszúnak kell lennie.";
+        msg.style.display = "block";
+        return;
+    }
+
+    if (pwd1 !== pwd2) {
+        msg.textContent = "A két jelszó nem egyezik.";
+        msg.style.display = "block";
+        return;
+    }
+
+    const callbackName = "setPasswordCallback_" + Date.now();
+
+    window[callbackName] = function(data) {
+        delete window[callbackName];
+
+        if (!data || !data.success) {
+            msg.textContent = "Nem sikerült a jelszó mentése.";
+            msg.style.display = "block";
+            return;
+        }
+
+        // Siker → automatikus login
+        loginWithPassword(currentUserEmail, pwd1);
+    };
+
+    const url = API_URL +
+        "?action=setPassword" +
+        "&email=" + encodeURIComponent(currentUserEmail) +
+        "&password=" + encodeURIComponent(pwd1) +
+        "&callback=" + callbackName +
+        "&_=" + Date.now();
+
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
+}
+
+function loginWithPassword(email, password) {
+    const msgLogin = document.getElementById("loginMessage");
+    const msgPw    = document.getElementById("passwordSetupMessage");
+
+    const callbackName = "loginCallback_" + Date.now();
+
+    window[callbackName] = function(data) {
+        delete window[callbackName];
+
+        if (data && data.success) {
+            onLoginSuccess();
+        } else {
+            const err = (data && data.error) ? data.error : "Hibás e-mail vagy jelszó.";
+
+            if (document.getElementById("passwordSetup").style.display === "block") {
+                msgPw.textContent = err;
+                msgPw.style.display = "block";
+            } else {
+                msgLogin.textContent = err;
+                msgLogin.style.display = "block";
+            }
+        }
+    };
+
+    const url = API_URL +
+        "?action=login" +
+        "&email=" + encodeURIComponent(email) +
+        "&password=" + encodeURIComponent(password) +
+        "&callback=" + callbackName +
+        "&_=" + Date.now();
+
+    const s = document.createElement("script");
+    s.src = url;
+    document.body.appendChild(s);
 }
 
 /********** LOG **********/
@@ -975,19 +1179,13 @@ function clearTablaFilters() {
 
 /********** INDULÁS **********/
 window.onload = function() {
-    // 1) Induló lapméret: Összes
-    limit = Infinity;
-    currentPage = 1;
-
-    // 2) Lenyíló lista vizuálisan is Összes-re álljon
-    const sel = document.getElementById("limitSelect");
-    if (sel) {
-        sel.value = "all";
-    }
-
-    // 3) Lista betöltése már a jó beállításokkal
-    mutat("lista");
+    // A teljes app csak bejelentkezés után indulhat
+    showLoginScreen();
 };
+
+// Datalisták betöltése maradhat itt, ez nem zavarja a loginfolyamatot
+loadDropdownLists();
+
 
 // Szűrőmezők datalist-jének betöltése oldalbetöltéskor
 loadDropdownLists();

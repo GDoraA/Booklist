@@ -29,6 +29,45 @@
 </head>
 
 <body>
+<!-- LOGIN KÉPERNYŐ -->
+<div id="loginScreen" class="page" style="max-width:400px;margin:20px auto;display:block;">
+    <h1>Bejelentkezés</h1>
+
+    <label for="loginEmail">E-mail cím</label>
+    <input type="email" id="loginEmail" placeholder="pl. valaki@pelda.hu">
+
+    <label for="loginPassword" style="margin-top:10px;display:block;">Jelszó</label>
+    <input type="password" id="loginPassword" placeholder="Jelszó">
+
+    <button class="btn btn-primary" style="margin-top:12px;" onclick="startLogin()">
+        Belépés
+    </button>
+
+    <div id="loginMessage" style="margin-top:10px;color:#b02a37;display:none;"></div>
+</div>
+
+<!-- ELSŐ JELSZÓ BEÁLLÍTÁSA -->
+<div id="passwordSetup" class="page" style="max-width:400px;margin:20px auto;display:none;">
+    <h1>Első bejelentkezés – jelszó beállítása</h1>
+
+    <p id="passwordSetupEmailInfo" style="font-size:14px;color:#555;"></p>
+
+    <label for="newPassword">Új jelszó</label>
+    <input type="password" id="newPassword" placeholder="Min. 8 karakter">
+
+    <label for="newPassword2" style="margin-top:10px;display:block;">Új jelszó ismét</label>
+    <input type="password" id="newPassword2" placeholder="Írd be újra a jelszót">
+
+    <button class="btn btn-primary" style="margin-top:12px;" onclick="saveFirstPassword()">
+        Jelszó mentése és belépés
+    </button>
+    <button class="btn btn-secondary" style="margin-top:8px;" onclick="cancelPasswordSetup()">
+        Mégse
+    </button>
+
+    <div id="passwordSetupMessage" style="margin-top:10px;color:#b02a37;display:none;"></div>
+</div>
+<div id="appContent" style="display:none;">
 
 <!-- FEJLÉC -->
 <div class="header">
@@ -330,4 +369,5 @@
 
 <script src="app.js"></script>
 </body>
+</div> <!-- /appContent -->
 </html>
