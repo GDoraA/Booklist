@@ -26,6 +26,11 @@ function showLoginScreen() {
     if (loginDiv)  loginDiv.style.display = "block";
     if (pwDiv)     pwDiv.style.display = "none";
     if (appDiv)    appDiv.style.display = "none";
+    const savedEmail = localStorage.getItem("lastLoginEmail");
+    if (savedEmail) {
+        const emailInput = document.getElementById("loginEmail");
+        if (emailInput) emailInput.value = savedEmail;
+    }
 
     const msg = document.getElementById("loginMessage");
     if (msg) {
@@ -84,6 +89,8 @@ function startLogin() {
     const email = (document.getElementById("loginEmail").value || "").trim();
     const pwd   = (document.getElementById("loginPassword").value || "").trim();
     const msgEl = document.getElementById("loginMessage");
+    // Legutóbbi email eltárolása
+    localStorage.setItem("lastLoginEmail", email);
 
     if (!email) {
         if (msgEl) {
