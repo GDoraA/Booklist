@@ -343,11 +343,27 @@ function convertDriveUrl(url) {
 }
 /********** PRICE FORMAT **********/
 function formatPrice(value) {
-    if (!value) return "";
-    const num = Number(value.toString().replace(",", "."));
-    if (isNaN(num)) return value;
+    if (value === undefined || value === null || value === "") return "";
+
+    // Minden whitespace eltávolítása
+    let cleaned = value.toString().trim();
+
+    // Pont vagy vessző normalizálása: legyen pont a decimális jel
+    cleaned = cleaned.replace(/\s/g, "").replace(",", ".");
+
+    // Ha ezer separator pontok vannak → töröljük (magyar formátum támogatás)
+    cleaned = cleaned.replace(/\.(?=\d{3}($|\D))/g, "");
+
+    const num = Number(cleaned);
+
+    if (isNaN(num)) {
+        return value + " Ft";  // fallback
+    }
+
+    // Magyar formátum: 3 000 vagy 3 000,50
     return num.toLocaleString("hu-HU", { minimumFractionDigits: 0 }) + " Ft";
 }
+
 
 /********** BASE64 **********/
 function fileToBase64(file, callback) {
