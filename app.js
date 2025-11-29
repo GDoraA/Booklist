@@ -908,15 +908,6 @@ if (fmegv === "all") {
                         >
                     </span>
                 </div>
-                    <span class="label">Megvásárolva:</span>
-                    <span class="value">${item["Purchased"] === "x" ? "Igen" : "Nem"}</span>
-                </div>
-
-                <div class="card-row">
-                    <span class="label">Eladó:</span>
-                    <span class="value">${item["For_sale"] === "x" ? "Igen" : "Nem"}</span>
-                </div>
-
                 <div class="card-row">
                     <span class="label">Ár:</span>
                     <span class="value">${item["Price"] || ""}</span>
