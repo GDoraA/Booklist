@@ -860,17 +860,18 @@ if (fmegv === "all") {
         pageItems.forEach((item) => {
             const card = document.createElement("div");
             card.className = "book-card";
-
             card.innerHTML = `
                 ${item["URL"] ? `
                     <div class="card-image-wrapper">
                         <img src="${convertDriveUrl(item["URL"])}" alt="Borító" class="card-image">
                     </div>
                 ` : ""}
+
                 <div class="card-row">
                     <span class="label">Szerző:</span>
                     <span class="value">${item["Author"] || ""}</span>
                 </div>
+
 
                 <div class="card-row">
                     <span class="label">Cím:</span>
