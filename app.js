@@ -924,8 +924,9 @@ if (fmegv === "all") {
                 </div>
                 <div class="card-row">
                     <span class="label">Ár:</span>
-                    <span class="value">${item["Price"] || ""}</span>
+                    <span class="value">${formatPrice(item["Price"] || "")}</span>
                 </div>
+
 
                 <div class="card-actions">
                     <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
