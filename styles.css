@@ -1350,48 +1350,27 @@ table {
     border-collapse: collapse;
 }
 
-/* Mobilon ALAPBÓL minden táblázat kártyás nézetbe vált */
+/* MOBILON NE LÓGJON KI A TÁBLÁZAT, DE MARADJON SCROLL */
 @media (max-width: 700px) {
 
-    /* Elrejtjük a fejlécet mobilon */
-    table thead {
-        display: none;
+    #tabla_lista {
+        table-layout: fixed;
+        width: 100% !important;
+        max-width: 100% !important;
     }
 
-    /* Minden sor egy kártya lesz */
-    table tr {
-        display: block;
-        background: var(--white-color);
-        margin-bottom: 12px;
-        padding: 12px 14px;
-        border-radius: var(--border-radius-medium);
-        box-shadow: var(--shadow-soft);
+    #tabla_lista th,
+    #tabla_lista td {
+        white-space: normal !important;
+        word-wrap: break-word;
     }
 
-    /* Minden cella blokkban jelenik meg */
-    table td {
-        display: flex;
-        justify-content: space-between;
-        padding: 6px 0;
-        border-bottom: 1px solid rgba(0,0,0,0.08);
-        font-size: 14px;
-        white-space: normal;
-    }
-
-    table td:last-child {
-        border-bottom: none;
-    }
-
-    /* A cellák előtt megjelenik a saját fejléce */
-    table td::before {
-        content: attr(data-label);
-        font-weight: var(--font-weight-semibold);
-        color: var(--primary-color);
-        font-family: var(--title-font-family);
-        margin-right: 10px;
-        flex-shrink: 0;
+    /* A hosszú szövegek nem tolják szét a táblázatot */
+    #tabla_lista td {
+        max-width: 100%;
     }
 }
+
 /* ============================================================
    MOBIL STACKED TABLE – SCROLL NÉLKÜL
    ============================================================ */
@@ -1506,11 +1485,14 @@ body {
 
 .table-scroll {
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: auto;   /* most már engedi a lefelé görgetést */
+    max-height: 70vh;   /* opcionális, de ez ad önálló görgetést */
     width: 100%;
     max-width: 100%;
     display: block;
+    -webkit-overflow-scrolling: touch;
 }
+
 
 #tabla_lista {
     width: 100%;
