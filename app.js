@@ -566,7 +566,8 @@ function finalizeSaveBook(kepUrl) {
 
     const d = modalPending.bookData;
     const id = document.getElementById("bm_id").value;
-    // URL mező beírása (mindig a te általad megadott értékkel)
+
+    // URL mező beírása
     d.URL = kepUrl;
 
     // előnézeti kép frissítése
@@ -578,6 +579,7 @@ function finalizeSaveBook(kepUrl) {
         img.style.display = "none";
         img.src = "";
     }
+
 
     if (modalMode === "new") {
         // Új könyv
@@ -712,7 +714,7 @@ function validateYearFilter(input) {
 let lista = [];
 // Pagináció
 let currentPage = 1;
-let limit = 50;      // "Összes" induláskor
+let limit = Infinity;      // "Összes" induláskor
 let filteredList = [];
 
 function betoltesLista() {
