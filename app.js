@@ -1322,9 +1322,7 @@ if (fmegv === "all") {
             <td data-label="Eladó" style="text-align:center;">
                 <input type="checkbox" disabled ${item["For_sale"] === "x" ? "checked" : ""}>
             </td>
-
-            <td data-label="Ár">${item["Price"] || ""}</td>
-
+            <td data-label="Ár">${formatPrice(item["Price"] || "")}</td>
             <td data-label="Művelet">
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
                     <button class="btn btn-secondary" onclick="editRecord('${item["ID"]}')">✏️ Szerkeszt</button>
