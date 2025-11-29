@@ -317,6 +317,30 @@ function log(msg) {
     l.innerHTML += "[" + now + "] " + msg + "<br>";
     l.scrollTop = l.scrollHeight;
 }
+/********** DRIVE LINK ÁTALAKÍTÁS **********/
+function convertDriveUrl(url) {
+    if (!url) return "";
+
+    // Már jó formátum
+    if (url.includes("https://drive.google.com/uc?export=view&id=")) {
+        return url;
+    }
+
+    let idMatch = null;
+
+    // /file/d/<ID>/
+    const fileMatch = url.match(/\/file\/d\/([^/]+)/);
+    if (fileMatch) idMatch = fileMatch[1];
+
+    // ?id=<ID>
+    const idParam = url.match(/[?&]id=([^&]+)/);
+    if (idParam) idMatch = idParam[1];
+
+    // Ha nem Drive link
+    if (!idMatch) return url;
+
+    return `https://drive.google.com/uc?export=view&id=${idMatch}`;
+}
 
 /********** BASE64 **********/
 function fileToBase64(file, callback) {
@@ -452,9 +476,10 @@ function openBookModal(mode, id) {
 
         const img = document.getElementById("bm_preview");
         if (item["URL"]) {
-            img.src = item["URL"];
+            img.src = convertDriveUrl(item["URL"]);
             img.style.display = "block";
-        } else {
+        }
+        else {
             img.style.display = "none";
             img.src = "";
         }
@@ -523,9 +548,6 @@ function uploadImageOnlyForModal(base64, filename) {
     document.body.appendChild(s);
 }
 
-
-
-
 function uploadImageOnlyForModalValasz(data) {
     if (!data.success) {
         log("❌ Képfeltöltés hiba (modal): " + data.error);
@@ -537,6 +559,7 @@ function uploadImageOnlyForModalValasz(data) {
 }
 
 function finalizeSaveBook(kepUrl) {
+    kepUrl = convertDriveUrl(kepUrl);
     if (!modalPending) return;
 
     const d = modalPending.bookData;
@@ -545,7 +568,7 @@ function finalizeSaveBook(kepUrl) {
     // előnézeti kép frissítése
     const img = document.getElementById("bm_preview");
     if (kepUrl) {
-        img.src = kepUrl;
+        img.src = convertDriveUrl(kepUrl);
         img.style.display = "block";
     } else {
         img.style.display = "none";
@@ -839,6 +862,11 @@ if (fmegv === "all") {
             card.className = "book-card";
 
             card.innerHTML = `
+                ${item["URL"] ? `
+                    <div class="card-image-wrapper">
+                        <img src="${convertDriveUrl(item["URL"])}" alt="Borító" class="card-image">
+                    </div>
+                ` : ""}
                 <div class="card-row">
                     <span class="label">Szerző:</span>
                     <span class="value">${item["Author"] || ""}</span>
@@ -860,6 +888,26 @@ if (fmegv === "all") {
                 </div>
 
                 <div class="card-row">
+                    <span class="label">Megvásárolva:</span>
+                    <span class="value">
+                        <input
+                            type="checkbox"
+                            disabled
+                            ${item["Purchased"] === "x" ? "checked" : ""}
+                        >
+                    </span>
+                </div>
+
+                <div class="card-row">
+                    <span class="label">Eladó:</span>
+                    <span class="value">
+                        <input
+                            type="checkbox"
+                            disabled
+                            ${item["For_sale"] === "x" ? "checked" : ""}
+                        >
+                    </span>
+                </div>
                     <span class="label">Megvásárolva:</span>
                     <span class="value">${item["Purchased"] === "x" ? "Igen" : "Nem"}</span>
                 </div>
