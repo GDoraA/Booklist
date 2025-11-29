@@ -1498,3 +1498,74 @@ body {
     border-radius: 10px;
     border: 1px solid rgba(0,0,0,0.1);
 }
+/* MOBILON A TÁBLÁZAT NE LÓGJON KI */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    max-width: 100%;
+    display: block;
+}
+
+#tabla_lista {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+/* MOBILBARÁT TÁBLÁZAT: NE LEGYEN SZÉLESEBB MINT A KÉPERNYŐ */
+@media (max-width: 768px) {
+
+    /* A táblázat legyen block elem */
+    #tabla_lista {
+        display: block;
+        width: 100% !important;
+        max-width: 100% !important;
+        border: 0;
+    }
+
+    /* A thead eltűnik mobilon */
+    #tabla_lista thead {
+        display: none;
+    }
+
+    /* A tbody sorok block elemekké alakulnak */
+    #tabla_lista tbody tr {
+        display: block;
+        background: #ffffff;
+        margin-bottom: 12px;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+    }
+
+    /* A cellák blokkok, sortöréssel */
+    #tabla_lista td {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border: none !important;
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 14px;
+    }
+
+    /* Mobilon a címkék a data-label attribútumból jönnek */
+    #tabla_lista td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        color: #333;
+        margin-right: 12px;
+    }
+
+    /* Checkboxok igazítása mobilon */
+    #tabla_lista input[type=checkbox] {
+        transform: scale(1.2);
+        margin-left: 10px;
+    }
+}

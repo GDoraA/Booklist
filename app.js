@@ -526,8 +526,14 @@ function saveBookFromModal() {
     if (file) {
         fileToBase64(file, base64 => uploadImageOnlyForModal(base64, file.name));
     } else {
-        finalizeSaveBook(manualUrl || document.getElementById("bm_existing_url").value || "");
+        // ÚJ, HELYES LOGIKA:
+        const manualUrl = document.getElementById("bm_url").value.trim();
+        const existingUrl = document.getElementById("bm_existing_url").value.trim();
+        let finalUrl = manualUrl ? manualUrl : existingUrl;
+
+        finalizeSaveBook(finalUrl);
     }
+
 }
 
 function uploadImageOnlyForModal(base64, filename) {
