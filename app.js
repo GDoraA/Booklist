@@ -566,6 +566,8 @@ function finalizeSaveBook(kepUrl) {
 
     const d = modalPending.bookData;
     const id = document.getElementById("bm_id").value;
+    // URL mező beírása (mindig a te általad megadott értékkel)
+    d.URL = kepUrl;
 
     // előnézeti kép frissítése
     const img = document.getElementById("bm_preview");
