@@ -341,6 +341,13 @@ function convertDriveUrl(url) {
 
     return `https://drive.google.com/uc?export=view&id=${idMatch}`;
 }
+/********** PRICE FORMAT **********/
+function formatPrice(value) {
+    if (!value) return "";
+    const num = Number(value.toString().replace(",", "."));
+    if (isNaN(num)) return value;
+    return num.toLocaleString("hu-HU", { minimumFractionDigits: 0 }) + " Ft";
+}
 
 /********** BASE64 **********/
 function fileToBase64(file, callback) {
