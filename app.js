@@ -459,8 +459,6 @@ function openBookModal(mode, id) {
         }
 
         document.getElementById("bm_id").value = item["ID"] || "";
-        document.getElementById("bm_existing_url").value = item["URL"] || "";
-
         document.getElementById("bm_szerzo").value   = item["Author"] || "";
         document.getElementById("bm_cim").value      = item["Title"] || "";
         document.getElementById("bm_eredeti").value  = item["Original_Title"] || "";
@@ -468,7 +466,7 @@ function openBookModal(mode, id) {
         document.getElementById("bm_sorozat").value  = item["Series"] || "";
         document.getElementById("bm_ssz").value      = item["Number"] || "";
         document.getElementById("bm_ev").value       = item["Year"] || "";
-        document.getElementById("bm_url").value      = item["URL"] || "";
+        document.getElementById("bm_url").value = item["URL"] || "";
         document.getElementById("bm_purchased").checked = (item["Purchased"] === "x");
         document.getElementById("bm_forsale").checked   = (item["For_sale"] === "x");
         document.getElementById("bm_ar").value      = item["Price"] || "";
@@ -526,13 +524,11 @@ function saveBookFromModal() {
     if (file) {
         fileToBase64(file, base64 => uploadImageOnlyForModal(base64, file.name));
     } else {
-        // ÚJ, HELYES LOGIKA:
+        // Nincs fájl feltöltve → csak a te beírt URL-edet mentjük
         const manualUrl = document.getElementById("bm_url").value.trim();
-        const existingUrl = document.getElementById("bm_existing_url").value.trim();
-        let finalUrl = manualUrl ? manualUrl : existingUrl;
-
-        finalizeSaveBook(finalUrl);
+        finalizeSaveBook(manualUrl);
     }
+
 
 }
 
