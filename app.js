@@ -343,26 +343,36 @@ function convertDriveUrl(url) {
 }
 /********** PRICE FORMAT **********/
 function formatPrice(value) {
-    if (value === undefined || value === null || value === "") return "";
-
-    // Minden whitespace eltávolítása
+    if (value === undefined || value === null) return "";
+    
     let cleaned = value.toString().trim();
+    if (cleaned === "") return "";
 
-    // Pont vagy vessző normalizálása: legyen pont a decimális jel
-    cleaned = cleaned.replace(/\s/g, "").replace(",", ".");
+    // Minden szóköz, pont, vessző normalizálása
+    cleaned = cleaned.replace(/\s/g, "");     // összes whitespace ki
+    cleaned = cleaned.replace(",", ".");      // vessző → pont
 
-    // Ha ezer separator pontok vannak → töröljük (magyar formátum támogatás)
-    cleaned = cleaned.replace(/\.(?=\d{3}($|\D))/g, "");
+    // Szétválasztjuk az egész és a tizedes részt
+    let [intPart, decPart] = cleaned.split(".");
 
-    const num = Number(cleaned);
+    // Csak számjegyeket hagyunk az egész részben
+    intPart = (intPart || "").replace(/\D/g, "");
 
-    if (isNaN(num)) {
-        return value + " Ft";  // fallback
+    if (!intPart) return value + " Ft";  // ha még így sem értelmezhető
+
+    // EZRES TAGOLÁS: 1234567 → 1 234 567
+    intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+    let formatted = intPart;
+
+    // Ha volt tizedes rész, magyar formátummal (vesszővel) visszatesszük
+    if (decPart && decPart.length > 0) {
+        formatted += "," + decPart;
     }
 
-    // Magyar formátum: 3 000 vagy 3 000,50
-    return num.toLocaleString("hu-HU", { minimumFractionDigits: 0 }) + " Ft";
+    return formatted + " Ft";
 }
+
 
 
 /********** BASE64 **********/
@@ -822,6 +832,9 @@ if (fmegv === "all") {
 
         return true;
     });
+// Találatok száma kiírása
+document.getElementById("itemCount").textContent =
+    "Találatok: " + filtered.length;
 
     // Rendezés (ugyanúgy, mint eddig)
     filtered.sort((a, b) => {
