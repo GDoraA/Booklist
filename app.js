@@ -832,9 +832,10 @@ if (fmegv === "all") {
 
         return true;
     });
-// Találatok száma kiírása
+// Találatok számának kiírása (szűrt / összes)
 document.getElementById("itemCount").textContent =
-    "Találatok: " + filtered.length;
+    "Találatok: " + filtered.length + " / " + lista.length;
+
 
     // Rendezés (ugyanúgy, mint eddig)
     filtered.sort((a, b) => {
