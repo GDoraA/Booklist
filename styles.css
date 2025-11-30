@@ -580,111 +580,7 @@ tbody tr:hover {
   }
 }
 
-/*---------------------------------------
-  MODAL – .modal-overlay, .modal, stb.
------------------------------------------*/
 
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.modal {
-  background: var(--white-color);
-  border-radius: var(--border-radius-medium);
-  box-shadow: var(--shadow-medium);
-  width: 420px;
-  max-width: 95vw;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 22px 24px 24px;
-}
-/* ============================================================
-   ASZTALI (>= 900px) – SZÉLESEBB MODAL
-   ============================================================ */
-
-@media (min-width: 900px) {
-    .modal {
-        width: 700px !important;      /* korábbi 420px helyett */
-        max-width: 700px !important;  /* stabil szélesség */
-        padding: 32px 40px !important; /* tágasabb belső margók */
-    }
-
-    .modal-grid {
-        grid-template-columns: 1fr 1fr;   /* 2 hasábos elrendezés */
-        gap: 20px;
-    }
-
-    /* A textarea fusson teljes szélességben */
-    .modal textarea {
-        grid-column: span 2;
-    }
-
-    /* Checkbox sorok igazítása asztali nézetben is */
-    .modal-checkbox-row {
-        grid-column: span 2;
-        margin-top: 6px;
-    }
-
-    /* Gombok két oszlop szélesség */
-    .modal-footer {
-        grid-column: span 2;
-    }
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: var(--h4-font-size);
-}
-
-.modal-close-btn {
-  background: transparent;
-  border: none;
-  font-size: 22px;
-  cursor: pointer;
-}
-
-.modal-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(0,0,0,0.08);
-}
-
-.modal-image-section {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed rgba(0,0,0,0.15);
-}
-
-#bm_preview {
-  max-width: 160px;
-  max-height: 220px;
-  display: none;
-  margin-top: 6px;
-  border-radius: var(--border-radius-small);
-  border: 1px solid rgba(0,0,0,0.15);
-}
 
 /*---------------------------------------
   KISEBB UTILITYK
@@ -877,469 +773,8 @@ a.link:hover {
         max-width: 100% !important;
     }
 }
-/* ============================================================
-   MODAL – TOPIC LISTING ARCULAT + PLACEHOLDERES MEZŐK
-============================================================ */
 
-.modal {
-    background: var(--white-color);
-    border-radius: var(--border-radius-medium);
-    box-shadow: var(--shadow-medium);
-    width: 420px;
-    max-width: 95vw;
-    padding: 24px 28px;
-    border: 1px solid rgba(128, 208, 199, 0.35);
-}
 
-.modal-header h2 {
-    font-family: var(--title-font-family);
-    font-size: var(--h3-font-size);
-    font-weight: var(--font-weight-bold);
-    color: var(--primary-color);
-    margin: 0;
-}
-
-.modal-header {
-    margin-bottom: 18px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-close-btn {
-    background: transparent;
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    color: var(--primary-color);
-    transition: color .25s;
-}
-
-.modal-close-btn:hover {
-    color: var(--secondary-color);
-}
-
-.modal-grid {
-    display: grid;
-    gap: 14px;
-}
-
-.modal input,
-.modal select,
-.modal textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: var(--border-radius-small);
-    border: 1px solid rgba(0,0,0,0.15);
-    font-size: 14px;
-    font-family: var(--body-font-family);
-    background: var(--white-color);
-    transition: border-color .2s, box-shadow .2s;
-}
-
-.modal input::placeholder,
-.modal textarea::placeholder {
-    color: rgba(19, 84, 122, 0.45);
-    font-size: 14px;
-}
-
-.modal input:focus,
-.modal textarea:focus {
-    border-color: var(--secondary-color);
-    box-shadow: 0 0 0 2px rgba(128, 208, 199, 0.35);
-    outline: none;
-}
-
-.modal-checkbox-row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-.modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 22px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(0,0,0,0.1);
-}
-
-.modal-footer .btn-save {
-    background-color: var(--custom-btn-bg-color);
-    color: var(--white-color);
-}
-
-.modal-footer .btn-cancel {
-    background: transparent;
-    color: var(--primary-color);
-    border: 2px solid var(--primary-color);
-}
-/* Checkboxok balra rendezése a modalban */
-.modal-checkbox-row {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 8px !important;
-
-    /* biztosítja, hogy ne igazodjon jobbra */
-    justify-content: flex-start !important;
-    text-align: left !important;
-}
-
-.modal-checkbox-row input[type="checkbox"] {
-    margin: 0;
-    width: auto;
-}
-
-.modal-checkbox-row label {
-    margin: 0;
-    color: var(--primary-color);
-    font-family: var(--title-font-family);
-    font-size: 14px;
-}
-/* ============================================================
-   RESPONSIVE MODAL – MOBILE OPTIMALIZÁLÁS (<= 600px)
-   ============================================================ */
-
-@media (max-width: 600px) {
-
-    /* A modal maga */
-    .modal {
-        width: 95% !important;
-        max-width: 95% !important;
-        padding: 18px 20px !important;
-        border-radius: var(--border-radius-small) !important;
-        box-shadow: var(--shadow-soft) !important;
-        margin: 0 auto !important;
-    }
-
-    /* A modal rács (mezők egymás alatt) */
-    .modal-grid {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 12px !important;
-    }
-
-    /* Mezők teljes szélességben */
-    .modal input,
-    .modal select,
-    .modal textarea {
-        width: 100% !important;
-        max-width: 100% !important;
-        font-size: 16px !important;
-        padding: 12px !important;
-    }
-
-    /* Placeholder mobilbarát */
-    .modal input::placeholder,
-    .modal textarea::placeholder {
-        font-size: 15px;
-    }
-
-    /* Checkbox sorok mobilon */
-    .modal-checkbox-row {
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        gap: 8px !important;
-        justify-content: flex-start !important;
-        margin-top: 6px;
-    }
-
-    .modal-checkbox-row label {
-        font-size: 15px !important;
-    }
-
-    /* Képfeltöltés és preview igazítása */
-    .modal-image-section {
-        margin-top: 10px !important;
-        padding-top: 10px !important;
-    }
-
-    #bm_preview {
-        max-width: 100% !important;
-        height: auto !important;
-        display: none; /* csak akkor jelenik meg, ha JS betölti */
-        border-radius: var(--border-radius-small);
-    }
-
-    /* Modal gombok mobilon */
-    .modal-footer {
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 10px !important;
-    }
-
-    .modal-footer button {
-        width: 100% !important;
-        padding: 12px 0 !important;
-        font-size: 16px !important;
-    }
-}
-/* ============================================================
-   MOBIL/TABLET – 1 oszlop, teljes szélesség (<= 899px)
-   ============================================================ */
-@media (max-width: 899px) {
-
-    .modal-grid {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 14px !important;
-        width: 100% !important;
-    }
-
-    .modal input,
-    .modal select,
-    .modal textarea {
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-    }
-
-    /* Képfeltöltés rész egységes szélességgel */
-    .modal-image-section,
-    #bm_file,
-    #bm_preview {
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-}
-/* ============================================================
-   ASZTALI (>= 900px) – 2 oszlop, teljes modal szélesség
-   ============================================================ */
-@media (min-width: 900px) {
-
-    /* Modal legyen nagyobb */
-    .modal {
-        width: 700px !important;
-        max-width: 700px !important;
-        padding: 28px 32px !important;
-    }
-
-    /* Kétoszlopos grid, egyenlő oszlopokkal */
-    .modal-grid {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr;
-        gap: 18px 22px;
-        width: 100% !important;
-    }
-
-    /* A normál mezők az oszlop szélességét töltik ki */
-    .modal input,
-    .modal select,
-    .modal textarea {
-        width: 100% !important;
-        box-sizing: border-box !important;
-    }
-
-    /* A textarea teljes szélességet kapjon */
-    .modal textarea {
-        grid-column: span 2;
-    }
-
-    /* Checkbox sorok is kétszélesek legyenek */
-    .modal-checkbox-row {
-        grid-column: span 2;
-        justify-content: flex-start !important;
-    }
-
-    /* Ár mező lehet egy oszlop széles, de ha kéred, lehet 2 is */
-    
-    /* Modal footer is két oszlopot fog át */
-    .modal-footer {
-        grid-column: span 2;
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-        margin-top: 20px;
-    }
-}
-/* ============================================================
-   MODAL – TELJES ARCULATI IGAZÍTÁS (TOPIC LISTING STYLE)
-   ============================================================ */
-
-.modal-overlay {
-    background: rgba(0, 0, 0, 0.45);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-}
-
-.modal {
-    background: var(--white-color);
-    border-radius: var(--border-radius-medium);
-    box-shadow: var(--shadow-medium);
-    width: 700px;
-    max-width: 95vw;
-    padding: 28px 32px;
-    border: 1px solid rgba(128, 208, 199, 0.45);
-    animation: modalFade 0.25s ease;
-}
-
-@keyframes modalFade {
-    from { opacity: 0; transform: scale(0.96); }
-    to   { opacity: 1; transform: scale(1); }
-}
-
-/* MODAL HEADER -------------------------------------------------- */
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 18px;
-}
-
-.modal-header h2 {
-    font-family: var(--title-font-family);
-    font-size: var(--h3-font-size);
-    color: var(--primary-color);
-    margin: 0;
-    font-weight: var(--font-weight-bold);
-}
-
-.modal-close-btn {
-    background: transparent;
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    color: var(--primary-color);
-    transition: 0.25s;
-}
-
-.modal-close-btn:hover {
-    color: var(--secondary-color);
-}
-
-/* MODAL GRID ---------------------------------------------------- */
-
-.modal-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px 22px;
-}
-
-/* INPUTOK, SELECT, TEXTAREA ------------------------------------- */
-
-.modal input,
-.modal select,
-.modal textarea {
-    width: 100%;
-    padding: 11px 14px;
-    border-radius: var(--border-radius-small);
-    border: 1px solid rgba(0,0,0,0.18);
-    background: var(--white-color);
-    font-family: var(--body-font-family);
-    font-size: 15px;
-    box-sizing: border-box;
-    transition: 0.25s;
-}
-
-.modal input::placeholder,
-.modal textarea::placeholder {
-    color: rgba(19, 84, 122, 0.45);
-    font-size: 15px;
-}
-
-.modal input:focus,
-.modal textarea:focus,
-.modal select:focus {
-    border-color: var(--secondary-color);
-    box-shadow: 0 0 0 2px rgba(128, 208, 199, 0.35);
-    outline: none;
-}
-
-/* TEXTAREA TELJES SZÉLESSÉG ------------------------------------ */
-.modal textarea {
-    grid-column: span 2;
-    resize: vertical;
-}
-
-/* CHECKBOXOK ---------------------------------------------------- */
-
-.modal-checkbox-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    grid-column: span 2;
-}
-
-.modal-checkbox-row label {
-    font-size: 15px;
-    font-family: var(--title-font-family);
-    color: var(--primary-color);
-}
-
-/* FOOTER -------------------------------------------------------- */
-
-.modal-footer {
-    margin-top: 22px;
-    padding-top: 16px;
-    border-top: 1px solid rgba(0,0,0,0.1);
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    grid-column: span 2;
-}
-
-.modal-footer button {
-    padding: 10px 20px;
-    border-radius: var(--border-radius-large);
-    font-family: var(--title-font-family);
-    cursor: pointer;
-    border: none;
-    font-size: 14px;
-}
-
-.modal-footer .btn-save {
-    background-color: var(--custom-btn-bg-color);
-    color: var(--white-color);
-}
-
-.modal-footer .btn-save:hover {
-    background-color: var(--custom-btn-bg-hover-color);
-}
-
-.modal-footer .btn-cancel {
-    background: transparent;
-    color: var(--primary-color);
-    border: 2px solid var(--primary-color);
-}
-
-.modal-footer .btn-cancel:hover {
-    background: var(--primary-color);
-    color: var(--white-color);
-}
-
-/* RESPONSIVE ---------------------------------------------------- */
-
-@media (max-width: 899px) {
-    .modal {
-        width: 95% !important;
-        padding: 18px 20px !important;
-    }
-
-    .modal-grid {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 12px !important;
-    }
-
-    .modal textarea {
-        grid-column: unset !important;
-    }
-
-    .modal-footer {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .modal-footer button {
-        width: 100%;
-    }
-}
 /* ============================================================
    RESZPONZÍV TÁBLÁZAT SCROLL NÉLKÜL (STACKED MOBILE STYLE)
    ============================================================ */
@@ -1548,5 +983,186 @@ body {
     #tabla_lista input[type=checkbox] {
         transform: scale(1.2);
         margin-left: 10px;
+    }
+}
+/* ============================================================
+   MODAL – EGYSÉGES, MOBILBARÁT, TOPIC LISTING ARCULAT
+============================================================ */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: none;                   /* JS teszi flexre */
+    align-items: center;
+    justify-content: center;
+    z-index: 999999 !important;
+}
+
+.modal {
+    background: var(--white-color);
+    border-radius: var(--border-radius-medium);
+    box-shadow: var(--shadow-medium);
+    width: 700px;                    /* desktop */
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 28px 32px;
+    border: 1px solid rgba(128, 208, 199, 0.45);
+    animation: modalFade 0.25s ease;
+    box-sizing: border-box;
+    position: relative;   /* kötelező a stackinghez */
+    z-index: 1000000 !important;}
+
+/* Fade animáció */
+@keyframes modalFade {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* MODAL HEADER ---------------------------------------------------- */
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-family: var(--title-font-family);
+    font-size: var(--h3-font-size);
+    color: var(--primary-color);
+    font-weight: var(--font-weight-bold);
+}
+
+.modal-close-btn {
+    background: transparent;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: var(--primary-color);
+    transition: 0.25s;
+}
+.modal-close-btn:hover {
+    color: var(--secondary-color);
+}
+
+/* MODAL GRID ------------------------------------------------------ */
+/* Alapértelmezés desktopon: 2 oszlop */
+
+.modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 22px;
+}
+
+/* Mezők */
+.modal input,
+.modal select,
+.modal textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: var(--border-radius-small);
+    border: 1px solid rgba(0,0,0,0.18);
+    background: var(--white-color);
+    font-family: var(--body-font-family);
+    font-size: 15px;
+    transition: 0.25s;
+    box-sizing: border-box;
+}
+
+.modal input::placeholder,
+.modal textarea::placeholder {
+    color: rgba(19, 84, 122, 0.45);
+}
+
+.modal input:focus,
+.modal select:focus,
+.modal textarea:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 2px rgba(128, 208, 199, 0.35);
+    outline: none;
+}
+
+/* Textarea menjen át két oszlopon */
+.modal textarea {
+    grid-column: span 2;
+    resize: vertical;
+}
+
+/* CheckBox sorok */
+.modal-checkbox-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 8px;
+    grid-column: span 2;
+
+}
+
+/* FOOTER ---------------------------------------------------------- */
+
+.modal-footer {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    grid-column: span 2;
+}
+
+.modal-footer button {
+    padding: 10px 20px;
+    border-radius: var(--border-radius-large);
+    font-family: var(--title-font-family);
+    cursor: pointer;
+    border: none;
+    font-size: 14px;
+}
+
+/* ============================================================
+   MOBIL/TABLET (<= 899px) – egyoszlopos elrendezés
+============================================================ */
+
+@media (max-width: 899px) {
+
+    .modal {
+        width: 95% !important;
+        padding: 20px 22px !important;
+    }
+
+    .modal-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 14px !important;
+    }
+    .modal-grid > * {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+    .modal textarea {
+        grid-column: unset !important; /* mobilon ne spanoljon */
+    }
+
+    .modal-checkbox-row {
+        grid-column: unset !important;
+        justify-content: flex-start !important;
+        text-align: left !important;}
+
+    .modal-footer {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        grid-column: unset !important;
+    }
+
+    .modal-footer button {
+        width: 100% !important;
+        font-size: 16px !important;
+        padding: 12px 0 !important;
     }
 }

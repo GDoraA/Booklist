@@ -1,40 +1,60 @@
-// JAVÍTÁS: új cache név (v8), hogy a régi app.js ne maradjon a cache-ben
-const CACHE_NAME = "gda-cache-v8";
+// 🔥 KÖTELEZŐ VERZIÓSZÁM MÓDOSÍTÁS – ÍGY TŐLÜNK IDŐSZERŰ MARAD
+const CACHE_NAME = "gda-cache-v9";
 
-// JAVÍTÁS: relatív útvonalak, hogy /GDA_booklist/ alatt is működjön
+// 🔒 Csak statikus képek és ikonok kerüljenek cache-be
 const ASSETS_TO_CACHE = [
-  "./index.html",
-  "./styles.css",
-  "./app.js",
   "./assets/books_256.png",
   "./assets/books.png",
   "./assets/splash.png"
 ];
 
-
-self.addEventListener("install", e => {
-  e.waitUntil(
+// Telepítés
+self.addEventListener("install", event => {
+  event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
 });
 
-// JAVÍTÁS: régi cache-ek törlése, hogy ne maradjon bent régi app.js
+// Aktiválás – régi cache-ek törlése
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
         keys
-          .filter(key => key !== CACHE_NAME) // csak az aktuális marad
+          .filter(key => key !== CACHE_NAME)
           .map(key => caches.delete(key))
       )
     )
   );
+
+  // Azonnali SW aktiválás
+  return self.clients.claim();
 });
 
-self.addEventListener("fetch", e => {
-  e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request))
+// FETCH LOGIKA
+self.addEventListener("fetch", event => {
+  const request = event.request;
+
+  // ❗ MINDIG FRISSÍTENDŐ FÁJLOK – soha ne cache-eljük!
+  const alwaysFetchFresh = [
+    "index.html",
+    "app.js",
+    "manifest.json"
+  ];
+
+  if (alwaysFetchFresh.some(url => request.url.includes(url))) {
+    return event.respondWith(fetch(request));
+  }
+
+  // Statikus képek cache-ből
+  event.respondWith(
+    caches.match(request).then(cachedResponse => {
+      if (cachedResponse) {
+        return cachedResponse;  // talált a cache-ben
+      }
+      return fetch(request);     // különben megy hálózatra
+    })
   );
 });

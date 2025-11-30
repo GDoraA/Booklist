@@ -464,7 +464,6 @@ function openBookModal(mode, id) {
     if (modalMode === "new") {
         document.getElementById("modalTitle").textContent = "Új könyv felvétele";
         document.getElementById("bm_id").value = "";
-        document.getElementById("bm_existing_url").value = "";
         document.getElementById("bm_szerzo").value = "";
         document.getElementById("bm_cim").value = "";
         document.getElementById("bm_eredeti").value = "";

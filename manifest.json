@@ -1,7 +1,7 @@
 {
   "name": "GDA könyvei",
   "short_name": "GDA könyvei",
-  "start_url": "index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f9e5ef",
   "theme_color": "#a7c7ff",
