@@ -32,17 +32,18 @@
 <!-- LOGIN KÉPERNYŐ -->
 <div id="loginScreen" class="page" style="max-width:400px;margin:20px auto;display:none;">
     <h1>Bejelentkezés</h1>
+    <form id="loginForm">
 
-    <label for="loginEmail">E-mail cím</label>
-    <input type="email" id="loginEmail" placeholder="pl. valaki@pelda.hu">
+        <label for="loginEmail">E-mail cím</label>
+        <input type="email" id="loginEmail" placeholder="pl. valaki@pelda.hu">
 
-    <label for="loginPassword" style="margin-top:10px;display:block;">Jelszó</label>
-    <input type="password" id="loginPassword" placeholder="Jelszó">
+        <label for="loginPassword" style="margin-top:10px;display:block;">Jelszó</label>
+        <input type="password" id="loginPassword" placeholder="Jelszó">
 
-    <button class="btn btn-primary" style="margin-top:12px;" onclick="startLogin()">
-        Belépés
-    </button>
-
+        <button class="btn btn-primary" style="margin-top:12px;" onclick="startLogin()">
+            Belépés
+        </button>
+    </form>
     <div id="loginMessage" style="margin-top:10px;color:#b02a37;display:none;"></div>
 </div>
 

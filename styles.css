@@ -368,11 +368,11 @@ input[list] {
 }
 
 .stat-card {
-  padding: 8px 12px;
+  padding: 6px 8px;
   border-radius: var(--border-radius-large);
   background-color: #e0f8f4;
   color: var(--primary-color);
-  font-size: 13px;
+  font-size: 10px;
   font-weight: var(--font-weight-semibold);
 }
 
@@ -685,14 +685,14 @@ a.link:hover {
    ============================================================ */
 
 .stat-card {
-    padding: 10px 16px;
+    padding: 6px 12px;
     border-radius: var(--border-radius-large);
-    font-size: 14px;
+    font-size: 10px;
     font-family: var(--title-font-family);
     font-weight: var(--font-weight-semibold);
     box-shadow: var(--shadow-soft);
     display: inline-flex;
-    gap: 6px;
+    gap: 3px;
     align-items: center;
     border: 1px solid transparent;
 }

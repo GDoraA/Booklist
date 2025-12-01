@@ -298,6 +298,7 @@ function hideLoading(btn) {
     }
     document.body.style.cursor = "default";
 }
+
 function logout() {
     // Bejelentkezési adatok törlése
     localStorage.removeItem("loggedInUserEmail");
@@ -1365,6 +1366,16 @@ window.onload = function() {
 // Datalisták betöltése maradhat itt, ez nem zavarja a loginfolyamatot
 loadDropdownLists();
 
+// FORM SUBMIT KEZELÉSE – IDE ILLIK  
+document.addEventListener("DOMContentLoaded", function() {
+    const form = document.getElementById("loginForm");
+    if (form) {
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            startLogin(); // a meglévő login logikád fut le
+        });
+    }
+});
 
 
 
