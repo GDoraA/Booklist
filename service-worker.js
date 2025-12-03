@@ -9,10 +9,16 @@ const ASSETS_TO_CACHE = [
   "./app.js",
   "./manifest.json",
 
-  // képek
+  // képek – manifest ikonok + splash teljes URL path támogatással
   "./assets/books_256.png",
+  "/assets/books_256.png",
+
   "./assets/books.png",
-  "./assets/splash.png"
+  "/assets/books.png",
+
+  "./assets/splash.png",
+  "/assets/splash.png"
+
 ];
 
 
