@@ -18,12 +18,25 @@
     <link rel="icon" type="image/png" href="assets/books_256.png">
 
         <script>
-        // NE regisztrálja a service workert, ha file:// alatt fut
-        if (location.protocol !== "file:" && "serviceWorker" in navigator) {
-            navigator.serviceWorker.register("./service-worker.js");
+        // Service Worker regisztráció – csak biztonságos környezetben
+        (function() {
 
-        }
+            const isLocalhost =
+                location.hostname === "localhost" ||
+                location.hostname === "127.0.0.1" ||
+                location.hostname === "::1";
+
+            const isSecure =
+                location.protocol === "https:" || isLocalhost;
+
+            // Csak akkor próbáljuk meg regisztrálni, ha biztonságos a környezet
+            if (isSecure && "serviceWorker" in navigator) {
+                navigator.serviceWorker.register("./service-worker.js");
+            }
+
+        })();
         </script>
+
 
 
 </head>
