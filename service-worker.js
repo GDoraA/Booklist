@@ -1,5 +1,9 @@
+// 🔧 Azonnali SW aktiválás – NE várjon újraindításra
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
 // 🔥 KÖTELEZŐ VERZIÓSZÁM MÓDOSÍTÁS – ÍGY TŐLÜNK IDŐSZERŰ MARAD
-const CACHE_NAME = "gda-cache-v9";
+const CACHE_NAME = "gda-cache-v10";
 
 // 🔒 Csak statikus képek és ikonok kerüljenek cache-be
 const ASSETS_TO_CACHE = [
