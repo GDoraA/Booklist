@@ -874,7 +874,7 @@ document.getElementById("itemCount").textContent =
             card.innerHTML = `
                 ${item["URL"] ? `
                     <div class="card-image-wrapper">
-                        <img src="${convertDriveUrl(item["URL"])}" alt="Borító" class="card-image">
+                        <img src="${item["URL"]}" alt="Borító" class="card-image">
                     </div>
                 ` : ""}
 
