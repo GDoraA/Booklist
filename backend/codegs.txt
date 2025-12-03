@@ -417,33 +417,59 @@ function doGet(e) {
 
   try {
 
-    /* ========== ÚJ KÖNYV FELVÉTELE ========== */
-    if (action === "addBookToLista") {
+/* ========== ÚJ KÖNYV FELVÉTELE (addBookToLista) ========== */
+if (action === "addBookToLista") {
 
-      const book = {
-        "Author":         p.szerzo || "",
-        "Title":          p.cim || "",
-        "Original_Title": p.eredeti_cim || "",
-        "Previous_Title": p.korabbi_cim || "",
-        "Series":         p.sorozat || "",
-        "Number":         p.ssz || "",
-        "URL":            p.url || "",
-        "Year":           p.ev || "",
-        "Purchased":      p.megv || "",
-        "For_sale":       p.elado || "",
-        "Price":          p.ar || "",
-        "Comment":        p.megjegy || ""
-      };
+  const book = {
+    "Author":         p.szerzo || "",
+    "Title":          p.cim || "",
+    "Original_Title": p.eredeti_cim || "",
+    "Previous_Title": p.korabbi_cim || "",
+    "Series":         p.sorozat || "",
+    "Number":         p.ssz || "",
+    "URL":            p.url || "",
+    "Year":           p.ev || "",
+    "Purchased":      p.megv || "",
+    "For_sale":       p.elado || "",
+    "Price":          p.ar || "",
+    "Comment":        p.megjegy || ""
+  };
 
-      updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
-      updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
+  updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
+  updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
 
-      result = addBookToLista_(book);
+  result = addBookToLista_(book);
+}
 
-    /* ========== LISTA LEKÉRÉSE ========== */
-    } else if (action === "getLista") {
+/* ========== ÚJ KÖNYV FELVÉTELE (addBookOnly) ========== */
+else if (action === "addBookOnly") {
 
-      result = getLista_();
+  const book = {
+    "Author":         p.szerzo || "",
+    "Title":          p.cim || "",
+    "Original_Title": p.eredeti_cim || "",
+    "Previous_Title": p.korabbi_cim || "",
+    "Series":         p.sorozat || "",
+    "Number":         p.ssz || "",
+    "URL":            p.url || "",
+    "Year":           p.ev || "",
+    "Purchased":      p.megv || "",
+    "For_sale":       p.elado || "",
+    "Price":          p.ar || "",
+    "Comment":        p.megjegy || ""
+  };
+
+  updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
+  updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
+
+  result = addBookOnly_(book);
+}
+
+/* ========== LISTA LEKÉRÉSE ========== */
+else if (action === "getLista") {
+
+  result = getLista_();
+
 
 
     /* ========== REKORD FRISSÍTÉSE ========== */
