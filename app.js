@@ -1364,3 +1364,19 @@ function urlPreviewUpdate() {
 }
 
 
+// 🔧 Login form submit ALWAYS init after UI load
+function initLoginSubmitHandler() {
+    const form = document.getElementById("loginForm");
+    if (!form) return;
+
+    if (!form.dataset.bound) {
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            startLogin();
+        });
+        form.dataset.bound = "true";
+    }
+}
+
+// amikor megjelenik a login screen, akkor biztos létezik a form
+setTimeout(initLoginSubmitHandler, 300);
