@@ -1,11 +1,12 @@
-// 🔧 Azonnali SW aktiválás – NE várjon újraindításra
+// Azonnali SW aktiválás
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
-// 🔥 KÖTELEZŐ VERZIÓSZÁM MÓDOSÍTÁS – ÍGY TŐLÜNK IDŐSZERŰ MARAD
-const CACHE_NAME = "gda-cache-v10";
 
-// 🔒 Csak statikus képek és ikonok kerüljenek cache-be
+// Cache verzió
+const CACHE_NAME = "gda-cache-v11";
+
+// Cache-elendő statikus fájlok
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -13,7 +14,6 @@ const ASSETS_TO_CACHE = [
   "./app.js",
   "./manifest.json",
 
-  // képek – manifest ikonok + splash teljes URL path támogatással
   "./assets/books_256.png",
   "/assets/books_256.png",
 
@@ -22,9 +22,7 @@ const ASSETS_TO_CACHE = [
 
   "./assets/splash.png",
   "/assets/splash.png"
-
 ];
-
 
 // Telepítés
 self.addEventListener("install", event => {
@@ -47,37 +45,44 @@ self.addEventListener("activate", event => {
     )
   );
 
-  // Azonnali SW aktiválás
-  return self.clients.claim();
+  self.clients.claim();
 });
 
-// FETCH LOGIKA
+// FETCH LOGIKA – GOOGLE SCRIPT BYPASS + CACHE-FIRST
 self.addEventListener("fetch", event => {
   const request = event.request;
+  const url = new URL(request.url);
+  const requestPath = url.pathname;
 
-    // 🔧 PONTOS path alapú ellenőrzés – csak az adott fájlokra
-    const freshPaths = [
-      "/index.html",
-      "/app.js",
-      "/manifest.json"
-    ];
+  // Google Apps Script API hívások bypass
+  if (
+    request.url.includes("script.google.com") ||
+    request.url.includes("googleusercontent.com")
+  ) {
+    return;
+  }
 
-    const url = new URL(event.request.url);
-    const requestPath = url.pathname;
+  // Mindig frissen töltendő fájlok
+  const freshPaths = [
+    "/index.html",
+    "/app.js",
+    "/manifest.json"
+  ];
 
-    // Ha pontos egyezés van → hálózatról frissen töltjük
-    if (freshPaths.includes(requestPath)) {
-      return event.respondWith(fetch(event.request));
-    }
+  if (freshPaths.includes(requestPath)) {
+    return event.respondWith(fetch(request));
+  }
 
-
-  // Statikus képek cache-ből
+  // Cache-first stratégia
   event.respondWith(
     caches.match(request).then(cachedResponse => {
       if (cachedResponse) {
-        return cachedResponse;  // talált a cache-ben
+        return cachedResponse;
       }
-      return fetch(request);     // különben megy hálózatra
+
+      return fetch(request).catch(() => {
+        return caches.match("./index.html");
+      });
     })
   );
 });
