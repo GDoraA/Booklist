@@ -510,7 +510,7 @@ function openBookModal(mode, id) {
 
         const img = document.getElementById("bm_preview");
         if (item["URL"]) {
-            img.src = convertDriveUrl(item["URL"]);
+            img.src = item["URL"];
             img.style.display = "block";
         }
         else {
