@@ -1,0 +1,700 @@
+/* CSV import kibővítve Original_Title és Previous_Title mezőkkel */
+/***********************************************************
+ *   KÖNYVNYILVÁNTARTÓ – EGYSZERŰSÍTETT APPS SCRIPT BACKEND
+ *   ------------------------------------------------------
+ *   Csak egyetlen fő munkalappal dolgozunk: "List"
+ *
+ *   Kiegészítő lapok:
+ *     - Authors: egyedi szerzők listája
+ *     - SeriesList: egyedi sorozatnevek listája
+ *
+ *   Funkciók:
+ *   - Új könyv felvétele (addBookOnly / addBookToLista)
+ *   - Lista lekérése (getLista)
+ *   - Lista rekord szerkesztése (updateLista)
+ *   - Rekord törlése (deleteLista)
+ *   - BASE64 képfeltöltés Drive mappába (uploadImageOnly)
+ *   - Authors + SeriesList automatikus bővítése
+ *   - Egyedi listák lekérése a datalist számára (getUniqueLists)
+ *   - CSV sor importálása (importCsvRow)
+ *   - JSON / JSONP válaszok támogatása
+ ***********************************************************/
+
+
+/********** KONFIG **********/
+
+// Fő munkalap neve
+const SHEET_LISTA = 'List';
+
+// Lenyíló listák tárolása
+const SHEET_AUTHORS = 'Authors';
+const SHEET_SERIES  = 'SeriesList';
+
+// Drive mappa azonosító (a képek ide kerülnek)
+const FOLDER_ID = "1nPZe04KtMTqZxcInV2SJHJhbIDSaMhYW";
+
+
+/***********************************************************
+ * SEGÉDFÜGGVÉNYEK
+ ***********************************************************/
+
+/**
+ * Adott nevű sheet lekérése.
+ */
+function getSheet_(name) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(name);
+  if (!sheet) throw new Error("Nem található munkalap: " + name);
+  return sheet;
+}
+
+/**
+ * 1. sor fejléc → objektum: oszlopnév → oszlop index
+ */
+function getHeaderMap_(sheet) {
+  const lc = sheet.getLastColumn();
+  if (lc < 1) return {};
+
+  const headers = sheet.getRange(1, 1, 1, lc).getValues()[0];
+  const map = {};
+  headers.forEach((h, i) => {
+    if (h) map[h] = i + 1;
+  });
+  return map;
+}
+
+/**
+ * Sheet tartalmának beolvasása objektumlistába.
+ */
+function readSheet_(sheetName) {
+  const sheet = getSheet_(sheetName);
+  const lr = sheet.getLastRow();
+  const lc = sheet.getLastColumn();
+
+  if (lr < 2 || lc < 1) return [];
+
+  const data = sheet.getRange(2, 1, lr - 1, lc).getValues();
+  const headers = sheet.getRange(1, 1, 1, lc).getValues()[0];
+
+  return data.map(row => {
+    const o = {};
+    headers.forEach((h, i) => {
+      if (h) o[h] = (row[i] === null || row[i] === undefined) ? "" : String(row[i]);
+
+    });
+    return o;
+  });
+}
+
+/**
+ * Egyedi azonosító generálása (UUID).
+ */
+function generateId_() {
+  return Utilities.getUuid();
+}
+/**
+ * Jelszó hash-elése (SHA-256, hex string)
+ */
+function hashPassword_(pwd) {
+  if (!pwd) return "";
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    pwd,
+    Utilities.Charset.UTF_8
+  );
+  return bytes
+    .map(function(b) {
+      const v = (b & 0xFF).toString(16);
+      return v.length === 1 ? "0" + v : v;
+    })
+    .join("");
+}
+
+/**
+ * Új érték hozzáadása Authors / SeriesList sheethez, ha még nem szerepel.
+ */
+function updateUniqueList_(sheetName, columnName, value) {
+  if (!value) return;
+
+  const sheet = getSheet_(sheetName);
+  const existing = readSheet_(sheetName);
+
+  const isExists = existing.some(row =>
+    String(row[columnName]).toLowerCase() === String(value).toLowerCase()
+  );
+
+  if (!isExists) {
+    const map = getHeaderMap_(sheet);
+    const row = new Array(sheet.getLastColumn()).fill("");
+    row[map[columnName] - 1] = value;
+    sheet.appendRow(row);
+  }
+}
+
+
+/***********************************************************
+ * ÜZLETI FUNKCIÓK
+ ***********************************************************/
+/**
+ * Duplikáció ellenőrzése.
+ * Ha talál egyezést Author + Title + Original_Title + Year alapján,
+ * akkor a megtalált rekordot visszaadja.
+ * Ha nincs duplikáció → null.
+ */
+/**
+ * PasswordHash beállítása a Users lapon egy adott e-mailhez.
+ * Ha sikerül → {success:true}, ha nem találja → {success:false, error:"..."}
+ */
+function setUserPassword_(email, plainPassword) {
+  if (!email || !plainPassword) {
+    return { success:false, error:"Hiányzó email vagy jelszó" };
+  }
+
+  const sheet = getSheet_("Users");
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) {
+    return { success:false, error:"Nincs felhasználó a Users lapon" };
+  }
+
+  const headers = data[0];
+  const emailCol = headers.indexOf("Email");
+  const pwdCol   = headers.indexOf("PasswordHash");
+
+  if (emailCol === -1 || pwdCol === -1) {
+    return { success:false, error:"Hiányzik az Email vagy PasswordHash oszlop a Users lapon" };
+  }
+
+  const emailLower = String(email).trim().toLowerCase();
+  const hash = hashPassword_(plainPassword);
+
+  for (let i = 1; i < data.length; i++) {
+    const rowEmail = String(data[i][emailCol] || "").trim().toLowerCase();
+    if (rowEmail === emailLower) {
+      sheet.getRange(i + 1, pwdCol + 1).setValue(hash);
+      return { success:true };
+    }
+  }
+
+  return { success:false, error:"Felhasználó nem található: " + email };
+}
+/**
+ * Email alapján megnézi:
+ * - létezik-e a Users lapon
+ * - van-e már PasswordHash
+ */
+function checkUserStatus_(email) {
+  const users = readSheet_("Users"); // már létező helper
+
+  const emailLower = String(email || "").trim().toLowerCase();
+  let found = null;
+
+  for (let i = 0; i < users.length; i++) {
+    const u = users[i];
+    const uEmail = String(u.Email || "").trim().toLowerCase();
+    if (uEmail === emailLower) {
+      found = u;
+      break;
+    }
+  }
+
+  if (!found) {
+    return {
+      success: false,
+      exists: false,
+      needsPasswordSetup: false
+    };
+  }
+
+  const hasPwd = !!(found.PasswordHash && String(found.PasswordHash).trim() !== "");
+
+  return {
+    success: true,
+    exists: true,
+    needsPasswordSetup: !hasPwd,
+    role: found.Role || "",
+    name: found.Name || ""
+  };
+}
+/**
+ * Bejelentkezés email + jelszó alapján.
+ * Akkor sikeres, ha:
+ *  - létezik a felhasználó
+ *  - van PasswordHash
+ *  - a hash egyezik
+ */
+function loginUser_(email, plainPassword) {
+  const users = readSheet_("Users");
+  const emailLower = String(email || "").trim().toLowerCase();
+  const pwdHash = hashPassword_(plainPassword);
+
+  let found = null;
+  for (let i = 0; i < users.length; i++) {
+    const u = users[i];
+    const uEmail = String(u.Email || "").trim().toLowerCase();
+    if (uEmail === emailLower) {
+      found = u;
+      break;
+    }
+  }
+
+  if (!found) {
+    return { success:false, error:"Nincs ilyen felhasználó" };
+  }
+
+  const storedHash = String(found.PasswordHash || "").trim();
+  if (!storedHash) {
+    return { success:false, error:"Még nincs beállítva jelszó (első bejelentkezés)" };
+  }
+
+  if (storedHash !== pwdHash) {
+    return { success:false, error:"Hibás jelszó" };
+  }
+
+  return {
+    success: true,
+    role: found.Role || "",
+    name: found.Name || ""
+  };
+}
+
+function isDuplicate_(book) {
+  const lista = readSheet_(SHEET_LISTA);
+
+  for (let item of lista) {
+    const sameAuthor = String(item["Author"] || "").trim().toLowerCase() ===
+                       String(book["Author"] || "").trim().toLowerCase();
+
+    const sameTitle = String(item["Title"] || "").trim().toLowerCase() ===
+                      String(book["Title"] || "").trim().toLowerCase();
+
+    const sameOrig = String(item["Original_Title"] || "").trim().toLowerCase() ===
+                     String(book["Original_Title"] || "").trim().toLowerCase();
+
+    const sameYear = String(item["Year"] || "").trim() ===
+                     String(book["Year"] || "").trim();
+
+    const sameForSale = String(item["For_sale"] || "").trim().toLowerCase() ===
+                        String(book["For_sale"] || "").trim().toLowerCase();
+
+    if (sameAuthor && sameTitle && sameOrig && sameYear && sameForSale) {
+      return item;
+    }
+  }
+
+  return null;
+}
+
+
+/**
+ * Új könyv felvétele a List lapra.
+ */
+function addBookToLista_(book) {
+
+  // --- 1) Kötelező mezők ellenőrzése (Author, Title) ---
+  if (!book["Author"] || !book["Title"]) {
+    return { success: false, error: "Author és Title kötelező mezők!" };
+  }
+
+  // --- 2) DUPLIKÁCIÓ VIZSGÁLATA ---
+  const duplicate = isDuplicate_(book);
+  if (duplicate) {
+    return {
+      success: false,
+      error: "Duplikált rekord",
+      duplicate: duplicate
+    };
+  }
+
+  // --- 3) Ha nincs duplikáció, folytatódhat a mentés ---
+  const sheet = getSheet_(SHEET_LISTA);
+  const map = getHeaderMap_(sheet);
+  const row = new Array(sheet.getLastColumn()).fill("");
+
+  // egyedi ID generálása
+  if (map["ID"]) row[map["ID"] - 1] = generateId_();
+
+  // mezők beírása a sorba
+  Object.keys(book).forEach(k => {
+    if (map[k]) row[map[k] - 1] = book[k];
+  });
+
+  sheet.appendRow(row);
+  return { success: true };
+}
+
+
+/**
+ * Könyv felvétele (adatokkal).
+ */
+function addBookOnly_(book) {
+  return addBookToLista_(book);
+}
+
+/**
+ * Lista lekérése.
+ */
+function getLista_() {
+  return {
+    success: true,
+    items: readSheet_(SHEET_LISTA)
+  };
+}
+
+/**
+ * Rekord frissítése a "List" Google Sheet-ben, ID alapján.
+ */
+function updateLista_(book) {
+
+  const sheet = getSheet_(SHEET_LISTA);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const idCol = headers.indexOf("ID");
+  if (idCol === -1) {
+    return { success:false, error:"Nincs ID oszlop!" };
+  }
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idCol]) === String(book.ID)) {
+
+      headers.forEach((h, colIndex) => {
+        if (h !== "ID" && book[h] !== undefined) {
+          sheet.getRange(i + 1, colIndex + 1).setValue(book[h]);
+        }
+      });
+
+      return { success:true };
+    }
+  }
+
+  return { success:false, error:"ID nem található." };
+}
+
+/**
+ * Rekord törlése ID alapján.
+ */
+function deleteLista_(id) {
+  const sheet = getSheet_(SHEET_LISTA);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const idCol = headers.indexOf("ID");
+  if (idCol === -1) {
+    return { success:false, error:"Nincs ID oszlop!" };
+  }
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idCol]) === String(id)) {
+      sheet.deleteRow(i + 1);
+      return { success:true };
+    }
+  }
+
+  return { success:false, error:"ID nem található." };
+}
+
+
+/**
+ * BASE64 → Drive kép feltöltése.
+ */
+function uploadImage_(base64, filename) {
+  if (!base64) return { success:true, url:"" };
+
+  const folder = DriveApp.getFolderById(FOLDER_ID);
+
+  const blob = Utilities.newBlob(
+    Utilities.base64Decode(base64),
+    "image/jpeg",
+    filename || "borito.jpg"
+  );
+
+  const file = folder.createFile(blob);
+
+  file.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  return { success:true, url: file.getUrl() };
+}
+
+/**
+ * Képfeltöltés – első lépés.
+ */
+function uploadImageOnly_(base64, filename) {
+  if (!base64) return { success:false, error:"Nincs kép!" };
+  return uploadImage_(base64, filename);
+}
+
+
+/***********************************************************
+ * JSON / JSONP
+ ***********************************************************/
+function createJsonOrJsonpResponse_(obj, callback) {
+  const json = JSON.stringify(obj);
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + "(" + json + ");")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService
+    .createTextOutput(json)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+
+/***********************************************************
+ * HTTP GET – ACTION KEZELŐ
+ ***********************************************************/
+function doGet(e) {
+  const p = e?.parameter || {};
+  const action = p.action;
+  const callback = p.callback;
+  let result;
+
+  try {
+
+    /* ========== ÚJ KÖNYV FELVÉTELE ========== */
+    if (action === "addBookToLista") {
+
+      const book = {
+        "Author":         p.szerzo || "",
+        "Title":          p.cim || "",
+        "Original_Title": p.eredeti_cim || "",
+        "Previous_Title": p.korabbi_cim || "",
+        "Series":         p.sorozat || "",
+        "Number":         p.ssz || "",
+        "URL":            p.url || "",
+        "Year":           p.ev || "",
+        "Purchased":      p.megv || "",
+        "For_sale":       p.elado || "",
+        "Price":          p.ar || "",
+        "Comment":        p.megjegy || ""
+      };
+
+      updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
+      updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
+
+      result = addBookToLista_(book);
+
+
+    /* ========== KÉPFELTÖLTÉS (1. lépés) ========== */
+    } else if (action === "uploadImageOnly") {
+
+      result = uploadImageOnly_(p.base64, p.filename);
+
+
+    /* ========== KÖNYV FELVÉTELE (2. lépés) ========== */
+    } else if (action === "addBookOnly") {
+
+      const book = {
+        "Author":         p.szerzo || "",
+        "Title":          p.cim || "",
+        "Original_Title": p.eredeti_cim || "",
+        "Previous_Title": p.korabbi_cim || "",
+        "Series":         p.sorozat || "",
+        "Number":         p.ssz || "",
+        "URL":            p.url || "",
+        "Year":           p.ev || "",
+        "Purchased":      p.megv || "",
+        "For_sale":       p.elado || "",
+        "Price":          p.ar || "",
+        "Comment":        p.megjegy || ""
+      };
+
+      updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
+      updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
+
+      result = addBookOnly_(book);
+
+
+    /* ========== LISTA LEKÉRÉSE ========== */
+    } else if (action === "getLista") {
+
+      result = getLista_();
+
+
+    /* ========== REKORD FRISSÍTÉSE ========== */
+    } else if (action === "updateLista") {
+
+      const book = {
+        "ID":             p.ID,
+        "Author":         p.szerzo || "",
+        "Title":          p.cim || "",
+        "Original_Title": p.eredeti_cim || "",
+        "Previous_Title": p.korabbi_cim || "",
+        "Series":         p.sorozat || "",
+        "Number":         p.ssz || "",
+        "URL":            p.url || "",
+        "Year":           p.ev || "",
+        "Purchased":      p.megv || "",
+        "For_sale":       p.elado || "",
+        "Price":          p.ar || "",
+        "Comment":        p.megjegy || ""
+      };
+
+      result = updateLista_(book);
+
+
+    /* ========== REKORD TÖRLÉSE ========== */
+    } else if (action === "deleteLista") {
+
+      const id = p.ID || "";
+      result = deleteLista_(id);
+
+
+    /* ========== EGYEDI LISTÁK (Author, Series) LEKÉRÉSE ========== */
+    } else if (action === "getUniqueLists") {
+
+      result = {
+        success: true,
+        authors: readSheet_(SHEET_AUTHORS),
+        series:  readSheet_(SHEET_SERIES)
+      };
+
+        /* ========== LOGIN: FELHASZNÁLÓ ELLENŐRZÉSE EMAIL ALAPJÁN ========== */
+    } else if (action === "checkUser") {
+
+      const email = (p.email || "").trim().toLowerCase();
+      result = checkUserStatus_(email);
+
+    /* ========== LOGIN: ELSŐ JELSZÓ BEÁLLÍTÁSA ========== */
+    } else if (action === "setPassword") {
+
+      const email = (p.email || "").trim().toLowerCase();
+      const pwd   = p.password || "";
+
+      const r = setUserPassword_(email, pwd);
+      result = r;
+
+    /* ========== LOGIN: EMAIL + JELSZÓ ELLENŐRZÉSE ========== */
+    } else if (action === "login") {
+
+      const email = (p.email || "").trim().toLowerCase();
+      const pwd   = p.password || "";
+
+      result = loginUser_(email, pwd);
+
+    /* ===============================================
+       CSV IMPORTÁLÁSI SOR FELDOLGOZÁSA
+       =============================================== */
+    } else if (action === "importCsvRow") {
+
+      const book = {
+        "Author":         p.Author || "",
+        "Title":          p.Title  || "",
+        "Original_Title": p.Original_Title || "",
+        "Previous_Title": p.Previous_Title || "",
+        "Series":         p.Series || "",
+        "Number":         p.Number || "",
+        "URL":            p.URL    || "",
+        "Year":           p.Year   || "",
+        "Purchased":      p.Purchased || "",
+        "For_sale":       p.For_sale || ""
+      };
+
+      // DUPLIKÁCIÓ ELLENŐRZÉS IMPORTNÁL
+      const duplicate = isDuplicate_(book);
+      if (duplicate) {
+        return createJsonOrJsonpResponse_(
+          {
+            success: false,
+            error: "Duplikált rekord (import): a könyv már szerepel a listában.",
+            duplicate: duplicate
+          },
+          callback
+        );
+      }
+
+      updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
+      updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
+
+      const sheet = getSheet_(SHEET_LISTA);
+      const map = getHeaderMap_(sheet);
+      const row = new Array(sheet.getLastColumn()).fill("");
+
+      row[map["ID"] - 1]             = generateId_();
+      row[map["Author"] - 1]         = book["Author"];
+      row[map["Title"] - 1]          = book["Title"];
+      row[map["Original_Title"] - 1] = book["Original_Title"];
+      row[map["Previous_Title"] - 1] = book["Previous_Title"];
+      row[map["Series"] - 1]         = book["Series"];
+      row[map["Number"] - 1]         = book["Number"];
+      row[map["URL"] - 1]            = book["URL"];
+      row[map["Year"] - 1]           = book["Year"];
+      row[map["Purchased"] - 1]      = book["Purchased"];
+      row[map["For_sale"] - 1] = book["For_sale"];
+
+      sheet.appendRow(row);
+
+      result = { success: true, inserted: book };
+
+
+    /* ========== ISMERETLEN ACTION ========== */
+    } else {
+      result = { success:false, error:"Ismeretlen action: " + action };
+    }
+
+  } catch (err) {
+
+    result = { success:false, error: err.message || String(err) };
+
+  }
+
+  return createJsonOrJsonpResponse_(result, callback);
+}
+
+/***********************************************************
+ * HTTP POST – képfeltöltés kezelése
+ ***********************************************************/
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents || "{}");
+    const action = e.parameter.action;
+
+    // --- KÉPFELTÖLTÉS POSTBAN ---
+    if (action === "uploadImageOnly") {
+      const result = uploadImage_(data.base64, data.filename);
+      return ContentService
+        .createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // --- ISMERETLEN POST ACTION ---
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success:false,
+        error:"Ismeretlen POST action."
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success:false,
+        error: err.message
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+
+
+function testUploadManual() {
+  const folder = DriveApp.getFolderById(FOLDER_ID);
+  const blob = Utilities.newBlob("hello world", "text/plain", "test.txt");
+  const file = folder.createFile(blob);
+  Logger.log("Created: " + file.getUrl());
+}
+function testCheckUser() {
+  const email = "gdoraanna@gmail.com";  // <- pontosan ez!
+  const result = checkUserStatus_(email);
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+function testReadUsers() {
+  const users = readSheet_("Users");
+  Logger.log(JSON.stringify(users, null, 2));
+}
+
+
