@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbwbTowkHtRWjZcBKSedV6NH-XnYMr-7Rfn0mIbDqZwqE3ZB5zqDPHIGrl-fU0USbyPngQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxwHgzK37JrfPKFwfvTM9HEirWMMojpJ886okNdlppB58jxFJVPlW1ie-fD-oIUWMj0/exec";
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 
@@ -1357,16 +1357,16 @@ function urlPreviewUpdate() {
     if (rawUrl) {
         let displayUrl = rawUrl;
 
-        // Drive linket átalakítjuk nézhető formátumra
+        // Drive linket átalakítjuk DIREKT KÉP formátumra
         if (rawUrl.includes("drive.google.com/")) {
             // Reguláris kifejezés a FILE_ID kinyerésére a leggyakoribb formátumokból
             const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)|id=([a-zA-Z0-9_-]+)/);
 
             if (match && (match[1] || match[2])) {
                 const fileId = match[1] || match[2];
-                // Létrehozzuk a DIREKT MEGJELENÍTÉSI URL-t (uc?id=FileID)
-                displayUrl = `https://drive.google.com/uc?id=${fileId}&export=view`; 
-                console.log("Átalakított Drive URL:", displayUrl);
+                // Létrehozzuk a standard beágyazási URL-t
+                displayUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+                console.log("Átalakított Drive URL (preview):", displayUrl);
             } else {
                 console.warn("Nem sikerült kinyerni a Drive fájlazonosítót (File ID). Az eredeti URL marad.");
             }
@@ -1379,6 +1379,5 @@ function urlPreviewUpdate() {
         previewImg.src = ""; 
     }
 }
-
 
 
