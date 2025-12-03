@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbxwHgzK37JrfPKFwfvTM9HEirWMMojpJ886okNdlppB58jxFJVPlW1ie-fD-oIUWMj0/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbypJHlutXtvMJZNtXHgYpyXMHDaRGSaDnuxAqe_Adx5kjlZYJY9iRm9kMLOhCtyKONNPA/exec";
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 
@@ -1364,7 +1364,7 @@ function urlPreviewUpdate() {
 
             if (match && (match[1] || match[2])) {
                 const fileId = match[1] || match[2];
-                // Létrehozzuk a standard beágyazási URL-t
+                // HASZNÁLD EZT A FORMÁTUMOT:
                 displayUrl = `https://drive.google.com/file/d/${fileId}/preview`;
                 console.log("Átalakított Drive URL (preview):", displayUrl);
             } else {
