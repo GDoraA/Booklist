@@ -3,10 +3,18 @@ const CACHE_NAME = "gda-cache-v9";
 
 // 🔒 Csak statikus képek és ikonok kerüljenek cache-be
 const ASSETS_TO_CACHE = [
+  "./",
+  "./index.html",
+  "./styles.css",
+  "./app.js",
+  "./manifest.json",
+
+  // képek
   "./assets/books_256.png",
   "./assets/books.png",
   "./assets/splash.png"
 ];
+
 
 // Telepítés
 self.addEventListener("install", event => {
