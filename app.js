@@ -322,26 +322,33 @@ function log(msg) {
 function convertDriveUrl(url) {
     if (!url) return "";
 
-    // Már jó formátum
-    if (url.includes("https://drive.google.com/uc?export=view&id=")) {
+    // Ha már uc? export link – hagyjuk
+    if (url.includes("uc?export=view")) {
         return url;
     }
 
-    let idMatch = null;
+    // Egységesen kinyerjük az ID-t MINDEN drive-linkből
+    let id = "";
 
-    // /file/d/<ID>/
-    const fileMatch = url.match(/\/file\/d\/([^/]+)/);
-    if (fileMatch) idMatch = fileMatch[1];
+    // 1) file/d/<ID>/view
+    const fileMatch = url.match(/\/file\/d\/([^\/\?]+)\//);
+    if (fileMatch) id = fileMatch[1];
 
-    // ?id=<ID>
-    const idParam = url.match(/[?&]id=([^&]+)/);
-    if (idParam) idMatch = idParam[1];
+    // 2) open?id=<ID>
+    const openMatch = url.match(/open\?id=([^&]+)/);
+    if (openMatch) id = openMatch[1];
 
-    // Ha nem Drive link
-    if (!idMatch) return url;
+    // 3) uc?id=<ID>
+    const ucMatch = url.match(/id=([^&]+)/);
+    if (!id && ucMatch) id = ucMatch[1];
 
-    return `https://drive.google.com/uc?export=view&id=${idMatch}`;
+    // Ha nincs ID, visszaadjuk az eredetit
+    if (!id) return url;
+
+    // Helyes, mindig megjeleníthető URL
+    return `https://drive.google.com/uc?export=view&id=${id}`;
 }
+
 /********** PRICE FORMAT **********/
 function formatPrice(value) {
     if (value === undefined || value === null) return "";
