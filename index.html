@@ -341,7 +341,8 @@
             <input id="bm_ev" type="number" min="1" max="9999" step="1"
                 placeholder="Év" oninput="validateYearFilter(this)">
 
-            <input id="bm_url" placeholder="Kép URL (ha nincs feltöltött kép)">
+            <input id="bm_url" placeholder="Kép URL (ha nincs feltöltött kép)" oninput="urlPreviewUpdate()">
+
 
             <div class="modal-checkbox-row">
                 <input type="checkbox" step="1" id="bm_purchased">
@@ -362,10 +363,10 @@
         </div>
 
         <div class="modal-image-section">
-            <span class="img-label">Borítókép feltöltése</span><br>
-            <input type="file" id="bm_file" accept="image/*"><br>
-            <img id="bm_preview" alt="Borító előnézet">
+            <span class="img-label">Borító előnézet</span><br>
+            <img id="bm_preview" alt="Borító előnézet" style="max-width:200px; display:none;">
         </div>
+
 
 
         <div class="modal-footer">

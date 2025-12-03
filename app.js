@@ -374,15 +374,6 @@ function formatPrice(value) {
     return formatted + " Ft";
 }
 
-
-
-/********** BASE64 **********/
-function fileToBase64(file, callback) {
-    const reader = new FileReader();
-    reader.onload = e => callback(e.target.result.split(",")[1]);
-    reader.readAsDataURL(file);
-}
-
 /********** DATALIST TÖLTÉS BACKENDBŐL **********/
 function loadDropdownLists() {
     const url = API_URL +
@@ -460,8 +451,7 @@ function openBookModal(mode, id) {
     setTimeout(loadDropdownLists, 50);
     modalMode = mode || "new";
     modalPending = null;
-    document.getElementById("bm_file").value = "";
-
+    
     if (modalMode === "new") {
         document.getElementById("modalTitle").textContent = "Új könyv felvétele";
         document.getElementById("bm_id").value = "";
@@ -517,6 +507,8 @@ function openBookModal(mode, id) {
     }
 
     document.getElementById("bookModal").style.display = "flex";
+    urlPreviewUpdate();
+
 }
 
 function closeBookModal() {
@@ -545,52 +537,15 @@ function saveBookFromModal() {
         Year:           document.getElementById("bm_ev").value.trim(),
         Purchased:      document.getElementById("bm_purchased").checked ? "x" : "",
         For_sale:       document.getElementById("bm_forsale").checked ? "x" : "",
-        Price:    document.getElementById("bm_ar").value.trim(),
-        Comment:  document.getElementById("bm_megjegy").value.trim()
-
+        Price:          document.getElementById("bm_ar").value.trim(),
+        Comment:        document.getElementById("bm_megjegy").value.trim()
     };
 
     const manualUrl = document.getElementById("bm_url").value.trim();
     modalPending = { bookData, manualUrl };
 
-    const file = document.getElementById("bm_file").files[0];
-    if (file) {
-        fileToBase64(file, base64 => uploadImageOnlyForModal(base64, file.name));
-    } else {
-        // Nincs fájl feltöltve → csak a te beírt URL-edet mentjük
-        const manualUrl = document.getElementById("bm_url").value.trim();
-        finalizeSaveBook(manualUrl);
-    }
-
-
-}
-
-function uploadImageOnlyForModal(base64, filename) {
-
-    log("DEBUG: uploadImageOnlyForModal called (" + filename + ")");
-
-    const url = API_URL +
-        "?action=uploadImageOnly" +
-        "&base64=" + encodeURIComponent(base64) +
-        "&filename=" + encodeURIComponent(filename) +
-        "&callback=uploadImageOnlyForModalValasz";
-
-    const s = document.createElement("script");
-    s.src = url + "&_=" + Date.now(); // cache elkerülése
-    s.onerror = () => {
-        log("❌ JSONP betöltési hiba");
-    };
-    document.body.appendChild(s);
-}
-
-function uploadImageOnlyForModalValasz(data) {
-    if (!data.success) {
-        log("❌ Képfeltöltés hiba (modal): " + data.error);
-        alert("Nem sikerült feltölteni a képet: " + (data.error || ""));
-        return;
-    }
-    const kepUrl = data.url || (modalPending ? modalPending.manualUrl : "");
-    finalizeSaveBook(kepUrl);
+    // Mindig csak az URL-t használjuk, fájlfeltöltés NINCS
+    finalizeSaveBook(manualUrl);
 }
 
 function finalizeSaveBook(kepUrl) {
@@ -1377,6 +1332,24 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
+function urlPreviewUpdate() {
+    const urlInput = document.getElementById("bm_url");
+    const previewImg = document.getElementById("bm_preview");
+
+    if (!urlInput || !previewImg) return;
+
+    const rawUrl = urlInput.value.trim();
+
+    if (rawUrl) {
+        // Drive linket átalakítjuk nézhető formátumra
+        previewImg.src = convertDriveUrl(rawUrl);
+        previewImg.style.display = "block";
+    } else {
+        // Ha nincs URL, eltüntetjük az előnézetet
+        previewImg.src = "";
+        previewImg.style.display = "none";
+    }
+}
 
 
 
