@@ -465,7 +465,6 @@ function openBookModal(mode, id) {
         document.getElementById("bm_url").value = "";
         document.getElementById("bm_purchased").checked = false;
         document.getElementById("bm_forsale").checked = false;
-        document.getElementById("bm_ar").value      = "";
         document.getElementById("bm_megjegy").value = "";
 
 
