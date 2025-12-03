@@ -45,16 +45,21 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const request = event.request;
 
-  // ❗ MINDIG FRISSÍTENDŐ FÁJLOK – soha ne cache-eljük!
-  const alwaysFetchFresh = [
-    "index.html",
-    "app.js",
-    "manifest.json"
-  ];
+    // 🔧 PONTOS path alapú ellenőrzés – csak az adott fájlokra
+    const freshPaths = [
+      "/index.html",
+      "/app.js",
+      "/manifest.json"
+    ];
 
-  if (alwaysFetchFresh.some(url => request.url.includes(url))) {
-    return event.respondWith(fetch(request));
-  }
+    const url = new URL(event.request.url);
+    const requestPath = url.pathname;
+
+    // Ha pontos egyezés van → hálózatról frissen töltjük
+    if (freshPaths.includes(requestPath)) {
+      return event.respondWith(fetch(event.request));
+    }
+
 
   // Statikus képek cache-ből
   event.respondWith(
