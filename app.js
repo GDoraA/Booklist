@@ -322,32 +322,38 @@ function log(msg) {
 function convertDriveUrl(url) {
     if (!url) return "";
 
-    // Ha már működő Drive-link (file/d/.../view), hagyjuk érintetlenül
+    // 1) Ha a link eleve működő Drive formátum (file/d/.../view), NE konvertáljuk!
     if (url.includes("drive.google.com/file/d/")) {
-        return url; 
+        return url;
     }
 
-    // Ha már uc-link, hagyjuk
+    // 2) Ha már uc?export=view formában van, NE konvertáljuk!
     if (url.includes("uc?export=view")) {
         return url;
     }
 
-    // Egyéb esetben kinyerjük az ID-t és építünk egy UC linket
+    // 3) Minden más esetben kinyerjük az ID-t
     let id = "";
-    
+
+    // /file/d/<id>/view
     const fileMatch = url.match(/\/file\/d\/([^\/\?]+)\//);
     if (fileMatch) id = fileMatch[1];
 
+    // open?id=<id>
     const openMatch = url.match(/open\?id=([^&]+)/);
     if (openMatch) id = openMatch[1];
 
+    // id=<id>
     const ucMatch = url.match(/id=([^&]+)/);
     if (!id && ucMatch) id = ucMatch[1];
 
+    // 4) Ha nincs ID, visszaadjuk eredetileg
     if (!id) return url;
 
+    // 5) Ha van ID, megpróbáljuk UC linket építeni
     return `https://drive.google.com/uc?export=view&id=${id}`;
 }
+
 
 
 /********** PRICE FORMAT **********/
