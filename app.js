@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbzPCbvtuk6gxl5IppJRcMK0emDauDrTHE6XKif4OVjXcUWEqFo3fHS83f8Toqa9DXrawA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby_dXOLvDl44ogdDxjt7j1byo5D9GaejpiO0EjHuJj7uTq-cYHbT1hbOrid6QIt3aJwOA/exec";
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 
