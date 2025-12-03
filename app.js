@@ -1352,15 +1352,32 @@ function urlPreviewUpdate() {
     if (!urlInput || !previewImg) return;
 
     const rawUrl = urlInput.value.trim();
+    previewImg.style.display = "none"; // Kezdetben elrejtjük
 
     if (rawUrl) {
+        let displayUrl = rawUrl;
+
         // Drive linket átalakítjuk nézhető formátumra
-        previewImg.src = convertDriveUrl(rawUrl);
+        if (rawUrl.includes("drive.google.com/")) {
+            // Reguláris kifejezés a FILE_ID kinyerésére (két fő formátumhoz: /d/FILE_ID vagy id=FILE_ID)
+            const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)|id=([a-zA-Z0-9_-]+)/);
+
+            if (match && (match[1] || match[2])) {
+                const fileId = match[1] || match[2];
+                // Létrehozzuk a DIREKT MEGJELENÍTÉSI URL-t
+                displayUrl = `https://drive.google.com/uc?id=${fileId}&export=view`; 
+                // Az &export=view segít a megjelenítésben, ha szükséges
+            } else {
+                // Ha nem sikerült kinyerni az ID-t, marad az eredeti URL, de hibát jelezhet
+                console.warn("Nem sikerült kinyerni a Drive fájlazonosítót (File ID).");
+            }
+        }
+        
+        // Előnézeti kép beállítása
+        previewImg.src = displayUrl;
         previewImg.style.display = "block";
     } else {
-        // Ha nincs URL, eltüntetjük az előnézetet
-        previewImg.src = "";
-        previewImg.style.display = "none";
+        previewImg.src = ""; // URL törlése, ha az input üres
     }
 }
 
