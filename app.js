@@ -37,24 +37,7 @@ function showLoginScreen() {
             msg.style.display = "none";
             msg.textContent = "";
         }
-
-        // Enter kezelése
-        initLoginEnterKey();
     
-}
-// ENTER → login
-function initLoginEnterKey() {
-    const emailInput = document.getElementById("loginEmail");
-    const pwdInput = document.getElementById("loginPassword");
-
-    function handleEnter(e) {
-        if (e.key === "Enter") {
-            startLogin();
-        }
-    }
-
-    if (emailInput) emailInput.addEventListener("keydown", handleEnter);
-    if (pwdInput) pwdInput.addEventListener("keydown", handleEnter);
 }
 
 function onLoginSuccess() {
