@@ -4,7 +4,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycby_dXOLvDl44ogdDxjt7j1b
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2025-12-05 18:30";   // Ezt TE frissíted minden deploykor
+const APP_VERSION = "2025-12-05 20:55";   // Ezt TE frissíted minden deploykor
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 
@@ -762,7 +762,6 @@ function listaMegjelenites() {
     const fszerzo = (document.getElementById("ls_szerzo").value || "").toLowerCase();
     const fcim    = (document.getElementById("ls_cim").value || "").toLowerCase();
     const fseries = (document.getElementById("ls_sorozat").value || "").toLowerCase();
-    const fmegv   = (document.getElementById("ls_megv").value || "");
     const minYear = parseInt(document.getElementById("ls_ev_min").value || "", 10);
     const maxYear = parseInt(document.getElementById("ls_ev_max").value || "", 10);
 
@@ -944,7 +943,6 @@ function clearListaFilters() {
     document.getElementById("ls_sorozat").value = "";
     document.getElementById("ls_ev_min").value = "";
     document.getElementById("ls_ev_max").value = "";
-    document.getElementById("ls_megv").value = "";
 
     currentPage = 1;   
     listaMegjelenites();
@@ -1237,7 +1235,6 @@ function tablaMegjelenites() {
     const fszerzo = (document.getElementById("ts_szerzo").value || "").toLowerCase();
     const fcim    = (document.getElementById("ts_cim").value || "").toLowerCase();
     const fseries = (document.getElementById("ts_sorozat").value || "").toLowerCase();
-    const fmegv   = (document.getElementById("ts_megv").value || "");
     const minYear = parseInt(document.getElementById("ts_ev_min").value || "", 10);
     const maxYear = parseInt(document.getElementById("ts_ev_max").value || "", 10);
 
@@ -1262,11 +1259,10 @@ function tablaMegjelenites() {
         }
 
     // Vásárlási státusz szűrés
-    if (fmegv === "x" && purchased !== "x") return false;      // Megvásárolt
-    if (fmegv === "no" && purchased !== "") return false;      // Nincs még meg
-    if (fmegv === "all") {
-    // Összes könyv – nincs szűrés
-    }
+// Vásárlási státusz szűrés – tri-state alapján
+if (purchaseFilterState === 1 && purchased !== "x") return false; // csak megvásárolt
+if (purchaseFilterState === 2 && purchased === "x") return false; // csak nincs meg
+
         // ELADÓ (For_sale) háromállapotú szűrés
     const fsale = item["For_sale"] || "";
 
@@ -1317,7 +1313,6 @@ function clearTablaFilters() {
     document.getElementById("ts_sorozat").value = "";
     document.getElementById("ts_ev_min").value = "";
     document.getElementById("ts_ev_max").value = "";
-    document.getElementById("ts_megv").value = "";
 
     tablaMegjelenites();
 }
