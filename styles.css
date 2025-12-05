@@ -1184,12 +1184,12 @@ body {
 
 /* MEDIUM MÉRET (kb. -12%) */
 :root.font-medium {
-    --font-scale: 0.88;
+    --font-scale: 0.85;
 }
 
 /* SMALL MÉRET (kb. -25%) */
 :root.font-small {
-    --font-scale: 0.75;
+    --font-scale: 0.70;
 }
 
 /* MINDEN méret ebből a skálából számolódik */
