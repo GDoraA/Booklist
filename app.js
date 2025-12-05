@@ -1450,8 +1450,8 @@ function toggleSaleFilter() {
     }
 
     // Mindkét nézet újraszűrése
-    listaMegjelenites();
-    tablaMegjelenites();
+listaSzures();
+tablaSzures();
 }
 let purchaseFilterState = 0;
 // 0 = mindegy
@@ -1476,8 +1476,8 @@ function togglePurchaseFilter() {
     }
 
     // Mindkét nézet újraszűrése
-    listaMegjelenites();
-    tablaMegjelenites();
+listaSzures();
+tablaSzures();
 }
 
 
