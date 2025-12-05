@@ -62,16 +62,12 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Mindig frissen töltendő fájlok
-  const freshPaths = [
-    "/index.html",
-    "/app.js",
-    "/manifest.json"
-  ];
+// Ezeket mindig frissen töltjük (függetlenül az útvonaltól)
+const alwaysFresh = ["index.html", "app.js", "manifest.json"];
 
-  if (freshPaths.includes(requestPath)) {
+if (alwaysFresh.some(name => url.pathname.endsWith(name))) {
     return event.respondWith(fetch(request));
-  }
+}
 
   // Cache-first stratégia
   event.respondWith(

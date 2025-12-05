@@ -1317,16 +1317,6 @@ window.onload = function() {
 // Datalisták betöltése maradhat itt, ez nem zavarja a loginfolyamatot
 loadDropdownLists();
 
-// FORM SUBMIT KEZELÉSE – IDE ILLIK  
-document.addEventListener("DOMContentLoaded", function() {
-    const form = document.getElementById("loginForm");
-    if (form) {
-        form.addEventListener("submit", function(e) {
-            e.preventDefault();
-            startLogin(); // a meglévő login logikád fut le
-        });
-    }
-});
 
 function urlPreviewUpdate() {
     const urlInput = document.getElementById("bm_url");
@@ -1362,21 +1352,13 @@ function urlPreviewUpdate() {
         previewImg.src = ""; 
     }
 }
-
-
-// 🔧 Login form submit ALWAYS init after UI load
-function initLoginSubmitHandler() {
+// Stabil login form submit kötés (mobilon is mindig működik)
+window.addEventListener("load", function () {
     const form = document.getElementById("loginForm");
     if (!form) return;
 
-    if (!form.dataset.bound) {
-        form.addEventListener("submit", function(e) {
-            e.preventDefault();
-            startLogin();
-        });
-        form.dataset.bound = "true";
-    }
-}
-
-// amikor megjelenik a login screen, akkor biztos létezik a form
-setTimeout(initLoginSubmitHandler, 300);
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        startLogin();
+    });
+});
