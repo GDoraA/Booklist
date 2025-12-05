@@ -1273,6 +1273,7 @@ if (fmegv === "all") {
         const tr = document.createElement("tr");
 
         tr.innerHTML = `
+            <td data-label="Ssz." class="ssz">${index + 1}</td>
             <td data-label="Szerző">${item["Author"] || ""}</td>
             <td data-label="Cím">${item["Title"] || ""}</td>
             <td data-label="Sorozat">${item["Series"] || ""}</td>
