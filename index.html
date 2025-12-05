@@ -155,55 +155,58 @@
         </div>
 
         <h3>🔍 Szűrés</h3>
-<div class="filters">
+            <div class="filters">
 
-    <div>
-        <input id="ls_szerzo" 
-               list="authors_list_filter" 
-               placeholder="Szerző"
-               oninput="listaSzures()">
-        <datalist id="authors_list_filter"></datalist>
-    </div>
+                <div>
+                    <input id="ls_szerzo" 
+                        list="authors_list_filter" 
+                        placeholder="Szerző"
+                        oninput="listaSzures()">
+                    <datalist id="authors_list_filter"></datalist>
+                </div>
 
-    <div>
-        <input id="ls_cim" 
-               placeholder="Cím"
-               oninput="listaSzures()">
-    </div>
+                <div>
+                    <input id="ls_cim" 
+                        placeholder="Cím"
+                        oninput="listaSzures()">
+                </div>
 
-    <div>
-        <input id="ls_sorozat" 
-               list="series_list_filter" 
-               placeholder="Sorozat"
-               oninput="listaSzures()">
-        <datalist id="series_list_filter"></datalist>
-    </div>
+                <div>
+                    <input id="ls_sorozat" 
+                        list="series_list_filter" 
+                        placeholder="Sorozat"
+                        oninput="listaSzures()">
+                    <datalist id="series_list_filter"></datalist>
+                </div>
 
-    <div>
-        <input id="ls_ev_min" 
-               type="number" 
-               min="1" max="9999" step="1"
-               placeholder="Év (tól)"
-               oninput="validateYearFilter(this); listaSzures()">
-    </div>
+                <div>
+                    <input id="ls_ev_min" 
+                        type="number" 
+                        min="1" max="9999" step="1"
+                        placeholder="Év (tól)"
+                        oninput="validateYearFilter(this); listaSzures()">
+                </div>
 
-    <div>
-        <input id="ls_ev_max" 
-               type="number" 
-               min="1" max="9999" step="1"
-               placeholder="Év (ig)"
-               oninput="validateYearFilter(this); listaSzures()">
-    </div>
+                <div>
+                    <input id="ls_ev_max" 
+                        type="number" 
+                        min="1" max="9999" step="1"
+                        placeholder="Év (ig)"
+                        oninput="validateYearFilter(this); listaSzures()">
+                </div>
 
-    <div>
-        <select id="ls_megv" onchange="listaSzures()">
-            <option value="x" selected>Megvásárolva</option>
-            <option value="no">Nincs még meg</option>
-            <option value="all">Összes könyv</option>
-        </select>
-    </div>
+                <div>
+                    <label>Megvásárolva:</label>
+                    <span id="purchaseFilter" class="tri-state" onclick="togglePurchaseFilter()">⬜</span>
+                </div>
 
-</div>
+                <div>
+                    <label>Eladó:</label>
+                    <span id="saleFilter" class="tri-state" onclick="toggleSaleFilter()">⬜</span>
+                </div>
+
+            </div>
+
 
         <button class="btn btn-secondary" onclick="clearListaFilters()" style="margin-top:10px;">
             Szűrők törlése
@@ -281,13 +284,15 @@
             </div>
 
             <div>
-                <select id="ts_megv" onchange="tablaSzures()">
-                    <option value="x" selected>Megvásárolva</option>
-                    <option value="no">Nincs még meg</option>
-                    <option value="all">Összes könyv</option>
-                </select>
-
+                <label>Megvásárolva:</label>
+                <span id="purchaseFilterTable" class="tri-state" onclick="togglePurchaseFilter()">⬜</span>
             </div>
+
+            <div>
+                <label>Eladó:</label>
+                <span id="saleFilterTable" class="tri-state" onclick="toggleSaleFilter()">⬜</span>
+            </div>
+
 
         </div>
 

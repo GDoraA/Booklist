@@ -786,11 +786,15 @@ function listaMegjelenites() {
         }
 
 // Vásárlási státusz szűrés
-if (fmegv === "x" && purchased !== "x") return false;      // Megvásárolt
-if (fmegv === "no" && purchased !== "") return false;      // Nincs még meg
-if (fmegv === "all") {
-    // Összes könyv – nincs szűrés
-}
+// Megvásárolva tri-state szűrés
+if (purchaseFilterState === 1 && purchased !== "x") return false; // csak megvásárolt
+if (purchaseFilterState === 2 && purchased === "x") return false; // csak nincs meg
+
+// ELADÓ (For_sale) háromállapotú szűrés
+const fsale = item["For_sale"] || "";
+
+if (saleFilterState === 1 && fsale !== "x") return false;   // csak eladó
+if (saleFilterState === 2 && fsale === "x") return false;   // csak nem eladó
 
         return true;
     });
@@ -1257,16 +1261,21 @@ function tablaMegjelenites() {
             if (isNaN(year) || year > maxYear) return false;
         }
 
-// Vásárlási státusz szűrés
-if (fmegv === "x" && purchased !== "x") return false;      // Megvásárolt
-if (fmegv === "no" && purchased !== "") return false;      // Nincs még meg
-if (fmegv === "all") {
+    // Vásárlási státusz szűrés
+    if (fmegv === "x" && purchased !== "x") return false;      // Megvásárolt
+    if (fmegv === "no" && purchased !== "") return false;      // Nincs még meg
+    if (fmegv === "all") {
     // Összes könyv – nincs szűrés
-}
+    }
+        // ELADÓ (For_sale) háromállapotú szűrés
+    const fsale = item["For_sale"] || "";
+
+    if (saleFilterState === 1 && fsale !== "x") return false; // csak eladó
+    if (saleFilterState === 2 && fsale === "x") return false; // csak nem eladó
 
         return true;
     });
-
+    
     // --- Sorok kiírása ---
     filtered.forEach((item, index) => {
 
@@ -1420,3 +1429,56 @@ window.addEventListener("load", () => {
     const saved = localStorage.getItem("fontSize") || "large";
     setFontSize(saved);
 });
+let saleFilterState = 0;
+// 0 = mindegy, 1 = csak eladó, 2 = nem eladó
+
+function toggleSaleFilter() {
+    saleFilterState = (saleFilterState + 1) % 3;
+
+    const symbols = ["⬜", "☑️", "🚫"];
+
+    // Kártyanézet ikon (Könyvlista szűrősáv)
+    const elList = document.getElementById("saleFilter");
+    if (elList) {
+        elList.textContent = symbols[saleFilterState];
+    }
+
+    // Táblázatnézet ikon (Táblázatos lista szűrősáv)
+    const elTable = document.getElementById("saleFilterTable");
+    if (elTable) {
+        elTable.textContent = symbols[saleFilterState];
+    }
+
+    // Mindkét nézet újraszűrése
+    listaMegjelenites();
+    tablaMegjelenites();
+}
+let purchaseFilterState = 0;
+// 0 = mindegy
+// 1 = csak megvásárolt (Purchased == "x")
+// 2 = csak nincs meg (Purchased == "")
+
+function togglePurchaseFilter() {
+    purchaseFilterState = (purchaseFilterState + 1) % 3;
+
+    const symbols = ["⬜", "☑️", "🚫"];
+
+    // Lista nézet ikon
+    const elList = document.getElementById("purchaseFilter");
+    if (elList) {
+        elList.textContent = symbols[purchaseFilterState];
+    }
+
+    // Táblázatnézet ikon
+    const elTable = document.getElementById("purchaseFilterTable");
+    if (elTable) {
+        elTable.textContent = symbols[purchaseFilterState];
+    }
+
+    // Mindkét nézet újraszűrése
+    listaMegjelenites();
+    tablaMegjelenites();
+}
+
+
+
