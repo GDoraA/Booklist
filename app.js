@@ -4,7 +4,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycby_dXOLvDl44ogdDxjt7j1b
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2025-12-05 17:55";   // Ezt TE frissíted minden deploykor
+const APP_VERSION = "2025-12-05 18:15";   // Ezt TE frissíted minden deploykor
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 
@@ -1398,3 +1398,24 @@ window.addEventListener("load", () => {
     if (v2) v2.textContent = new Date(BUILD_TIMESTAMP).toLocaleString("hu-HU");
 });
 // --------------------------------------
+
+// ============================
+// BETŰMÉRET VÁLTÓ
+// ============================
+function setFontSize(size) {
+    document.documentElement.classList.remove("font-medium", "font-small");
+
+    if (size === "medium") {
+        document.documentElement.classList.add("font-medium");
+    } else if (size === "small") {
+        document.documentElement.classList.add("font-small");
+    }
+
+    localStorage.setItem("fontSize", size);
+}
+
+// Betöltéskor alkalmazzuk a korábbi választást
+window.addEventListener("load", () => {
+    const saved = localStorage.getItem("fontSize") || "large";
+    setFontSize(saved);
+});

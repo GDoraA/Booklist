@@ -125,7 +125,7 @@ b, strong {
 
 .container {
   max-width: 1200px;
-  margin: 30px auto 40px;
+  margin: 18px auto 40px;
   padding: 0 16px;
 }
 
@@ -135,7 +135,7 @@ b, strong {
 
 .header {
   width: 100%;
-  padding: 32px 20px;
+  padding: 18px 20px;
   text-align: center;
   background-image: linear-gradient(15deg, #13547a 0%, #80d0c7 100%);
   color: var(--white-color);
@@ -1172,4 +1172,81 @@ body {
         font-size: 16px !important;
         padding: 12px 0 !important;
     }
+}
+/* ============================================================
+   BETŰMÉRET VÁLTÓ – LARGE / MEDIUM / SMALL
+   A 'large' = jelenlegi eredeti méret
+   ============================================================ */
+
+:root {
+    --font-scale: 1;   /* large = 100% */
+}
+
+/* MEDIUM MÉRET (kb. -12%) */
+:root.font-medium {
+    --font-scale: 0.88;
+}
+
+/* SMALL MÉRET (kb. -25%) */
+:root.font-small {
+    --font-scale: 0.75;
+}
+
+/* MINDEN méret ebből a skálából számolódik */
+body {
+    font-size: calc(var(--p-font-size) * var(--font-scale));
+}
+
+/* Tipográfia skálázása */
+h1 { font-size: calc(var(--h1-font-size) * var(--font-scale)); }
+h2 { font-size: calc(var(--h2-font-size) * var(--font-scale)); }
+h3 { font-size: calc(var(--h3-font-size) * var(--font-scale)); }
+h4 { font-size: calc(var(--h4-font-size) * var(--font-scale)); }
+h5 { font-size: calc(var(--h5-font-size) * var(--font-scale)); }
+h6 { font-size: calc(var(--h6-font-size) * var(--font-scale)); }
+
+p, ul li {
+    font-size: calc(var(--p-font-size) * var(--font-scale));
+}
+
+/* Navigáció gombjai */
+nav button {
+    font-size: calc(var(--menu-font-size) * var(--font-scale));
+}
+
+/* Általános gombok */
+.btn {
+    font-size: calc(var(--btn-font-size) * var(--font-scale));
+}
+
+/* Input, select */
+input,
+select {
+    font-size: calc(14px * var(--font-scale));
+}
+
+/* Táblázatok */
+table {
+    font-size: calc(14px * var(--font-scale));
+}
+
+.card-row {
+    font-size: calc(14px * var(--font-scale));
+}
+
+/* Stat card, badge */
+.stat-card,
+.badge {
+    font-size: calc(8px * var(--font-scale));
+}
+/* ==========================================
+   MÉRETVÁLASZTÓ GOMBOK KICSINYÍTÉSE
+   ========================================== */
+
+#fontSizeSelector button {
+    font-size: 8px !important;       /* kisebb betű */
+    padding: 3px 8px !important;     /* alacsonyabb és keskenyebb gomb */
+    border-radius: 6px !important;    /* kevésbé „párnás” */
+    transform: scale(0.9);            /* teljes gomb enyhe kicsinyítése */
+    margin: 0 4px;                    /* kisebb hézagok */
 }
