@@ -45,6 +45,13 @@ function showLoginScreen() {
 }
 
 function onLoginSuccess() {
+        // ↓↓↓ Böngésző jelszómentés aktiválása ↓↓↓
+    try {
+        document.getElementById("loginForm").dispatchEvent(
+            new Event("submit", { cancelable: true })
+        );
+    } catch (e) {}
+    // ↑↑↑ Böngésző jelszómentés aktiválása ↑↑↑
     const loginDiv = document.getElementById("loginScreen");
     const pwDiv    = document.getElementById("passwordSetup");
     const appDiv   = document.getElementById("appContent");
