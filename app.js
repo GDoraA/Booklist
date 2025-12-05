@@ -3,6 +3,10 @@
 const API_URL = "https://script.google.com/macros/s/AKfycby_dXOLvDl44ogdDxjt7j1byo5D9GaejpiO0EjHuJj7uTq-cYHbT1hbOrid6QIt3aJwOA/exec";
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
+// ---------- VERZIÓ INFORMÁCIÓK ----------
+const APP_VERSION = "2025-12-05 17:15";   // Ezt TE frissíted minden deploykor
+const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
+// -----------------------------------------
 
 /********** OLDALVÁLTÁS **********/
 function mutat(id) {
@@ -1312,6 +1316,22 @@ window.onload = function() {
         showLoginScreen();
     }
 };
+// ---------- SERVICE WORKER VERZIÓ LEKÉRÉSE ----------
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready.then(reg => {
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage("GET_SW_VERSION");
+        }
+    });
+
+    navigator.serviceWorker.addEventListener("message", event => {
+        if (event.data && event.data.swVersion) {
+            const el = document.getElementById("swVersion");
+            if (el) el.textContent = event.data.swVersion;
+        }
+    });
+}
+// ------------------------------------------------------
 
 
 // Datalisták betöltése maradhat itt, ez nem zavarja a loginfolyamatot
@@ -1362,3 +1382,12 @@ window.addEventListener("load", function () {
         startLogin();
     });
 });
+// ---------- VERZIÓK KIÍRÁSA ----------
+window.addEventListener("load", () => {
+    const v1 = document.getElementById("appVersion");
+    const v2 = document.getElementById("buildTime");
+
+    if (v1) v1.textContent = APP_VERSION;
+    if (v2) v2.textContent = new Date(BUILD_TIMESTAMP).toLocaleString("hu-HU");
+});
+// --------------------------------------

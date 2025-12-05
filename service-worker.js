@@ -62,12 +62,6 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-// Ezeket mindig frissen töltjük (függetlenül az útvonaltól)
-const alwaysFresh = ["index.html", "app.js", "manifest.json"];
-
-if (alwaysFresh.some(name => url.pathname.endsWith(name))) {
-    return event.respondWith(fetch(request));
-}
 
   // Cache-first stratégia
   event.respondWith(
@@ -82,3 +76,19 @@ if (alwaysFresh.some(name => url.pathname.endsWith(name))) {
     })
   );
 });
+// ---------- SERVICE WORKER VERZIÓ LEKÉRÉSE ----------
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready.then(reg => {
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage("GET_SW_VERSION");
+        }
+    });
+
+    navigator.serviceWorker.addEventListener("message", event => {
+        if (event.data && event.data.swVersion) {
+            const el = document.getElementById("swVersion");
+            if (el) el.textContent = event.data.swVersion;
+        }
+    });
+}
+// ------------------------------------------------------
