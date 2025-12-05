@@ -4,7 +4,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycby_dXOLvDl44ogdDxjt7j1b
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2025-12-05 18:15";   // Ezt TE frissíted minden deploykor
+const APP_VERSION = "2025-12-05 18:30";   // Ezt TE frissíted minden deploykor
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 

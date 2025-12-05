@@ -1250,3 +1250,25 @@ table {
     transform: scale(0.9);            /* teljes gomb enyhe kicsinyítése */
     margin: 0 4px;                    /* kisebb hézagok */
 }
+/* Könyvlista cím + méretváltó egy sorban */
+.title-and-fontsize {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+/* Méretválasztó gombok kompakt megjelenítése */
+#fontSizeSelector {
+    display: flex;
+    gap: 6px;
+}
+
+/* A gombok továbbra is a kicsinyített méretet használják */
+#fontSizeSelector button {
+    font-size: 8px !important;
+    padding: 4px 10px !important;
+    border-radius: 8px !important;
+    transform: scale(0.9);
+}

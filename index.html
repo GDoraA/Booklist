@@ -104,11 +104,7 @@
 
 <div class="container">
 
-    <div id="fontSizeSelector" style="text-align:center; margin:3px 0;">
-    <button class="btn btn-secondary" onclick="setFontSize('large')">Nagy</button>
-    <button class="btn btn-secondary" onclick="setFontSize('medium')">Közepes</button>
-    <button class="btn btn-secondary" onclick="setFontSize('small')">Kicsi</button>
-    </div>
+
     <nav>
         <button id="tab_lista" class="active" onclick="mutat('lista')">
             📝 Kártyák
@@ -129,8 +125,15 @@
 
     <!-- LISTA -->
     <div class="page" id="lista">
-        <h1>Könyvlista</h1>
-
+        <div class="title-and-fontsize">
+            <h1>Könyvlista</h1>
+            
+            <div id="fontSizeSelector" style="text-align:center; margin:3px 0;">
+            <button class="btn btn-secondary" onclick="setFontSize('large')">L</button>
+            <button class="btn btn-secondary" onclick="setFontSize('medium')">M</button>
+            <button class="btn btn-secondary" onclick="setFontSize('small')">S</button>
+            </div>
+        </div>
         <div class="stats-bar">
             <div class="stat-card stat-all">
                 Összes könyv: <span id="stat_total">0</span>
