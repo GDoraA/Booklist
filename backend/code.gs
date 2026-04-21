@@ -417,53 +417,93 @@ function doGet(e) {
 
   try {
 
-    /* ========== ÚJ KÖNYV FELVÉTELE ========== */
-    if (action === "addBookToLista") {
+/* ========== ÚJ KÖNYV FELVÉTELE (addBookToLista) ========== */
+if (action === "addBookToLista") {
 
-      const book = {
-        "Author":         p.szerzo || "",
-        "Title":          p.cim || "",
-        "Original_Title": p.eredeti_cim || "",
-        "Previous_Title": p.korabbi_cim || "",
-        "Series":         p.sorozat || "",
-        "Number":         p.ssz || "",
-        "URL":            p.url || "",
-        "Year":           p.ev || "",
-        "Purchased":      p.megv || "",
-        "For_sale":       p.elado || "",
-        "Price":          p.ar || "",
-        "Comment":        p.megjegy || ""
-      };
+const book = {
+  "Author":         p.szerzo || "",
+  "Title":          p.cim || "",
+  "Original_Title": p.eredeti_cim || "",
+  "Previous_Title": p.korabbi_cim || "",
+  "Series":         p.sorozat || "",
+  "Number":         p.ssz || "",
+  "URL":            p.url || "",
+  "Year":           p.ev || "",
+  "Location":       p.helyszin || "",
+  "Shelf":          p.polc || "",
+  "Page_Count":     p.oldalszam || "",
+  "ISBN":           p.isbn || "",
+  "Publisher":      p.kiado || "",
+  "Translator":     p.fordito || "",
+  "Genre":          p.mufaj || "",
+  "Purchased":      p.megv || "",
+  "For_sale":       p.elado || "",
+  "Price":          p.ar || "",
+  "Comment":        p.megjegy || ""
+};
 
-      updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
-      updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
+  updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
+  updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
 
-      result = addBookToLista_(book);
+  result = addBookToLista_(book);
+}
 
-    /* ========== LISTA LEKÉRÉSE ========== */
-    } else if (action === "getLista") {
+/* ========== ÚJ KÖNYV FELVÉTELE (addBookOnly) ========== */
+else if (action === "addBookOnly") {
 
-      result = getLista_();
+  const book = {
+    "Author":         p.szerzo || "",
+    "Title":          p.cim || "",
+    "Original_Title": p.eredeti_cim || "",
+    "Previous_Title": p.korabbi_cim || "",
+    "Series":         p.sorozat || "",
+    "Number":         p.ssz || "",
+    "URL":            p.url || "",
+    "Year":           p.ev || "",
+    "Purchased":      p.megv || "",
+    "For_sale":       p.elado || "",
+    "Price":          p.ar || "",
+    "Comment":        p.megjegy || ""
+  };
+
+  updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
+  updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
+
+  result = addBookOnly_(book);
+}
+
+/* ========== LISTA LEKÉRÉSE ========== */
+else if (action === "getLista") {
+
+  result = getLista_();
+
 
 
     /* ========== REKORD FRISSÍTÉSE ========== */
     } else if (action === "updateLista") {
 
-      const book = {
-        "ID":             p.ID,
-        "Author":         p.szerzo || "",
-        "Title":          p.cim || "",
-        "Original_Title": p.eredeti_cim || "",
-        "Previous_Title": p.korabbi_cim || "",
-        "Series":         p.sorozat || "",
-        "Number":         p.ssz || "",
-        "URL":            p.url || "",
-        "Year":           p.ev || "",
-        "Purchased":      p.megv || "",
-        "For_sale":       p.elado || "",
-        "Price":          p.ar || "",
-        "Comment":        p.megjegy || ""
-      };
+const book = {
+  "ID":             p.ID,
+  "Author":         p.szerzo || "",
+  "Title":          p.cim || "",
+  "Original_Title": p.eredeti_cim || "",
+  "Previous_Title": p.korabbi_cim || "",
+  "Series":         p.sorozat || "",
+  "Number":         p.ssz || "",
+  "URL":            p.url || "",
+  "Year":           p.ev || "",
+  "Location":       p.helyszin || "",
+  "Shelf":          p.polc || "",
+  "Page_Count":     p.oldalszam || "",
+  "ISBN":           p.isbn || "",
+  "Publisher":      p.kiado || "",
+  "Translator":     p.fordito || "",
+  "Genre":          p.mufaj || "",
+  "Purchased":      p.megv || "",
+  "For_sale":       p.elado || "",
+  "Price":          p.ar || "",
+  "Comment":        p.megjegy || ""
+};
 
       result = updateLista_(book);
 
@@ -512,18 +552,27 @@ function doGet(e) {
        =============================================== */
     } else if (action === "importCsvRow") {
 
-      const book = {
-        "Author":         p.Author || "",
-        "Title":          p.Title  || "",
-        "Original_Title": p.Original_Title || "",
-        "Previous_Title": p.Previous_Title || "",
-        "Series":         p.Series || "",
-        "Number":         p.Number || "",
-        "URL":            p.URL    || "",
-        "Year":           p.Year   || "",
-        "Purchased":      p.Purchased || "",
-        "For_sale":       p.For_sale || ""
-      };
+const book = {
+  "Author":         p.Author || "",
+  "Title":          p.Title  || "",
+  "Original_Title": p.Original_Title || "",
+  "Previous_Title": p.Previous_Title || "",
+  "Series":         p.Series || "",
+  "Number":         p.Number || "",
+  "URL":            p.URL || "",
+  "Year":           p.Year || "",
+  "Location":       p.Location || "",
+  "Shelf":          p.Shelf || "",
+  "Page_Count":     p.Page_Count || "",
+  "ISBN":           p.ISBN || "",
+  "Publisher":      p.Publisher || "",
+  "Translator":     p.Translator || "",
+  "Genre":          p.Genre || "",
+  "Purchased":      p.Purchased || "",
+  "For_sale":       p.For_sale || "",
+  "Price":          p.Price || "",
+  "Comment":        p.Comment || ""
+};
 
       // DUPLIKÁCIÓ ELLENŐRZÉS IMPORTNÁL
       const duplicate = isDuplicate_(book);
@@ -545,17 +594,26 @@ function doGet(e) {
       const map = getHeaderMap_(sheet);
       const row = new Array(sheet.getLastColumn()).fill("");
 
-      row[map["ID"] - 1]             = generateId_();
-      row[map["Author"] - 1]         = book["Author"];
-      row[map["Title"] - 1]          = book["Title"];
-      row[map["Original_Title"] - 1] = book["Original_Title"];
-      row[map["Previous_Title"] - 1] = book["Previous_Title"];
-      row[map["Series"] - 1]         = book["Series"];
-      row[map["Number"] - 1]         = book["Number"];
-      row[map["URL"] - 1]            = book["URL"];
-      row[map["Year"] - 1]           = book["Year"];
-      row[map["Purchased"] - 1]      = book["Purchased"];
-      row[map["For_sale"] - 1] = book["For_sale"];
+row[map["ID"] - 1]             = generateId_();
+row[map["Author"] - 1]         = book["Author"];
+row[map["Title"] - 1]          = book["Title"];
+row[map["Original_Title"] - 1] = book["Original_Title"];
+row[map["Previous_Title"] - 1] = book["Previous_Title"];
+row[map["Series"] - 1]         = book["Series"];
+row[map["Number"] - 1]         = book["Number"];
+row[map["URL"] - 1]            = book["URL"];
+row[map["Year"] - 1]           = book["Year"];
+row[map["Location"] - 1]       = book["Location"];
+row[map["Shelf"] - 1]          = book["Shelf"];
+row[map["Page_Count"] - 1]     = book["Page_Count"];
+row[map["ISBN"] - 1]           = book["ISBN"];
+row[map["Publisher"] - 1]      = book["Publisher"];
+row[map["Translator"] - 1]     = book["Translator"];
+row[map["Genre"] - 1]          = book["Genre"];
+row[map["Purchased"] - 1]      = book["Purchased"];
+row[map["For_sale"] - 1]       = book["For_sale"];
+row[map["Price"] - 1]          = book["Price"];
+row[map["Comment"] - 1]        = book["Comment"];
 
       sheet.appendRow(row);
 

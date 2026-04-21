@@ -310,8 +310,15 @@
                             <th class="sortable" onclick="setSort('Author')">Szerző</th>
                             <th class="sortable" onclick="setSort('Title')">Cím</th>
                             <th class="sortable" onclick="setSort('Series')">Sorozat</th>
-                            <th class="sortable" onclick="setSort('Year')">Év</th>
-                            <th class="sortable" onclick="setSort('Purchased')">Megv.</th>
+<th class="sortable" onclick="setSort('Year')">Év</th>
+<th class="sortable" onclick="setSort('Location')">Helyszín</th>
+<th class="sortable" onclick="setSort('Shelf')">Polc</th>
+<th class="sortable" onclick="setSort('Page_Count')">Oldalszám</th>
+<th class="sortable" onclick="setSort('ISBN')">ISBN</th>
+<th class="sortable" onclick="setSort('Publisher')">Kiadó</th>
+<th class="sortable" onclick="setSort('Translator')">Fordító</th>
+<th class="sortable" onclick="setSort('Genre')">Műfaj</th>
+<th class="sortable" onclick="setSort('Purchased')">Megv.</th>
                             <th class="sortable" onclick="setSort('For_sale')">Eladó</th>
                             <th class="sortable" onclick="setSort('Price')">Ár</th>
                             <th>Művelet</th>
@@ -329,8 +336,7 @@
         <h1>CSV / TSV importálása</h1>
 
         <p>Elvárt struktúra (List fül fejléc sorrendje):</p>
-        <pre>ID,Author,Title,Original_Title,Previous_Title,Series,Number,URL,Year,Purchased,For_sale</pre>
-
+<pre>ID,Author,Title,Original_Title,Previous_Title,Series,Number,URL,Year,Location,Shelf,Page_Count,ISBN,Publisher,Translator,Genre,Purchased,For_sale,Price,Comment</pre>
         <p>A fájl lehet vesszővel, pontosvesszővel vagy TAB-bal tagolt.</p>
 
         <input type="file" id="csvFile" accept=".csv,.tsv,.txt"><br><br>
@@ -374,11 +380,18 @@
 
             <input id="bm_ssz" placeholder="Sorszám">
 
-            <input id="bm_ev" type="number" min="1" max="9999" step="1"
-                placeholder="Év" oninput="validateYearFilter(this)">
+<input id="bm_ev" type="number" min="1" max="9999" step="1"
+    placeholder="Év" oninput="validateYearFilter(this)">
 
-            <input id="bm_url" placeholder="Kép URL (ha nincs feltöltött kép)" oninput="urlPreviewUpdate()">
+<input id="bm_helyszin" placeholder="Helyszín">
+<input id="bm_polc" placeholder="Polc">
+<input id="bm_oldalszam" type="number" min="1" step="1" placeholder="Oldalszám">
+<input id="bm_isbn" placeholder="ISBN">
+<input id="bm_kiado" placeholder="Kiadó">
+<input id="bm_fordito" placeholder="Fordító">
+<input id="bm_mufaj" placeholder="Műfaj">
 
+<input id="bm_url" placeholder="Kép URL (ha nincs feltöltött kép)" oninput="urlPreviewUpdate()">
 
             <div class="modal-checkbox-row">
                 <input type="checkbox" step="1" id="bm_purchased">
