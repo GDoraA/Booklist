@@ -1,10 +1,10 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbw-XZaKYZR7OqY8-5_WfZkG6xErUJnpcxMjR3e2OQde4eZ7pw3e_IFl_P97vTnkxokpwg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzkgbjfKuCVPjyXA4Ik02tnrUUqCvwvz2z4Nt4DTGbeUc-WqWbO4ILbMqrYaro3aGt08Q/exec";
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2026-04-23 17:30";  // Ezt TE frissíted minden deploykor
+const APP_VERSION = "2026-04-23 18:05";  // Ezt TE frissíted minden deploykor
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 
