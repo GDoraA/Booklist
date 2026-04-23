@@ -126,8 +126,340 @@ function updateUniqueList_(sheetName, columnName, value) {
     sheet.appendRow(row);
   }
 }
+/***********************************************************
+ * KÖNYVADATAK LEKÉRÉSE – IDEIGLENES DEBUG VÁLTOZAT
+ ***********************************************************/
+function lookupBookMetadata_(params) {
+  const isbn = String(params.isbn || "").trim();
+  const title = String(params.title || "").trim();
+  const author = String(params.author || "").trim();
 
+  return {
+    success: true,
+    debug: true,
+    received: {
+      isbn: isbn,
+      title: title,
+      author: author
+    },
+    items: [
+      {
+        source: "debug",
+        title: title || "Teszt könyv",
+        authors: author || "Teszt szerző",
+        year: "2024",
+        isbn: isbn || "",
+        publisher: "Teszt kiadó",
+        pageCount: "123",
+        translator: "",
+        genre: "Teszt műfaj",
+        coverUrl: "",
+        language: "hu"
+      }
+    ]
+  };
+}
+/***********************************************************
+ * KÖNYVADATAK LEKÉRÉSE – GOOGLE BOOKS + OPEN LIBRARY
+ ***********************************************************/
 
+// Egyelőre forráskódban tárolt Google API kulcs
+const GOOGLE_BOOKS_API_KEY = 'IDE_IRD_A_GOOGLE_API_KEY_T';
+
+// Maximum ennyi találatot adunk vissza a frontendnek
+const BOOK_LOOKUP_MAX_RESULTS = 5;
+
+/**
+ * Egyszerű string normalizálás összehasonlításhoz.
+ */
+function normalizeText_(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
+ * Év kinyerése tetszőleges dátumszövegből.
+ * Példa: "2004-05-01" -> "2004"
+ */
+function extractYear_(value) {
+  const match = String(value || '').match(/\b(1[0-9]{3}|20[0-9]{2}|2100)\b/);
+  return match ? match[1] : '';
+}
+
+/**
+ * ISBN-ek kigyűjtése Google Books industryIdentifiers mezőből.
+ */
+function extractGoogleIsbn_(industryIdentifiers) {
+  const ids = Array.isArray(industryIdentifiers) ? industryIdentifiers : [];
+  const isbn13 = ids.find(x => x && x.type === 'ISBN_13' && x.identifier);
+  const isbn10 = ids.find(x => x && x.type === 'ISBN_10' && x.identifier);
+  return (isbn13 && isbn13.identifier) || (isbn10 && isbn10.identifier) || '';
+}
+
+/**
+ * Fordítók kinyerése Google Books-ból.
+ * Megjegyzés: nem mindig van külön translator mező, ezért csak javaslat.
+ */
+function extractGoogleTranslator_(volumeInfo) {
+  const contributors = Array.isArray(volumeInfo && volumeInfo.authors)
+    ? volumeInfo.authors
+    : [];
+  return '';
+}
+
+/**
+ * Google Books találat normalizálása belső formára.
+ */
+function mapGoogleBookItem_(item, queryContext) {
+  const info = item && item.volumeInfo ? item.volumeInfo : {};
+  const imageLinks = info.imageLinks || {};
+  const language = String(info.language || '').toLowerCase();
+
+  return {
+    source: 'google_books',
+    sourceId: item && item.id ? String(item.id) : '',
+    title: info.title || '',
+    authors: Array.isArray(info.authors) ? info.authors.join(', ') : '',
+    originalTitle: '',
+    previousTitle: '',
+    series: '',
+    number: '',
+    year: extractYear_(info.publishedDate),
+    location: '',
+    shelf: '',
+    pageCount: info.pageCount ? String(info.pageCount) : '',
+    isbn: extractGoogleIsbn_(info.industryIdentifiers),
+    publisher: info.publisher || '',
+    translator: extractGoogleTranslator_(info),
+    genre: Array.isArray(info.categories) ? info.categories.join(', ') : '',
+    coverUrl: imageLinks.thumbnail || imageLinks.smallThumbnail || '',
+    language: language,
+    rawScore: 0,
+    score: 0,
+    queryType: queryContext.queryType || 'title_author'
+  };
+}
+
+/**
+ * Open Library találat normalizálása belső formára.
+ */
+function mapOpenLibraryDoc_(doc, queryContext) {
+  const isbn = Array.isArray(doc && doc.isbn) && doc.isbn.length ? String(doc.isbn[0]) : '';
+  const publisher = Array.isArray(doc && doc.publisher) && doc.publisher.length ? String(doc.publisher[0]) : '';
+  const languageList = Array.isArray(doc && doc.language) ? doc.language : [];
+  const hasHun = languageList.some(x => String(x).toLowerCase() === 'hun');
+  const coverId = doc && doc.cover_i ? String(doc.cover_i) : '';
+
+  return {
+    source: 'open_library',
+    sourceId: doc && doc.key ? String(doc.key) : '',
+    title: doc && doc.title ? String(doc.title) : '',
+    authors: Array.isArray(doc && doc.author_name) ? doc.author_name.join(', ') : '',
+    originalTitle: '',
+    previousTitle: '',
+    series: '',
+    number: '',
+    year: doc && doc.first_publish_year ? String(doc.first_publish_year) : '',
+    location: '',
+    shelf: '',
+    pageCount: '',
+    isbn: isbn,
+    publisher: publisher,
+    translator: '',
+    genre: Array.isArray(doc && doc.subject) ? doc.subject.slice(0, 5).join(', ') : '',
+    coverUrl: coverId ? ('https://covers.openlibrary.org/b/id/' + coverId + '-L.jpg') : '',
+    language: hasHun ? 'hu' : '',
+    rawScore: 0,
+    score: 0,
+    queryType: queryContext.queryType || 'title_author'
+  };
+}
+
+/**
+ * Találat pontozása:
+ * - ISBN egyezés legyen a legerősebb
+ * - magyar nyelv előny
+ * - cím egyezés előny
+ * - szerző egyezés előny
+ */
+function scoreLookupCandidate_(candidate, queryContext) {
+  let score = 0;
+
+  const wantedIsbn = normalizeText_(queryContext.isbn);
+  const wantedTitle = normalizeText_(queryContext.title);
+  const wantedAuthor = normalizeText_(queryContext.author);
+
+  const candidateIsbn = normalizeText_(candidate.isbn);
+  const candidateTitle = normalizeText_(candidate.title);
+  const candidateAuthors = normalizeText_(candidate.authors);
+  const candidateLanguage = normalizeText_(candidate.language);
+
+  if (wantedIsbn) {
+    if (candidateIsbn && candidateIsbn === wantedIsbn) score += 1000;
+    if (candidate.source === 'google_books') score += 50;
+  } else {
+    if (wantedTitle && candidateTitle === wantedTitle) score += 300;
+    else if (wantedTitle && candidateTitle.includes(wantedTitle)) score += 180;
+
+    if (wantedAuthor && candidateAuthors.includes(wantedAuthor)) score += 180;
+  }
+
+  if (candidateLanguage === 'hu' || candidateLanguage === 'hun') score += 120;
+
+  if (candidate.coverUrl) score += 20;
+  if (candidate.publisher) score += 15;
+  if (candidate.pageCount) score += 15;
+  if (candidate.year) score += 10;
+
+  return score;
+}
+
+/**
+ * Deduplikálás források között.
+ */
+function dedupeLookupCandidates_(items) {
+  const seen = {};
+  const result = [];
+
+  items.forEach(item => {
+    const key = [
+      normalizeText_(item.title),
+      normalizeText_(item.authors),
+      normalizeText_(item.isbn)
+    ].join('|');
+
+    if (!seen[key]) {
+      seen[key] = true;
+      result.push(item);
+    }
+  });
+
+  return result;
+}
+
+/**
+ * Google Books keresés.
+ */
+function searchGoogleBooks_(queryContext) {
+  const queryParts = [];
+
+  if (queryContext.isbn) {
+    queryParts.push('isbn:' + queryContext.isbn);
+  } else {
+    if (queryContext.title) queryParts.push('intitle:' + queryContext.title);
+    if (queryContext.author) queryParts.push('inauthor:' + queryContext.author);
+  }
+
+  const q = queryParts.join('+');
+  const url =
+    'https://www.googleapis.com/books/v1/volumes' +
+    '?q=' + encodeURIComponent(q) +
+    '&langRestrict=hu' +
+    '&printType=books' +
+    '&maxResults=' + BOOK_LOOKUP_MAX_RESULTS +
+    '&key=' + encodeURIComponent(GOOGLE_BOOKS_API_KEY);
+
+  const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  const code = response.getResponseCode();
+  const text = response.getContentText();
+
+  if (code < 200 || code >= 300) {
+    throw new Error('Google Books hiba: ' + code + ' - ' + text);
+  }
+
+  const json = JSON.parse(text);
+  const items = Array.isArray(json.items) ? json.items : [];
+  return items.map(item => mapGoogleBookItem_(item, queryContext));
+}
+
+/**
+ * Open Library keresés fallbackként.
+ */
+function searchOpenLibrary_(queryContext) {
+  const queryParts = [];
+
+  if (queryContext.isbn) {
+    queryParts.push('isbn=' + encodeURIComponent(queryContext.isbn));
+  } else {
+    if (queryContext.title) queryParts.push('title=' + encodeURIComponent(queryContext.title));
+    if (queryContext.author) queryParts.push('author=' + encodeURIComponent(queryContext.author));
+  }
+
+  queryParts.push('language=hun');
+  queryParts.push('limit=' + BOOK_LOOKUP_MAX_RESULTS);
+
+  const url = 'https://openlibrary.org/search.json?' + queryParts.join('&');
+
+  const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  const code = response.getResponseCode();
+  const text = response.getContentText();
+
+  if (code < 200 || code >= 300) {
+    throw new Error('Open Library hiba: ' + code + ' - ' + text);
+  }
+
+  const json = JSON.parse(text);
+  const docs = Array.isArray(json.docs) ? json.docs : [];
+  return docs.map(doc => mapOpenLibraryDoc_(doc, queryContext));
+}
+
+/**
+ * Fő lookup függvény.
+ * Először Google Books, majd szükség esetén Open Library.
+ */
+function lookupBookMetadata_(params) {
+  const queryContext = {
+    isbn: String(params.isbn || '').trim(),
+    title: String(params.title || '').trim(),
+    author: String(params.author || '').trim(),
+    queryType: String(params.isbn || '').trim() ? 'isbn' : 'title_author'
+  };
+
+  if (!queryContext.isbn && !queryContext.title && !queryContext.author) {
+    return {
+      success: false,
+      error: 'Legalább ISBN vagy cím/szerző megadása szükséges.'
+    };
+  }
+
+  let googleResults = [];
+  let openLibraryResults = [];
+
+  try {
+    googleResults = searchGoogleBooks_(queryContext);
+  } catch (err) {
+    googleResults = [];
+  }
+
+  const shouldUseFallback =
+    googleResults.length === 0 ||
+    googleResults.every(item => !item.title);
+
+  if (shouldUseFallback) {
+    try {
+      openLibraryResults = searchOpenLibrary_(queryContext);
+    } catch (err) {
+      openLibraryResults = [];
+    }
+  }
+
+  const merged = dedupeLookupCandidates_(googleResults.concat(openLibraryResults))
+    .map(item => {
+      item.score = scoreLookupCandidate_(item, queryContext);
+      return item;
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, BOOK_LOOKUP_MAX_RESULTS);
+
+  return {
+    success: true,
+    queryType: queryContext.queryType,
+    items: merged
+  };
+}
 /***********************************************************
  * ÜZLETI FUNKCIÓK
  ***********************************************************/
@@ -460,6 +792,13 @@ else if (action === "addBookOnly") {
     "Number":         p.ssz || "",
     "URL":            p.url || "",
     "Year":           p.ev || "",
+    "Location":       p.helyszin || "",
+    "Shelf":          p.polc || "",
+    "Page_Count":     p.oldalszam || "",
+    "ISBN":           p.isbn || "",
+    "Publisher":      p.kiado || "",
+    "Translator":     p.fordito || "",
+    "Genre":          p.mufaj || "",
     "Purchased":      p.megv || "",
     "For_sale":       p.elado || "",
     "Price":          p.ar || "",
@@ -524,7 +863,16 @@ const book = {
         series:  readSheet_(SHEET_SERIES)
       };
 
-        /* ========== LOGIN: FELHASZNÁLÓ ELLENŐRZÉSE EMAIL ALAPJÁN ========== */
+    /* ========== KÖNYV METAADAT KERESÉS ========== */
+    } else if (action === "lookupBookMetadata") {
+
+      result = lookupBookMetadata_({
+        isbn: p.isbn || "",
+        title: p.title || "",
+        author: p.author || ""
+      });
+
+    /* ========== LOGIN: FELHASZNÁLÓ ELLENŐRZÉSE EMAIL ALAPJÁN ========== */
     } else if (action === "checkUser") {
 
       const email = (p.email || "").trim().toLowerCase();

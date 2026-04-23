@@ -419,8 +419,11 @@
 
 
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeBookModal()">Mégse</button>
-            <button class="btn btn-primary" onclick="saveBookFromModal()">Mentés</button>
+            <button class="btn btn-secondary" type="button" onclick="closeBookModal()">Mégse</button>
+<button id="bm_lookup_btn" class="btn btn-secondary" type="button" onclick="lookupBookMetadataFromModal()">
+    🔎 Adatok kitöltése API-ból
+</button>
+            <button class="btn btn-primary" type="button" onclick="saveBookFromModal()">Mentés</button>
         </div>
     </div>
 </div>

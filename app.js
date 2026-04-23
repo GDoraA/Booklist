@@ -1,10 +1,10 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbwoC-9mvA9I5kkWydVYIYdV1aHee93ERTiMwD38865ZJPVTZb_bvRGRufLMXD96CZtKnA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwJk-bGjdmkjBxvIQ3DnOjv7V1UcoKf5nPlKHHeu61tuy2Hj85jSurk75-I7JxAuTVYZw/exec";
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2026-04-21 21:00";  // Ezt TE frissíted minden deploykor
+const APP_VERSION = "2026-04-23 17:30";  // Ezt TE frissíted minden deploykor
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 
@@ -454,6 +454,7 @@ function fillDatalist(dl, list, key) {
 /********** MODAL – közös űrlap **********/
 let modalMode = "new";      // "new" vagy "edit"
 let modalPending = null;    // { bookData, manualUrl }
+let lastLookupResults = [];
 
 function openBookModal(mode, id) {
     setTimeout(loadDropdownLists, 50);
@@ -536,7 +537,77 @@ document.getElementById("bm_megjegy").value = item["Comment"] || "";
 function closeBookModal() {
     document.getElementById("bookModal").style.display = "none";
 }
+function lookupBookMetadataFromModal() {
+    const isbn = (document.getElementById("bm_isbn").value || "").trim();
+    const title = (document.getElementById("bm_cim").value || "").trim();
+    const author = (document.getElementById("bm_szerzo").value || "").trim();
 
+    if (!isbn && !title && !author) {
+        alert("Adj meg legalább ISBN-t vagy címet/szerzőt a kereséshez.");
+        return;
+    }
+
+    const lookupButton = document.getElementById("bm_lookup_btn");
+    showLoading(lookupButton);
+
+    const callbackName = "lookupBookMetadataCallback_" + Date.now();
+
+    window[callbackName] = function(data) {
+        hideLoading(lookupButton);
+        delete window[callbackName];
+
+        if (!data || !data.success) {
+            alert((data && data.error) ? data.error : "Nem sikerült lekérdezni a könyvadatokat.");
+            log("Lookup hiba: " + JSON.stringify(data || {}));
+            return;
+        }
+
+        lastLookupResults = Array.isArray(data.items) ? data.items : [];
+
+        if (lastLookupResults.length === 0) {
+            const debugText = data.debug
+                ? "\n\nDebug:\n" + JSON.stringify(data.debug, null, 2)
+                : "";
+            alert("Nem érkezett találat." + debugText);
+            log("Lookup sikeres, de nincs találat. Debug: " + JSON.stringify(data.debug || {}));
+            return;
+        }
+
+        const previewText = lastLookupResults
+            .slice(0, 5)
+            .map((item, index) => {
+                const titleText = item.title || "Nincs cím";
+                const authorText = item.authors || "Nincs szerző";
+                const yearText = item.year ? " (" + item.year + ")" : "";
+                const sourceText = item.source ? " [" + item.source + "]" : "";
+                return (index + 1) + ". " + titleText + " – " + authorText + yearText + sourceText;
+            })
+            .join("\n");
+
+        alert("Találatok:\n\n" + previewText);
+        log("Könyv metaadat lookup kész. Találatok száma: " + lastLookupResults.length);
+    };
+
+    const url = API_URL +
+        "?action=lookupBookMetadata" +
+        "&isbn=" + encodeURIComponent(isbn) +
+        "&title=" + encodeURIComponent(title) +
+        "&author=" + encodeURIComponent(author) +
+        "&callback=" + callbackName +
+        "&_=" + Date.now();
+
+    const s = document.createElement("script");
+    s.src = url;
+
+    s.onerror = function() {
+        hideLoading(lookupButton);
+        delete window[callbackName];
+        alert("A lookup kérés nem töltődött be. Ellenőrizd a deployolt Apps Script URL-t és a friss deployt.");
+        log("Lookup script betöltési hiba: " + url);
+    };
+
+    document.body.appendChild(s);
+}
 /********** MODAL – mentés logika **********/
 function saveBookFromModal() {
     log("Könyv mentése modalból...");
