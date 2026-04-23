@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbwJk-bGjdmkjBxvIQ3DnOjv7V1UcoKf5nPlKHHeu61tuy2Hj85jSurk75-I7JxAuTVYZw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyou0T1QeyT6qnGyKuP2A6tYMu5UVVKQYsrQPihZmuYEG9n22zNeAO6XRx50wfme96fww/exec";
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 // ---------- VERZIÓ INFORMÁCIÓK ----------
