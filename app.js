@@ -6,7 +6,7 @@ const GOOGLE_BOOKS_MAX_RESULTS = 10;
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2026-04-24 10:30";  // Ezt TE frissíted minden deploykor
+const APP_VERSION = "2026-04-24 11:00";  // Ezt TE frissíted minden deploykor
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 
@@ -609,9 +609,21 @@ function openLookupResultsModal(items) {
         const titleText = item.title || "Nincs cím";
         const authorText = item.authors || "Nincs szerző";
         const yearText = item.year ? " (" + item.year + ")" : "";
+const originalTitleText = item.originalTitle ? "<div><strong>Eredeti cím:</strong> " + item.originalTitle + "</div>" : "";
+const previousTitleText = item.previousTitle ? "<div><strong>Korábbi cím:</strong> " + item.previousTitle + "</div>" : "";
+const seriesText = item.series ? "<div><strong>Sorozat:</strong> " + item.series + "</div>" : "";
+const numberText = item.number ? "<div><strong>Sorszám:</strong> " + item.number + "</div>" : "";
+const yearFullText = item.year ? "<div><strong>Év:</strong> " + item.year + "</div>" : "";
+const locationText = item.location ? "<div><strong>Helyszín:</strong> " + item.location + "</div>" : "";
+const shelfText = item.shelf ? "<div><strong>Polc:</strong> " + item.shelf + "</div>" : "";
+const pageCountText = item.pageCount ? "<div><strong>Oldalszám:</strong> " + item.pageCount + "</div>" : "";
 const publisherText = item.publisher ? "<div><strong>Kiadó:</strong> " + item.publisher + "</div>" : "";
+const translatorText = item.translator ? "<div><strong>Fordító:</strong> " + item.translator + "</div>" : "";
+const genreText = item.genre ? "<div><strong>Műfaj:</strong> " + item.genre + "</div>" : "";
 const isbnText = item.isbn ? "<div><strong>ISBN:</strong> " + item.isbn + "</div>" : "";
+const coverUrlText = item.coverUrl ? "<div><strong>Borító URL:</strong> <span style=\"word-break:break-all;\">" + item.coverUrl + "</span></div>" : "";
 const sourceText = item.source ? "<div><strong>Forrás:</strong> " + item.source + "</div>" : "";
+const sourceIdText = item.sourceId ? "<div><strong>Forrás URL / ID:</strong> <span style=\"word-break:break-all;\">" + item.sourceId + "</span></div>" : "";
 
 const coverHtml = item.coverUrl
     ? `<div style="flex:0 0 72px;">
@@ -631,13 +643,27 @@ row.innerHTML = `
         ${coverHtml}
         <div style="flex:1 1 auto;">
             <div style="font-weight:600;margin-bottom:6px;">${index + 1}. ${titleText}${yearText}</div>
-            <div style="margin-bottom:6px;"><strong>Szerző:</strong> ${authorText}</div>
-            ${publisherText}
-            ${isbnText}
-            ${sourceText}
-            <div style="margin-top:10px;">
-                <button class="btn btn-primary" type="button">Ezt választom</button>
-            </div>
+<div style="margin-bottom:6px;"><strong>Szerző:</strong> ${authorText}</div>
+
+${originalTitleText}
+${previousTitleText}
+${seriesText}
+${numberText}
+${yearFullText}
+${locationText}
+${shelfText}
+${pageCountText}
+${isbnText}
+${publisherText}
+${translatorText}
+${genreText}
+${coverUrlText}
+${sourceText}
+${sourceIdText}
+
+<div style="margin-top:10px;">
+    <button class="btn btn-primary" type="button">Ezt választom</button>
+</div>
         </div>
     </div>
 `;
@@ -803,22 +829,172 @@ async function lookupPublisherPagesFromBackend({ isbn, title, author }) {
     });
 }
 
+function normalizeIsbnForMerge(value) {
+    return String(value || "")
+        .replace(/[^0-9Xx]/g, "")
+        .toLowerCase();
+}
+
+function mergeLookupItemFields(base, incoming) {
+    const result = Object.assign({}, base || {});
+    const next = incoming || {};
+
+    function fill(field) {
+        const currentValue = String(result[field] || "").trim();
+        const nextValue = String(next[field] || "").trim();
+
+        if (!currentValue && nextValue) {
+            result[field] = next[field];
+        }
+    }
+
+    [
+        "title",
+        "authors",
+        "originalTitle",
+        "previousTitle",
+        "series",
+        "number",
+        "year",
+        "location",
+        "shelf",
+        "pageCount",
+        "isbn",
+        "publisher",
+        "translator",
+        "genre",
+        "coverUrl",
+        "language"
+    ].forEach(fill);
+
+    const currentSources = String(result.source || "")
+        .split(",")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+    const nextSources = String(next.source || "")
+        .split(",")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+    result.source = Array.from(new Set(currentSources.concat(nextSources))).join(", ");
+
+    const currentSourceIds = String(result.sourceId || "")
+        .split(" | ")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+    const nextSourceIds = String(next.sourceId || "")
+        .split(" | ")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+    result.sourceId = Array.from(new Set(currentSourceIds.concat(nextSourceIds))).join(" | ");
+
+    return result;
+}
+
+function normalizeIsbnForMerge(value) {
+    return String(value || "")
+        .replace(/[^0-9Xx]/g, "")
+        .toLowerCase();
+}
+
+function hasValueForMerge(value) {
+    return String(value || "").trim() !== "";
+}
+
+function mergeLookupItemFields(base, incoming) {
+    const result = Object.assign({}, base || {});
+    const next = incoming || {};
+
+    function fillIfEmpty(field) {
+        if (!hasValueForMerge(result[field]) && hasValueForMerge(next[field])) {
+            result[field] = next[field];
+        }
+    }
+
+    [
+        "title",
+        "authors",
+        "originalTitle",
+        "previousTitle",
+        "series",
+        "number",
+        "year",
+        "location",
+        "shelf",
+        "pageCount",
+        "isbn",
+        "publisher",
+        "translator",
+        "genre",
+        "coverUrl",
+        "language"
+    ].forEach(fillIfEmpty);
+
+    const currentSources = String(result.source || "")
+        .split(",")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+    const nextSources = String(next.source || "")
+        .split(",")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+    result.source = Array.from(new Set(currentSources.concat(nextSources))).join(", ");
+
+    const currentSourceIds = String(result.sourceId || "")
+        .split(" | ")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+    const nextSourceIds = String(next.sourceId || "")
+        .split(" | ")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+    result.sourceId = Array.from(new Set(currentSourceIds.concat(nextSourceIds))).join(" | ");
+
+    return result;
+}
+
 function mergeLookupResults(googleItems, publisherItems) {
     const merged = [];
-    const seen = new Set();
+    const byKey = new Map();
 
     function makeKey(item) {
+        const isbn = normalizeIsbnForMerge(item && item.isbn);
+
+        if (isbn) {
+            return "isbn:" + isbn;
+        }
+
         return [
-            String(item.title || "").trim().toLowerCase(),
-            String(item.authors || "").trim().toLowerCase(),
-            String(item.isbn || "").replace(/[^0-9x]/gi, "").toLowerCase()
+            "text",
+            String(item && item.title || "").trim().toLowerCase(),
+            String(item && item.authors || "").trim().toLowerCase()
         ].join("|");
     }
 
     [...(googleItems || []), ...(publisherItems || [])].forEach(item => {
+        if (!item) return;
+
         const key = makeKey(item);
-        if (!seen.has(key)) {
-            seen.add(key);
+
+        if (byKey.has(key)) {
+            const existing = byKey.get(key);
+            const mergedItem = mergeLookupItemFields(existing, item);
+
+            byKey.set(key, mergedItem);
+
+            const index = merged.indexOf(existing);
+            if (index !== -1) {
+                merged[index] = mergedItem;
+            }
+        } else {
+            byKey.set(key, item);
             merged.push(item);
         }
     });

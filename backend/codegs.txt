@@ -704,7 +704,117 @@ function extractFirstMatch_(html, regex) {
   const m = html.match(regex);
   return m ? decodeHtmlEntities_(stripHtml_(m[1])) : "";
 }
+function parseBooklineProductPage_(productUrl) {
+  const productHtml = fetchHtml_(productUrl);
 
+  const title =
+    extractFirstMatch_(productHtml, /<meta property="og:title" content="([^"]+)"/i) ||
+    extractFirstMatch_(productHtml, /<h1[^>]*>([\s\S]*?)<\/h1>/i);
+
+const author =
+  extractFirstMatch_(productHtml, /setTargeting\(['"]author['"],\s*['"]([^'"]+)['"]\)/i) ||
+  extractFirstMatch_(productHtml, /<meta name="author" content="([^"]+)"/i) ||
+  extractFirstMatch_(productHtml, /Szerző[\s\S]{0,300}?<a[^>]*>([\s\S]*?)<\/a>/i);
+
+const publisherRaw =
+  extractFirstMatch_(productHtml, /<a[^>]*class=["'][^"']*c-product__publisher[^"']*["'][^>]*>([\s\S]*?)<\/a>/i);
+
+const publisher = String(publisherRaw || "")
+  .replace(/,\s*[12][0-9]{3}\s*$/, "")
+  .trim();
+
+const year =
+  String(publisherRaw || "").match(/\b(1[0-9]{3}|20[0-9]{2}|2100)\b/)?.[1] || "";
+
+const pageCount =
+  extractFirstMatch_(productHtml, /([0-9]{1,5})\s*oldal\s*･\s*[^･<]*ISBN/i) ||
+  extractFirstMatch_(productHtml, /<li>\s*([0-9]{1,5})\s*oldal\s*<\/li>/i) ||
+  extractFirstMatch_(productHtml, /Oldalak száma[\s\S]{0,160}?([0-9]+)/i);
+
+  const imageUrl =
+    extractFirstMatch_(productHtml, /<meta property="og:image" content="([^"]+)"/i);
+
+  const foundIsbn =
+    extractFirstMatch_(productHtml, /ISBN[\s\S]{0,200}?([0-9Xx\-]{10,20})/i);
+const originalTitle =
+  extractFirstMatch_(productHtml, /Eredeti cím:\s*([^<]+)/i);
+  const translator =
+  extractFirstMatch_(productHtml, /Fordító:\s*<a[^>]*>([\s\S]*?)<\/a>/i);
+  if (!title) {
+    return null;
+  }
+const cleanTitle = author && title.indexOf(author + ":") === 0
+  ? title.substring((author + ":").length).trim()
+  : title;
+  const cleanPublisher = /véleményt|értékelés|kosár|kedvencek|megosztás/i.test(String(publisher || ""))
+  ? ""
+  : publisher;
+  return {
+    source: "bookline",
+    sourceId: productUrl,
+    title: cleanTitle,
+    authors: author,
+    originalTitle: originalTitle,
+    previousTitle: "",
+    series: "",
+    number: "",
+    year: year,
+    location: "",
+    shelf: "",
+    pageCount: pageCount,
+    isbn: foundIsbn,
+    publisher: cleanPublisher,
+    translator: translator,
+    genre: "",
+    coverUrl: imageUrl,
+    language: "hu"
+  };
+}
+
+function slugifyBooklineVParam_(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_");
+}
+
+function buildBooklineCandidateUrls_(title, author) {
+  const titleSlug = slugifyBooklineVParam_(title);
+  const authorSlug = slugifyBooklineVParam_(author);
+
+  if (!titleSlug) {
+    return [];
+  }
+
+  const candidates = [];
+  const seen = {};
+
+  function add(v) {
+    if (!v) return;
+
+    const url =
+      "https://bookline.hu/product/home.action?_v=" +
+      encodeURIComponent(v) +
+      "&type=22&id=307717";
+
+    if (!seen[url]) {
+      seen[url] = true;
+      candidates.push(url);
+    }
+  }
+
+  if (authorSlug) {
+    add(authorSlug + "_" + titleSlug);
+  }
+
+  add(titleSlug);
+
+  return candidates;
+}
 function searchBooklineByIsbn_(isbn) {
   const cleanIsbn = String(isbn || "").replace(/[^0-9Xx]/g, "");
   if (!cleanIsbn) {
@@ -786,11 +896,15 @@ function searchBooklineByTitleAuthor_(title, author) {
   const searchUrl = "https://bookline.hu/search/search.action?desc=" + encodeURIComponent(query);
   const searchHtml = fetchHtml_(searchUrl);
 
-  const productMatches = String(searchHtml || "").match(/https:\/\/bookline\.hu\/product\/home\.action\?_v=[^"' ]+/ig);
+let productMatches = String(searchHtml || "").match(/https:\/\/bookline\.hu\/product\/home\.action\?_v=[^"' ]+/ig);
 
-  if (!productMatches || productMatches.length === 0) {
-    return [];
-  }
+if (!productMatches || productMatches.length === 0) {
+  productMatches = buildBooklineCandidateUrls_(cleanTitle, cleanAuthor);
+}
+
+if (!productMatches || productMatches.length === 0) {
+  return [];
+}
 
   const uniqueUrls = [];
   const seen = {};
@@ -806,17 +920,17 @@ function searchBooklineByTitleAuthor_(title, author) {
 
 uniqueUrls.slice(0, 5).forEach(function(productUrl) {
   try {
-    const item = parseLibriProductPage_(productUrl);
+    const item = parseBooklineProductPage_(productUrl);
 
     if (item && isRelevantTitleAuthorMatch_(item, cleanTitle, cleanAuthor)) {
       results.push(item);
     }
   } catch (err) {
-    // Egy hibás Libri termékoldal ne állítsa meg a teljes Libri keresést.
+    // Egy hibás Bookline termékoldal ne állítsa meg a teljes Bookline keresést.
   }
 });
 
-  return results;
+  return dedupeItemsByIsbnOrSourceId_(results);
 }
 function parseLibriProductPage_(productUrl) {
   const productHtml = fetchPublisherHtml_(productUrl);
@@ -943,22 +1057,7 @@ try {
   }
 }
 if (!searchHtml) {
-  const fallbackUrls = buildLibriCandidateUrls_(cleanTitle, cleanAuthor);
-  const results = [];
-
-  fallbackUrls.slice(0, 10).forEach(function(productUrl) {
-    try {
-      const item = parseLibriProductPage_(productUrl);
-
-      if (item && isRelevantTitleAuthorMatch_(item, cleanTitle, cleanAuthor)) {
-        results.push(item);
-      }
-    } catch (err) {
-      // Egy nem létező URL vagy hibás termékoldal ne állítsa meg a teljes Libri keresést.
-    }
-  });
-
-  return results;
+  return [];
 }
   const productMatch =
     searchHtml.match(/https:\/\/www\.libri\.hu\/konyv\/[^"' ]+/i);
@@ -1220,8 +1319,7 @@ if (!searchHtml) {
 
   fallbackUrls.slice(0, 10).forEach(function(productUrl) {
     try {
-      const item = parseLibriProductPage_(productUrl);
-
+const item = parseBooklineProductPage_(productUrl);
 if (
   item &&
   isValidLibriProductItem_(item) &&
@@ -2512,3 +2610,175 @@ function testGoogleLibriFallbackDebugJeffersonKod() {
   Logger.log("PARSED FALLBACK URLS:");
   Logger.log(JSON.stringify(fallbackUrls, null, 2));
 }
+function testSearchBooklineJeffersonKod() {
+  const result = searchBooklineByTitleAuthor_(
+    "A Jefferson-kód",
+    "Steve Berry"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+function testSearchBooklineJeffersonKodByIsbn() {
+  const result = searchBooklineByIsbn_(
+    "9789634066903"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+function testBooklineSearchHtmlDebugJeffersonKod() {
+  const title = "A Jefferson-kód";
+  const author = "Steve Berry";
+
+  const query = [title, author]
+    .filter(function(x) { return x; })
+    .join(" ")
+    .trim();
+
+  const searchUrl = "https://bookline.hu/search/search.action?desc=" + encodeURIComponent(query);
+  const html = fetchHtml_(searchUrl);
+  const text = String(html || "");
+
+  Logger.log("SEARCH URL:");
+  Logger.log(searchUrl);
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  Logger.log("CONTAINS /product/:");
+  Logger.log(text.indexOf("/product/") !== -1);
+
+  Logger.log("CONTAINS product/home.action:");
+  Logger.log(text.indexOf("product/home.action") !== -1);
+
+  Logger.log("CONTAINS Jefferson:");
+  Logger.log(text.toLowerCase().indexOf("jefferson") !== -1);
+
+  Logger.log("CONTAINS Steve:");
+  Logger.log(text.toLowerCase().indexOf("steve") !== -1);
+
+  Logger.log("CONTAINS Berry:");
+  Logger.log(text.toLowerCase().indexOf("berry") !== -1);
+
+  const hrefMatches = text.match(/href=["']([^"']+)["']/ig) || [];
+
+  const relevantHrefs = hrefMatches.filter(function(h) {
+    const lower = h.toLowerCase();
+    return (
+      lower.indexOf("product/home.action") !== -1 ||
+      lower.indexOf("jefferson") !== -1 ||
+      lower.indexOf("steve") !== -1 ||
+      lower.indexOf("berry") !== -1
+    );
+  });
+
+  Logger.log("RELEVANT HREF COUNT:");
+  Logger.log(relevantHrefs.length);
+
+  Logger.log("FIRST 40 RELEVANT HREFS:");
+  Logger.log(JSON.stringify(relevantHrefs.slice(0, 40), null, 2));
+
+  const pos = Math.max(
+    text.toLowerCase().indexOf("jefferson"),
+    text.toLowerCase().indexOf("steve"),
+    text.toLowerCase().indexOf("berry"),
+    text.toLowerCase().indexOf("product/home.action")
+  );
+
+  Logger.log("FIRST RELEVANT POSITION:");
+  Logger.log(pos);
+
+  if (pos >= 0) {
+    Logger.log("HTML AROUND FIRST RELEVANT POSITION:");
+    Logger.log(text.substring(Math.max(0, pos - 1000), pos + 2500));
+  }
+}
+function testLookupPublisherPagesBooklineJeffersonKod() {
+  const fakeEvent = {
+    parameter: {
+      action: "lookupPublisherPages",
+      isbn: "",
+      title: "A Jefferson-kód",
+      author: "Steve Berry"
+    }
+  };
+
+  const output = doGet(fakeEvent);
+  Logger.log(output.getContent());
+}
+function testSearchAlexandraJeffersonKod() {
+  const result = searchAlexandraByTitleAuthor_(
+    "A Jefferson-kód",
+    "Steve Berry"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+function testSearchAlexandraJeffersonKodByIsbn() {
+  const result = searchAlexandraByIsbn_(
+    "9789634066903"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+function testLookupPublisherPagesAlexandraJeffersonKod() {
+  const fakeEvent = {
+    parameter: {
+      action: "lookupPublisherPages",
+      isbn: "",
+      title: "A Jefferson-kód",
+      author: "Steve Berry"
+    }
+  };
+
+  const output = doGet(fakeEvent);
+  Logger.log(output.getContent());
+}
+function testParseBooklineJeffersonKodDirect() {
+  const item = parseBooklineProductPage_(
+    "https://bookline.hu/product/home.action?_v=steve_berry_a_jefferson_kod&type=22&id=307717"
+  );
+
+  Logger.log(JSON.stringify([item], null, 2));
+}
+function testBooklinePublisherHtmlAroundJeffersonKod() {
+  const url = "https://bookline.hu/product/home.action?_v=steve_berry_a_jefferson_kod&type=22&id=307717";
+  const html = fetchHtml_(url);
+  const text = String(html || "");
+
+  const lower = text.toLowerCase();
+  const pos = lower.indexOf("kiadó");
+
+  Logger.log("KIADÓ POSITION:");
+  Logger.log(pos);
+
+  if (pos >= 0) {
+    Logger.log("HTML AROUND KIADÓ:");
+    Logger.log(text.substring(Math.max(0, pos - 1000), pos + 2000));
+  } else {
+    Logger.log("A 'Kiadó' szó nem található a HTML-ben.");
+  }
+}
+function testBooklinePageCountHtmlAroundJeffersonKod() {
+  const url = "https://bookline.hu/product/home.action?_v=steve_berry_a_jefferson_kod&type=22&id=307717";
+  const html = fetchHtml_(url);
+  const text = String(html || "");
+
+  const lower = text.toLowerCase();
+  const pos = Math.max(
+    lower.indexOf("oldalszám"),
+    lower.indexOf("oldalak száma"),
+    lower.indexOf("oldal")
+  );
+
+  Logger.log("OLDALSZÁM POSITION:");
+  Logger.log(pos);
+
+  if (pos >= 0) {
+    Logger.log("HTML AROUND OLDALSZÁM:");
+    Logger.log(text.substring(Math.max(0, pos - 1000), pos + 2000));
+  } else {
+    Logger.log("Oldalszámra utaló szöveg nem található a HTML-ben.");
+  }
+}
+
+
