@@ -151,7 +151,34 @@ function fetchPublisherHtml_(url) {
 
   return html;
 }
+function fetchFirstAvailablePublisherHtml_(urls) {
+  let lastError = "";
 
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
+
+    try {
+      return {
+        url: url,
+        html: fetchPublisherHtml_(url)
+      };
+    } catch (err) {
+      lastError = err && err.message ? err.message : String(err);
+
+      if (lastError.indexOf("Kiadói oldal letöltési hiba: 404") !== -1) {
+        continue;
+      }
+
+      throw err;
+    }
+  }
+
+  return {
+    url: "",
+    html: "",
+    error: lastError
+  };
+}
 function stripHtml_(html) {
   return String(html || "")
     .replace(/<[^>]*>/g, " ")
@@ -188,6 +215,82 @@ function normalizeText_(value) {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+}
+function normalizeLooseMatch_(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "");
+}
+function isRelevantTitleAuthorMatch_(item, wantedTitle, wantedAuthor) {
+  const wantedTitleNorm = normalizeText_(wantedTitle);
+  const wantedAuthorNorm = normalizeText_(wantedAuthor);
+
+  const itemTitleNorm = normalizeText_(item && item.title);
+  const itemAuthorsNorm = normalizeText_(item && item.authors);
+  const itemSourceIdNorm = normalizeText_(item && item.sourceId);
+
+  const wantedTitleLoose = normalizeLooseMatch_(wantedTitle);
+  const wantedAuthorLoose = normalizeLooseMatch_(wantedAuthor);
+
+  const itemTitleLoose = normalizeLooseMatch_(item && item.title);
+  const itemAuthorsLoose = normalizeLooseMatch_(item && item.authors);
+  const itemSourceIdLoose = normalizeLooseMatch_(item && item.sourceId);
+
+  if (!wantedTitleNorm && !wantedAuthorNorm) {
+    return false;
+  }
+
+  let titleMatches = false;
+  let authorMatches = false;
+
+  if (wantedTitleNorm) {
+    titleMatches =
+      itemTitleNorm.indexOf(wantedTitleNorm) !== -1 ||
+      wantedTitleNorm.indexOf(itemTitleNorm) !== -1 ||
+      itemSourceIdNorm.indexOf(wantedTitleNorm) !== -1 ||
+      itemTitleLoose.indexOf(wantedTitleLoose) !== -1 ||
+      itemSourceIdLoose.indexOf(wantedTitleLoose) !== -1;
+  }
+
+  if (wantedAuthorNorm) {
+    authorMatches =
+      itemAuthorsNorm.indexOf(wantedAuthorNorm) !== -1 ||
+      itemSourceIdNorm.indexOf(wantedAuthorNorm) !== -1 ||
+      itemAuthorsLoose.indexOf(wantedAuthorLoose) !== -1 ||
+      itemSourceIdLoose.indexOf(wantedAuthorLoose) !== -1;
+  }
+
+  if (wantedTitleNorm && wantedAuthorNorm) {
+    return titleMatches || authorMatches;
+  }
+
+  return titleMatches || authorMatches;
+}
+function normalizeIsbnForCompare_(value) {
+  return String(value || "")
+    .replace(/[^0-9Xx]/g, "")
+    .toLowerCase();
+}
+
+function filterPublisherItemsByRequestedIsbn_(items, requestedIsbn) {
+  const wanted = normalizeIsbnForCompare_(requestedIsbn);
+
+  if (!wanted) {
+    return items || [];
+  }
+
+  return (items || []).filter(function(item) {
+    const found = normalizeIsbnForCompare_(item && item.isbn);
+
+    if (!found) {
+      return false;
+    }
+
+    return found === wanted;
+  });
 }
 function fetchOpenLibraryJson_(url) {
   Utilities.sleep(1100);
@@ -667,7 +770,158 @@ function searchBooklineByIsbn_(isbn) {
     language: "hu"
   }];
 }
+function searchBooklineByTitleAuthor_(title, author) {
+  const cleanTitle = String(title || "").trim();
+  const cleanAuthor = String(author || "").trim();
 
+  const query = [cleanTitle, cleanAuthor]
+    .filter(function(x) { return x; })
+    .join(" ")
+    .trim();
+
+  if (!query) {
+    return [];
+  }
+
+  const searchUrl = "https://bookline.hu/search/search.action?desc=" + encodeURIComponent(query);
+  const searchHtml = fetchHtml_(searchUrl);
+
+  const productMatches = String(searchHtml || "").match(/https:\/\/bookline\.hu\/product\/home\.action\?_v=[^"' ]+/ig);
+
+  if (!productMatches || productMatches.length === 0) {
+    return [];
+  }
+
+  const uniqueUrls = [];
+  const seen = {};
+
+  productMatches.forEach(function(url) {
+    if (!seen[url]) {
+      seen[url] = true;
+      uniqueUrls.push(url);
+    }
+  });
+
+  const results = [];
+
+uniqueUrls.slice(0, 5).forEach(function(productUrl) {
+  try {
+    const item = parseLibriProductPage_(productUrl);
+
+    if (item && isRelevantTitleAuthorMatch_(item, cleanTitle, cleanAuthor)) {
+      results.push(item);
+    }
+  } catch (err) {
+    // Egy hibás Libri termékoldal ne állítsa meg a teljes Libri keresést.
+  }
+});
+
+  return results;
+}
+function parseLibriProductPage_(productUrl) {
+  const productHtml = fetchPublisherHtml_(productUrl);
+
+  const title =
+    extractFirstMatch_(productHtml, /<meta property="og:title" content="([^"]+)"/i) ||
+    extractFirstMatch_(productHtml, /<h1[^>]*>([\s\S]*?)<\/h1>/i);
+
+  const author =
+    extractFirstMatch_(productHtml, /<meta name="author" content="([^"]+)"/i) ||
+    extractFirstMatch_(productHtml, /Szerző[\s\S]{0,300}?<[^>]+>([\s\S]*?)<\/[^>]+>/i);
+
+  const publisher =
+    extractFirstMatch_(productHtml, /Kiadó[\s\S]{0,300}?<[^>]+>([\s\S]*?)<\/[^>]+>/i);
+
+  const year =
+    extractFirstMatch_(productHtml, /Kiadás éve[\s\S]{0,160}?([12][0-9]{3})/i) ||
+    extractFirstMatch_(productHtml, /Megjelenés[\s\S]{0,160}?([12][0-9]{3})/i);
+
+  const pageCount =
+    extractFirstMatch_(productHtml, /Oldalszám[\s\S]{0,160}?([0-9]+)/i) ||
+    extractFirstMatch_(productHtml, /Oldalak száma[\s\S]{0,160}?([0-9]+)/i);
+
+  const imageUrl =
+    extractFirstMatch_(productHtml, /<meta property="og:image" content="([^"]+)"/i);
+
+  const foundIsbn =
+    extractFirstMatch_(productHtml, /ISBN[\s\S]{0,200}?([0-9Xx\-]{10,20})/i);
+
+  if (!title) {
+    return null;
+  }
+
+  return {
+    source: "libri",
+    sourceId: productUrl,
+    title: title,
+    authors: author,
+    originalTitle: "",
+    previousTitle: "",
+    series: "",
+    number: "",
+    year: year,
+    location: "",
+    shelf: "",
+    pageCount: pageCount,
+    isbn: foundIsbn,
+    publisher: publisher,
+    translator: "",
+    genre: "",
+    coverUrl: imageUrl,
+    language: "hu"
+  };
+}
+function isValidLibriProductItem_(item) {
+  if (!item) {
+    return false;
+  }
+
+  const title = String(item.title || "").toLowerCase();
+  const isbn = normalizeIsbnForCompare_(item.isbn);
+  const coverUrl = String(item.coverUrl || "").toLowerCase();
+
+  if (!isbn) {
+    return false;
+  }
+
+  if (!coverUrl) {
+    return false;
+  }
+
+  if (coverUrl.indexOf("libri_logo_toshare") !== -1) {
+    return false;
+  }
+
+  if (title.indexOf("krimi") !== -1 && title.indexOf("könyv") !== -1 && title.indexOf("oldal") !== -1) {
+    return false;
+  }
+
+  if (title.indexOf("konyv") !== -1 && title.indexOf("oldal") !== -1 && !isbn) {
+    return false;
+  }
+
+  return true;
+}
+function dedupeItemsByIsbnOrSourceId_(items) {
+  const seen = {};
+  const result = [];
+
+  (items || []).forEach(function(item) {
+    const isbnKey = normalizeIsbnForCompare_(item && item.isbn);
+    const sourceIdKey = String(item && item.sourceId || "").trim().toLowerCase();
+
+    const key = isbnKey ? ("isbn:" + isbnKey) : ("source:" + sourceIdKey);
+
+    if (!key || seen[key]) {
+      return;
+    }
+
+    seen[key] = true;
+    result.push(item);
+  });
+
+  return result;
+}
 function searchLibriByIsbn_(isbn) {
   const cleanIsbn = String(isbn || "").replace(/[^0-9Xx]/g, "");
   if (!cleanIsbn) return [];
@@ -675,8 +929,37 @@ function searchLibriByIsbn_(isbn) {
   const searchUrl =
     "https://www.libri.hu/kereses/?q=" + encodeURIComponent(cleanIsbn);
 
-  const searchHtml = fetchPublisherHtml_(searchUrl);
+let searchHtml = "";
 
+try {
+  searchHtml = fetchPublisherHtml_(searchUrl);
+} catch (err) {
+  const msg = err && err.message ? err.message : String(err);
+
+  if (msg.indexOf("Kiadói oldal letöltési hiba: 404") !== -1) {
+    searchHtml = "";
+  } else {
+    throw err;
+  }
+}
+if (!searchHtml) {
+  const fallbackUrls = buildLibriCandidateUrls_(cleanTitle, cleanAuthor);
+  const results = [];
+
+  fallbackUrls.slice(0, 10).forEach(function(productUrl) {
+    try {
+      const item = parseLibriProductPage_(productUrl);
+
+      if (item && isRelevantTitleAuthorMatch_(item, cleanTitle, cleanAuthor)) {
+        results.push(item);
+      }
+    } catch (err) {
+      // Egy nem létező URL vagy hibás termékoldal ne állítsa meg a teljes Libri keresést.
+    }
+  });
+
+  return results;
+}
   const productMatch =
     searchHtml.match(/https:\/\/www\.libri\.hu\/konyv\/[^"' ]+/i);
 
@@ -733,7 +1016,301 @@ function searchLibriByIsbn_(isbn) {
     language: "hu"
   }];
 }
+function extractLibriProductUrls_(html) {
+  const text = String(html || "");
+  const urls = [];
+  const seen = {};
 
+  function addUrl(url) {
+    const clean = String(url || "")
+      .replace(/&amp;/g, "&")
+      .split("#")[0]
+      .split("?")[0]
+      .trim();
+
+    if (!clean) return;
+
+    let absolute = clean;
+
+    if (absolute.indexOf("//www.libri.hu/konyv/") === 0) {
+      absolute = "https:" + absolute;
+    } else if (absolute.indexOf("/konyv/") === 0) {
+      absolute = "https://www.libri.hu" + absolute;
+    }
+
+    if (absolute.indexOf("https://www.libri.hu/konyv/") !== 0) {
+      return;
+    }
+
+    if (!/\.html$/i.test(absolute)) {
+      return;
+    }
+
+    if (!seen[absolute]) {
+      seen[absolute] = true;
+      urls.push(absolute);
+    }
+  }
+
+  let m;
+
+  const hrefRegex = /href=["']([^"']*\/konyv\/[^"']+\.html[^"']*)["']/ig;
+  while ((m = hrefRegex.exec(text)) !== null) {
+    addUrl(m[1]);
+  }
+
+  const absoluteRegex = /https:\/\/www\.libri\.hu\/konyv\/[^"' <]+\.html/ig;
+  while ((m = absoluteRegex.exec(text)) !== null) {
+    addUrl(m[0]);
+  }
+
+  return urls;
+}
+
+function slugifyLibriPart_(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ő/g, "o")
+    .replace(/ű/g, "u")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function buildLibriCandidateUrls_(title, author) {
+  const titleSlug = slugifyLibriPart_(title);
+  const authorSlugDash = slugifyLibriPart_(author);
+  const authorSlugUnderscore = authorSlugDash.replace(/-/g, "_");
+
+  if (!titleSlug) {
+    return [];
+  }
+
+  const urls = [];
+  const seen = {};
+
+  function add(path) {
+    const url = "https://www.libri.hu/konyv/" + path;
+    if (!seen[url]) {
+      seen[url] = true;
+      urls.push(url);
+    }
+  }
+
+  if (authorSlugUnderscore) {
+    add(authorSlugUnderscore + "." + titleSlug + ".html");
+    add(authorSlugUnderscore + "." + titleSlug + "--1.html");
+    add(authorSlugUnderscore + "." + titleSlug + "--2.html");
+    add(authorSlugUnderscore + "." + titleSlug + "--3.html");
+  }
+
+  add(titleSlug + ".html");
+  add(titleSlug + "--1.html");
+  add(titleSlug + "--2.html");
+  add(titleSlug + "--3.html");
+
+  return urls;
+}
+function searchLibriProductUrlsViaGoogle_(title, author) {
+  const cleanTitle = String(title || "").trim();
+  const cleanAuthor = String(author || "").trim();
+
+  const query = [
+    "site:libri.hu/konyv",
+    cleanTitle,
+    cleanAuthor
+  ]
+    .filter(function(x) { return x; })
+    .join(" ")
+    .trim();
+
+  if (!query) {
+    return [];
+  }
+
+  const url = "https://www.google.com/search?q=" + encodeURIComponent(query);
+
+  let html = "";
+
+  try {
+    html = fetchPublisherHtml_(url);
+  } catch (err) {
+    return [];
+  }
+
+  const urls = [];
+  const seen = {};
+  const text = String(html || "");
+
+  function addUrl(rawUrl) {
+    let u = String(rawUrl || "")
+      .replace(/&amp;/g, "&")
+      .trim();
+
+    const qMatch = u.match(/[?&]q=(https%3A%2F%2Fwww\.libri\.hu%2Fkonyv%2F[^&]+)/i);
+    if (qMatch) {
+      u = decodeURIComponent(qMatch[1]);
+    }
+
+    const directMatch = u.match(/https:\/\/www\.libri\.hu\/konyv\/[^"' <&]+\.html/i);
+    if (directMatch) {
+      u = directMatch[0];
+    }
+
+    u = u.split("#")[0].split("?")[0];
+
+    if (u.indexOf("https://www.libri.hu/konyv/") !== 0) {
+      return;
+    }
+
+    if (!/\.html$/i.test(u)) {
+      return;
+    }
+
+    if (!seen[u]) {
+      seen[u] = true;
+      urls.push(u);
+    }
+  }
+
+  let m;
+
+  const hrefRegex = /href=["']([^"']+)["']/ig;
+  while ((m = hrefRegex.exec(text)) !== null) {
+    addUrl(m[1]);
+  }
+
+  const directRegex = /https:\/\/www\.libri\.hu\/konyv\/[^"' <&]+\.html/ig;
+  while ((m = directRegex.exec(text)) !== null) {
+    addUrl(m[0]);
+  }
+
+  return urls.slice(0, 5);
+}
+function searchLibriByTitleAuthor_(title, author) {
+  const cleanTitle = String(title || "").trim();
+  const cleanAuthor = String(author || "").trim();
+
+  const query = [cleanTitle, cleanAuthor]
+    .filter(function(x) { return x; })
+    .join(" ")
+    .trim();
+
+  if (!query) {
+    return [];
+  }
+
+const encodedQuery = encodeURIComponent(query);
+
+const searchUrls = [
+  "https://www.libri.hu/kereses?search=" + encodedQuery,
+  "https://www.libri.hu/kereses?text=" + encodedQuery,
+  "https://www.libri.hu/kereses?query=" + encodedQuery,
+  "https://www.libri.hu/kereses/?q=" + encodedQuery
+];
+
+const fetched = fetchFirstAvailablePublisherHtml_(searchUrls);
+const searchHtml = fetched.html || "";
+
+if (!searchHtml) {
+  const fallbackUrls = buildLibriCandidateUrls_(cleanTitle, cleanAuthor);
+  const results = [];
+
+  fallbackUrls.slice(0, 10).forEach(function(productUrl) {
+    try {
+      const item = parseLibriProductPage_(productUrl);
+
+if (
+  item &&
+  isValidLibriProductItem_(item) &&
+  isRelevantTitleAuthorMatch_(item, cleanTitle, cleanAuthor)
+) {
+  results.push(item);
+}
+    } catch (err) {
+      // Egy nem létező URL vagy hibás termékoldal ne állítsa meg a teljes Libri keresést.
+    }
+  });
+
+return dedupeItemsByIsbnOrSourceId_(results);}
+
+let uniqueUrls = extractLibriProductUrls_(searchHtml);
+
+if (!uniqueUrls || uniqueUrls.length === 0) {
+  uniqueUrls = buildLibriCandidateUrls_(cleanTitle, cleanAuthor);
+}
+
+if (!uniqueUrls || uniqueUrls.length === 0) {
+  return [];
+}
+
+  const results = [];
+
+  uniqueUrls.slice(0, 5).forEach(function(productUrl) {
+    try {
+      const productHtml = fetchPublisherHtml_(productUrl);
+
+      const title =
+        extractFirstMatch_(productHtml, /<meta property="og:title" content="([^"]+)"/i) ||
+        extractFirstMatch_(productHtml, /<h1[^>]*>([\s\S]*?)<\/h1>/i);
+
+      const author =
+        extractFirstMatch_(productHtml, /<meta name="author" content="([^"]+)"/i) ||
+        extractFirstMatch_(productHtml, /Szerző[\s\S]{0,200}?<[^>]+>([\s\S]*?)<\/[^>]+>/i);
+
+      const publisher =
+        extractFirstMatch_(productHtml, /Kiadó[\s\S]{0,200}?<[^>]+>([\s\S]*?)<\/[^>]+>/i);
+
+      const year =
+        extractFirstMatch_(productHtml, /Kiadás éve[\s\S]{0,120}?([12][0-9]{3})/i);
+
+      const pageCount =
+        extractFirstMatch_(productHtml, /Oldalszám[\s\S]{0,120}?([0-9]+)/i);
+
+      const imageUrl =
+        extractFirstMatch_(productHtml, /<meta property="og:image" content="([^"]+)"/i);
+
+      const foundIsbn =
+        extractFirstMatch_(productHtml, /ISBN[\s\S]{0,120}?([0-9Xx\-]{10,20})/i);
+
+      if (title) {
+        const item = {
+          source: "libri",
+          sourceId: productUrl,
+          title: title,
+          authors: author,
+          originalTitle: "",
+          previousTitle: "",
+          series: "",
+          number: "",
+          year: year,
+          location: "",
+          shelf: "",
+          pageCount: pageCount,
+          isbn: foundIsbn,
+          publisher: publisher,
+          translator: "",
+          genre: "",
+          coverUrl: imageUrl,
+          language: "hu"
+        };
+
+if (
+  item &&
+  isValidLibriProductItem_(item) &&
+  isRelevantTitleAuthorMatch_(item, cleanTitle, cleanAuthor)
+) {
+  results.push(item);
+}
+      }
+    } catch (err) {
+      // Egy hibás Libri termékoldal ne állítsa meg a teljes keresést.
+    }
+  });
+
+return dedupeItemsByIsbnOrSourceId_(results);}
 function searchAlexandraByIsbn_(isbn) {
   const cleanIsbn = String(isbn || "").replace(/[^0-9Xx]/g, "");
   if (!cleanIsbn) return [];
@@ -798,6 +1375,103 @@ function searchAlexandraByIsbn_(isbn) {
     language: "hu"
   }];
 }
+function searchAlexandraByTitleAuthor_(title, author) {
+  const cleanTitle = String(title || "").trim();
+  const cleanAuthor = String(author || "").trim();
+
+  const query = [cleanTitle, cleanAuthor]
+    .filter(function(x) { return x; })
+    .join(" ")
+    .trim();
+
+  if (!query) {
+    return [];
+  }
+
+  const searchUrl =
+    "https://alexandra.hu/kereses?kereses=" + encodeURIComponent(query);
+
+  const searchHtml = fetchPublisherHtml_(searchUrl);
+
+  const matches = String(searchHtml || "").match(/https:\/\/alexandra\.hu\/konyv\/[^"' ]+/ig);
+
+  if (!matches || matches.length === 0) {
+    return [];
+  }
+
+  const uniqueUrls = [];
+  const seen = {};
+
+  matches.forEach(function(url) {
+    const cleanUrl = String(url || "").split("#")[0].split("?")[0];
+
+    if (!seen[cleanUrl]) {
+      seen[cleanUrl] = true;
+      uniqueUrls.push(cleanUrl);
+    }
+  });
+
+  const results = [];
+
+  uniqueUrls.slice(0, 5).forEach(function(productUrl) {
+    try {
+      const productHtml = fetchPublisherHtml_(productUrl);
+
+      const title =
+        extractFirstMatch_(productHtml, /<meta property="og:title" content="([^"]+)"/i) ||
+        extractFirstMatch_(productHtml, /<h1[^>]*>([\s\S]*?)<\/h1>/i);
+
+      const author =
+        extractFirstMatch_(productHtml, /Szerző[\s\S]{0,200}?<[^>]+>([\s\S]*?)<\/[^>]+>/i);
+
+      const publisher =
+        extractFirstMatch_(productHtml, /Kiadó[\s\S]{0,200}?<[^>]+>([\s\S]*?)<\/[^>]+>/i);
+
+      const year =
+        extractFirstMatch_(productHtml, /Kiadás éve[\s\S]{0,120}?([12][0-9]{3})/i);
+
+      const pageCount =
+        extractFirstMatch_(productHtml, /Oldalszám[\s\S]{0,120}?([0-9]+)/i);
+
+      const imageUrl =
+        extractFirstMatch_(productHtml, /<meta property="og:image" content="([^"]+)"/i);
+
+      const foundIsbn =
+        extractFirstMatch_(productHtml, /ISBN[\s\S]{0,120}?([0-9Xx\-]{10,20})/i);
+
+      if (title) {
+        const item = {
+          source: "alexandra",
+          sourceId: productUrl,
+          title: title,
+          authors: author,
+          originalTitle: "",
+          previousTitle: "",
+          series: "",
+          number: "",
+          year: year,
+          location: "",
+          shelf: "",
+          pageCount: pageCount,
+          isbn: foundIsbn,
+          publisher: publisher,
+          translator: "",
+          genre: "",
+          coverUrl: imageUrl,
+          language: "hu"
+        };
+
+        if (isRelevantTitleAuthorMatch_(item, cleanTitle, cleanAuthor)) {
+          results.push(item);
+        }
+      }
+    } catch (err) {
+      // Egy hibás Alexandra termékoldal ne állítsa meg a teljes keresést.
+    }
+  });
+
+  return results;
+}
 /**
  * Fő lookup függvény.
  * Először Google Books, majd szükség esetén Open Library.
@@ -817,23 +1491,76 @@ function lookupBookMetadata_(params) {
     };
   }
 
-  let googleResults = [];
-  let openLibraryResults = [];
-  let googleError = "Google Books ideiglenesen kikapcsolva (geo restriction).";
-  let openLibraryError = "";
+let googleResults = [];
+let openLibraryResults = [];
+let booklineResults = [];
+let libriResults = [];
+let alexandraResults = [];
+
+let googleError = "";
+let openLibraryError = "";
+let booklineError = "";
+let libriError = "";
+let alexandraError = "";
+
+try {
+  googleResults = searchGoogleBooks_(queryContext);
+} catch (err) {
+  googleError = err && err.message ? err.message : String(err);
+  googleResults = [];
+}
 
   let openLibraryDebug = [];
 
+let openLibraryUnavailable = false;
+
+try {
+  const openLibraryResponse = searchOpenLibrary_(queryContext);
+  openLibraryResults = openLibraryResponse.items || [];
+  openLibraryDebug = openLibraryResponse.debug || [];
+} catch (err) {
+  openLibraryError = err && err.message ? err.message : String(err);
+  openLibraryResults = [];
+
+  if (openLibraryError.indexOf("Address unavailable") !== -1) {
+    openLibraryUnavailable = true;
+  }
+}
+if (queryContext.isbn) {
   try {
-    const openLibraryResponse = searchOpenLibrary_(queryContext);
-    openLibraryResults = openLibraryResponse.items || [];
-    openLibraryDebug = openLibraryResponse.debug || [];
-  } catch (err) {
-    openLibraryError = err && err.message ? err.message : String(err);
-    openLibraryResults = [];
+booklineResults = filterPublisherItemsByRequestedIsbn_(
+  searchBooklineByIsbn_(queryContext.isbn),
+  queryContext.isbn
+);  } catch (err) {
+    booklineError = err && err.message ? err.message : String(err);
+    booklineResults = [];
   }
 
-  const merged = dedupeLookupCandidates_(googleResults.concat(openLibraryResults))
+  try {
+libriResults = filterPublisherItemsByRequestedIsbn_(
+  searchLibriByIsbn_(queryContext.isbn),
+  queryContext.isbn
+);  } catch (err) {
+    libriError = err && err.message ? err.message : String(err);
+    libriResults = [];
+  }
+
+  try {
+alexandraResults = filterPublisherItemsByRequestedIsbn_(
+  searchAlexandraByIsbn_(queryContext.isbn),
+  queryContext.isbn
+);  } catch (err) {
+    alexandraError = err && err.message ? err.message : String(err);
+    alexandraResults = [];
+  }
+}
+  const merged = dedupeLookupCandidates_(
+  googleResults
+    .concat(openLibraryResults)
+    .concat(booklineResults)
+    .concat(libriResults)
+    .concat(alexandraResults)
+)
     .map(item => {
       item.score = scoreLookupCandidate_(item, queryContext);
       return item;
@@ -841,19 +1568,29 @@ function lookupBookMetadata_(params) {
     .sort((a, b) => b.score - a.score)
     .slice(0, BOOK_LOOKUP_MAX_RESULTS);
 
-  return {
-    success: true,
-    queryType: queryContext.queryType,
-    items: merged,
-    debug: {
-      queryContext: queryContext,
-      googleCount: googleResults.length,
-      openLibraryCount: openLibraryResults.length,
-      googleError: googleError,
-      openLibraryError: openLibraryError,
-      openLibraryQueries: openLibraryDebug
-    }
-  };
+return {
+  success: true,
+  queryType: queryContext.queryType,
+  items: merged,
+debug: {
+  queryContext: queryContext,
+
+  googleCount: googleResults.length,
+  openLibraryCount: openLibraryResults.length,
+  booklineCount: booklineResults.length,
+  libriCount: libriResults.length,
+  alexandraCount: alexandraResults.length,
+
+  googleError: googleError,
+  openLibraryError: openLibraryError,
+  openLibraryUnavailable: openLibraryUnavailable,
+  booklineError: booklineError,
+  libriError: libriError,
+  alexandraError: alexandraError,
+
+  openLibraryQueries: openLibraryDebug
+}
+};
 }
 /***********************************************************
  * ÜZLETI FUNKCIÓK
@@ -1258,28 +1995,78 @@ const book = {
         series:  readSheet_(SHEET_SERIES)
       };
 
-    /* ========== KÖNYV METAADAT KERESÉS ========== */
-    } else if (action === "lookupBookMetadata") {
+/* ========== KÖNYV METAADAT KERESÉS ========== */
+} else if (action === "lookupBookMetadata") {
 
-      result = lookupBookMetadata_({
-        isbn: p.isbn || "",
-        title: p.title || "",
-        author: p.author || ""
-      });
-    } else if (action === "lookupPublisherPages") {
+  result = lookupBookMetadata_({
+    isbn: p.isbn || "",
+    title: p.title || "",
+    author: p.author || ""
+  });
 
-      const isbn = p.isbn || "";
+/* ========== KIADÓI / WEBSHOP OLDALAK KERESÉSE ========== */
+} else if (action === "lookupPublisherPages") {
 
-      const booklineItems = searchBooklineByIsbn_(isbn);
-      const libriItems = searchLibriByIsbn_(isbn);
-      const alexandraItems = searchAlexandraByIsbn_(isbn);
+  const isbn = p.isbn || "";
+  const title = p.title || "";
+  const author = p.author || "";
 
-      result = {
-        success: true,
-        items: dedupeLookupCandidates_(
-          [].concat(booklineItems, libriItems, alexandraItems)
-        )
-      };
+  let booklineItems = [];
+  let libriItems = [];
+  let alexandraItems = [];
+
+  let booklineTitleAuthorItems = [];
+  let libriTitleAuthorItems = [];
+  let alexandraTitleAuthorItems = [];
+
+  if (isbn) {
+    booklineItems = filterPublisherItemsByRequestedIsbn_(
+      searchBooklineByIsbn_(isbn),
+      isbn
+    );
+
+    libriItems = filterPublisherItemsByRequestedIsbn_(
+      searchLibriByIsbn_(isbn),
+      isbn
+    );
+
+    alexandraItems = filterPublisherItemsByRequestedIsbn_(
+      searchAlexandraByIsbn_(isbn),
+      isbn
+    );
+  }
+
+  if (title || author) {
+    booklineTitleAuthorItems = searchBooklineByTitleAuthor_(title, author);
+    libriTitleAuthorItems = searchLibriByTitleAuthor_(title, author);
+    alexandraTitleAuthorItems = searchAlexandraByTitleAuthor_(title, author);
+  }
+
+  result = {
+    success: true,
+    query: {
+      isbn: isbn,
+      title: title,
+      author: author
+    },
+    counts: {
+      booklineIsbn: booklineItems.length,
+      libriIsbn: libriItems.length,
+      alexandraIsbn: alexandraItems.length,
+      booklineTitleAuthor: booklineTitleAuthorItems.length,
+      libriTitleAuthor: libriTitleAuthorItems.length,
+      alexandraTitleAuthor: alexandraTitleAuthorItems.length
+    },
+    items: dedupeLookupCandidates_(
+      []
+        .concat(booklineItems)
+        .concat(libriItems)
+        .concat(alexandraItems)
+        .concat(booklineTitleAuthorItems)
+        .concat(libriTitleAuthorItems)
+        .concat(alexandraTitleAuthorItems)
+    )
+  };
     /* ========== LOGIN: FELHASZNÁLÓ ELLENŐRZÉSE EMAIL ALAPJÁN ========== */
     } else if (action === "checkUser") {
 
@@ -1430,4 +2217,298 @@ function testReadUsers() {
 function testExternalRequestAuthorization() {
   const res = UrlFetchApp.fetch("https://openlibrary.org/search.json?isbn=9789634472605");
   Logger.log(res.getResponseCode());
+}
+function testLookupBookMetadata() {
+  const result = lookupBookMetadata_({
+    isbn: "9789634472605",
+    title: "",
+    author: ""
+  });
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+function testLookupPublisherPagesParams() {
+  const fakeEvent = {
+    parameter: {
+      action: "lookupPublisherPages",
+      isbn: "",
+      title: "Lázár",
+      author: "Nelio Biedermann"
+    }
+  };
+
+  const output = doGet(fakeEvent);
+  Logger.log(output.getContent());
+}
+function testSearchBooklineByTitleAuthor() {
+  const result = searchBooklineByTitleAuthor_(
+    "Lázár",
+    "Nelio Biedermann"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+function testBooklineSearchHtmlDebug() {
+  const title = "Lázár";
+  const author = "Nelio Biedermann";
+
+  const query = [title, author]
+    .filter(function(x) { return x; })
+    .join(" ")
+    .trim();
+
+  const searchUrl = "https://bookline.hu/search/search.action?desc=" + encodeURIComponent(query);
+  const html = fetchHtml_(searchUrl);
+
+  Logger.log("SEARCH URL:");
+  Logger.log(searchUrl);
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(String(html || "").length);
+
+  Logger.log("CONTAINS /product/:");
+  Logger.log(String(html || "").indexOf("/product/") !== -1);
+
+  Logger.log("CONTAINS product/home.action:");
+  Logger.log(String(html || "").indexOf("product/home.action") !== -1);
+
+  Logger.log("FIRST product/home.action POSITION:");
+  Logger.log(String(html || "").indexOf("product/home.action"));
+
+  const around = String(html || "").substring(
+    Math.max(0, String(html || "").indexOf("product") - 500),
+    String(html || "").indexOf("product") + 1000
+  );
+
+  Logger.log("HTML AROUND FIRST PRODUCT:");
+  Logger.log(around);
+
+  const hrefMatches = String(html || "").match(/href="([^"]+)"/ig) || [];
+  const booklineProductHrefs = hrefMatches.filter(function(h) {
+    return h.indexOf("product") !== -1 || h.indexOf("konyv") !== -1;
+  });
+
+  Logger.log("PRODUCT-LIKE HREF COUNT:");
+  Logger.log(booklineProductHrefs.length);
+
+  Logger.log("FIRST 20 PRODUCT-LIKE HREFS:");
+  Logger.log(JSON.stringify(booklineProductHrefs.slice(0, 20), null, 2));
+}
+function testSearchLibriByTitleAuthor() {
+  const result = searchLibriByTitleAuthor_(
+    "Lázár",
+    "Nelio Biedermann"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+function testSearchLibriJeffersonKod() {
+  const result = searchLibriByTitleAuthor_(
+    "A Jefferson-kód",
+    "Steve Berry"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+function testSearchAlexandraByTitleAuthor() {
+  const result = searchAlexandraByTitleAuthor_(
+    "Lázár",
+    "Nelio Biedermann"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+function testParseLibriJeffersonKodDirect() {
+  const item = parseLibriProductPage_(
+    "https://www.libri.hu/konyv/steve_berry.a-jefferson-kod--2.html"
+  );
+
+  Logger.log(JSON.stringify(item, null, 2));
+}
+function testLookupPublisherPagesJeffersonKod() {
+  const fakeEvent = {
+    parameter: {
+      action: "lookupPublisherPages",
+      isbn: "",
+      title: "A Jefferson-kód",
+      author: "Steve Berry"
+    }
+  };
+
+  const output = doGet(fakeEvent);
+  Logger.log(output.getContent());
+}
+function testLibriSearchHtmlDebugJeffersonKod() {
+  const title = "A Jefferson-kód";
+  const author = "Steve Berry";
+
+  const query = [title, author]
+    .filter(function(x) { return x; })
+    .join(" ")
+    .trim();
+
+  const searchUrl = "https://www.libri.hu/kereses/?q=" + encodeURIComponent(query);
+
+  Logger.log("SEARCH URL:");
+  Logger.log(searchUrl);
+
+  let html = "";
+
+  try {
+    html = fetchPublisherHtml_(searchUrl);
+  } catch (err) {
+    Logger.log("FETCH ERROR:");
+    Logger.log(err && err.message ? err.message : String(err));
+    return;
+  }
+
+  const text = String(html || "");
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  Logger.log("CONTAINS /konyv/:");
+  Logger.log(text.indexOf("/konyv/") !== -1);
+
+  Logger.log("CONTAINS steve_berry:");
+  Logger.log(text.toLowerCase().indexOf("steve_berry") !== -1);
+
+  Logger.log("CONTAINS jefferson:");
+  Logger.log(text.toLowerCase().indexOf("jefferson") !== -1);
+
+  Logger.log("CONTAINS a-jefferson-kod:");
+  Logger.log(text.toLowerCase().indexOf("a-jefferson-kod") !== -1);
+
+  const hrefMatches = text.match(/href=["']([^"']+)["']/ig) || [];
+
+  Logger.log("HREF COUNT:");
+  Logger.log(hrefMatches.length);
+
+  const libriLikeHrefs = hrefMatches.filter(function(h) {
+    const lower = h.toLowerCase();
+    return (
+      lower.indexOf("/konyv/") !== -1 ||
+      lower.indexOf("jefferson") !== -1 ||
+      lower.indexOf("steve") !== -1 ||
+      lower.indexOf("berry") !== -1
+    );
+  });
+
+  Logger.log("LIBRI-LIKE HREF COUNT:");
+  Logger.log(libriLikeHrefs.length);
+
+  Logger.log("FIRST 40 LIBRI-LIKE HREFS:");
+  Logger.log(JSON.stringify(libriLikeHrefs.slice(0, 40), null, 2));
+
+  const pos = Math.max(
+    text.toLowerCase().indexOf("jefferson"),
+    text.toLowerCase().indexOf("steve"),
+    text.toLowerCase().indexOf("/konyv/")
+  );
+
+  Logger.log("FIRST RELEVANT POSITION:");
+  Logger.log(pos);
+
+  if (pos >= 0) {
+    Logger.log("HTML AROUND FIRST RELEVANT POSITION:");
+    Logger.log(text.substring(Math.max(0, pos - 1000), pos + 2500));
+  }
+}
+function testLibriSearchUrlVariants() {
+  const query = "A Jefferson-kód Steve Berry";
+  const encodedQuery = encodeURIComponent(query);
+
+  const urls = [
+    "https://www.libri.hu/kereses?search=" + encodedQuery,
+    "https://www.libri.hu/kereses?text=" + encodedQuery,
+    "https://www.libri.hu/kereses?query=" + encodedQuery,
+    "https://www.libri.hu/kereses/?q=" + encodedQuery
+  ];
+
+  urls.forEach(function(url) {
+    try {
+      const html = fetchPublisherHtml_(url);
+      Logger.log("OK: " + url + " | length=" + String(html || "").length);
+    } catch (err) {
+      Logger.log("ERR: " + url + " | " + (err && err.message ? err.message : String(err)));
+    }
+  });
+}
+function testGoogleLibriFallbackDebugJeffersonKod() {
+  const title = "A Jefferson-kód";
+  const author = "Steve Berry";
+
+  const query = [
+    "site:libri.hu/konyv",
+    title,
+    author
+  ]
+    .filter(function(x) { return x; })
+    .join(" ")
+    .trim();
+
+  const url = "https://www.google.com/search?q=" + encodeURIComponent(query);
+
+  Logger.log("GOOGLE SEARCH URL:");
+  Logger.log(url);
+
+  let html = "";
+
+  try {
+    html = fetchPublisherHtml_(url);
+  } catch (err) {
+    Logger.log("FETCH ERROR:");
+    Logger.log(err && err.message ? err.message : String(err));
+    return;
+  }
+
+  const text = String(html || "");
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  Logger.log("CONTAINS libri.hu:");
+  Logger.log(text.indexOf("libri.hu") !== -1);
+
+  Logger.log("CONTAINS /konyv/:");
+  Logger.log(text.indexOf("/konyv/") !== -1);
+
+  Logger.log("CONTAINS jefferson:");
+  Logger.log(text.toLowerCase().indexOf("jefferson") !== -1);
+
+  Logger.log("CONTAINS steve:");
+  Logger.log(text.toLowerCase().indexOf("steve") !== -1);
+
+  const directMatches =
+    text.match(/https:\/\/www\.libri\.hu\/konyv\/[^"' <&]+\.html/ig) || [];
+
+  Logger.log("DIRECT LIBRI URL MATCHES:");
+  Logger.log(JSON.stringify(directMatches.slice(0, 20), null, 2));
+
+  const hrefMatches = text.match(/href=["']([^"']+)["']/ig) || [];
+
+  Logger.log("HREF COUNT:");
+  Logger.log(hrefMatches.length);
+
+  const suspiciousHrefs = hrefMatches.filter(function(h) {
+    const lower = h.toLowerCase();
+    return (
+      lower.indexOf("libri") !== -1 ||
+      lower.indexOf("jefferson") !== -1 ||
+      lower.indexOf("steve") !== -1 ||
+      lower.indexOf("berry") !== -1 ||
+      lower.indexOf("/url?") !== -1
+    );
+  });
+
+  Logger.log("SUSPICIOUS HREF COUNT:");
+  Logger.log(suspiciousHrefs.length);
+
+  Logger.log("FIRST 40 SUSPICIOUS HREFS:");
+  Logger.log(JSON.stringify(suspiciousHrefs.slice(0, 40), null, 2));
+
+  const fallbackUrls = searchLibriProductUrlsViaGoogle_(title, author);
+
+  Logger.log("PARSED FALLBACK URLS:");
+  Logger.log(JSON.stringify(fallbackUrls, null, 2));
 }

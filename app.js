@@ -1,12 +1,12 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycby7jY4oFBc1kL8dYokZD4U_Sf-510mH1fp7TMJLyWgulKniFA0qz8hMIW00eLp8JQHf6w/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwxLGEYTmkzZ0G-6Npm_pFMf-yCHuDiHwEC1t14UlMHXcWdnovv_CqIb1cVM3qTTAlfig/exec";
 const GOOGLE_BOOKS_API_KEY = "AIzaSyA-OgB7xZn15ITtZkzeaLO8k8gvxODyKtM";
 const GOOGLE_BOOKS_MAX_RESULTS = 10;
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2026-04-24 09:35";  // Ezt TE frissíted minden deploykor
+const APP_VERSION = "2026-04-24 10:30";  // Ezt TE frissíted minden deploykor
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 
@@ -761,20 +761,23 @@ async function lookupGoogleBooksFromFrontend({ isbn, title, author }) {
     const items = Array.isArray(json.items) ? json.items : [];
     return items.map(mapGoogleBookToLookupItem);
 }
-async function lookupBooklineFromBackend({ isbn }) {
+async function lookupPublisherPagesFromBackend({ isbn, title, author }) {
     const cleanIsbn = String(isbn || "").trim();
-    if (!cleanIsbn) {
+    const cleanTitle = String(title || "").trim();
+    const cleanAuthor = String(author || "").trim();
+
+    if (!cleanIsbn && !cleanTitle && !cleanAuthor) {
         return [];
     }
 
-    const callbackName = "lookupBooklineCallback_" + Date.now();
+    const callbackName = "lookupPublisherPagesCallback_" + Date.now();
 
     return await new Promise((resolve, reject) => {
         window[callbackName] = function(data) {
             try { delete window[callbackName]; } catch (e) {}
 
             if (!data || !data.success) {
-                reject(new Error((data && data.error) ? data.error : "Bookline backend hiba"));
+                reject(new Error((data && data.error) ? data.error : "Publisher backend hiba"));
                 return;
             }
 
@@ -786,12 +789,14 @@ async function lookupBooklineFromBackend({ isbn }) {
             API_URL +
             "?action=lookupPublisherPages" +
             "&isbn=" + encodeURIComponent(cleanIsbn) +
+            "&title=" + encodeURIComponent(cleanTitle) +
+            "&author=" + encodeURIComponent(cleanAuthor) +
             "&callback=" + callbackName +
             "&_=" + Date.now();
 
         s.onerror = function() {
             try { delete window[callbackName]; } catch (e) {}
-            reject(new Error("Bookline script betöltési hiba"));
+            reject(new Error("Publisher script betöltési hiba"));
         };
 
         document.body.appendChild(s);
@@ -836,19 +841,22 @@ async function lookupBookMetadataFromModal() {
     try {
         const googleResults = await lookupGoogleBooksFromFrontend({ isbn, title, author });
 
-        let booklineResults = [];
-        if (isbn) {
-            try {
-                booklineResults = await lookupBooklineFromBackend({ isbn });
-            } catch (e) {
-                log("Bookline lookup hiba: " + (e && e.message ? e.message : String(e)));
-            }
-        }
+let publisherResults = [];
+if (isbn || title || author) {
+    try {
+        publisherResults = await lookupPublisherPagesFromBackend({
+            isbn,
+            title,
+            author
+        });
+    } catch (e) {
+        log("Publisher lookup hiba: " + (e && e.message ? e.message : String(e)));
+    }
+}
 
-        lastLookupResults = mergeLookupResults(googleResults, booklineResults);
-
+lastLookupResults = mergeLookupResults(googleResults, publisherResults);
         if (!Array.isArray(lastLookupResults) || lastLookupResults.length === 0) {
-            alert("Nem érkezett találat sem Google Booksból, sem Bookline-ról.");
+alert("Nem érkezett találat sem Google Booksból, sem kiadói/webshop forrásból.");
             log("Összesített lookup: nincs találat.");
             return;
         }
