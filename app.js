@@ -1,10 +1,12 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbzkgbjfKuCVPjyXA4Ik02tnrUUqCvwvz2z4Nt4DTGbeUc-WqWbO4ILbMqrYaro3aGt08Q/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby7jY4oFBc1kL8dYokZD4U_Sf-510mH1fp7TMJLyWgulKniFA0qz8hMIW00eLp8JQHf6w/exec";
+const GOOGLE_BOOKS_API_KEY = "AIzaSyA-OgB7xZn15ITtZkzeaLO8k8gvxODyKtM";
+const GOOGLE_BOOKS_MAX_RESULTS = 10;
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2026-04-23 18:05";  // Ezt TE frissíted minden deploykor
+const APP_VERSION = "2026-04-24 09:35";  // Ezt TE frissíted minden deploykor
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 
@@ -24,41 +26,41 @@ function mutat(id) {
 
 function showLoginScreen() {
     const loginDiv = document.getElementById("loginScreen");
-    const pwDiv    = document.getElementById("passwordSetup");
-    const appDiv   = document.getElementById("appContent");
+    const pwDiv = document.getElementById("passwordSetup");
+    const appDiv = document.getElementById("appContent");
 
-    if (loginDiv)  loginDiv.style.display = "block";
-    if (pwDiv)     pwDiv.style.display = "none";
-    if (appDiv)    appDiv.style.display = "none";
+    if (loginDiv) loginDiv.style.display = "block";
+    if (pwDiv) pwDiv.style.display = "none";
+    if (appDiv) appDiv.style.display = "none";
     const savedEmail = localStorage.getItem("lastLoginEmail");
     if (savedEmail) {
         const emailInput = document.getElementById("loginEmail");
         if (emailInput) emailInput.value = savedEmail;
     }
 
-        const msg = document.getElementById("loginMessage");
-        if (msg) {
-            msg.style.display = "none";
-            msg.textContent = "";
-        }
-    
+    const msg = document.getElementById("loginMessage");
+    if (msg) {
+        msg.style.display = "none";
+        msg.textContent = "";
+    }
+
 }
 
 function onLoginSuccess() {
-        // ↓↓↓ Böngésző jelszómentés aktiválása ↓↓↓
+    // ↓↓↓ Böngésző jelszómentés aktiválása ↓↓↓
     try {
         document.getElementById("loginForm").dispatchEvent(
             new Event("submit", { cancelable: true })
         );
-    } catch (e) {}
+    } catch (e) { }
     // ↑↑↑ Böngésző jelszómentés aktiválása ↑↑↑
     const loginDiv = document.getElementById("loginScreen");
-    const pwDiv    = document.getElementById("passwordSetup");
-    const appDiv   = document.getElementById("appContent");
+    const pwDiv = document.getElementById("passwordSetup");
+    const appDiv = document.getElementById("appContent");
 
-    if (loginDiv)  loginDiv.style.display = "none";
-    if (pwDiv)     pwDiv.style.display = "none";
-    if (appDiv)    appDiv.style.display = "block";
+    if (loginDiv) loginDiv.style.display = "none";
+    if (pwDiv) pwDiv.style.display = "none";
+    if (appDiv) appDiv.style.display = "block";
     // Szűrőmezők datalist-jének betöltése oldalbetöltéskor
     loadDropdownLists();
     // Scroll-shadow figyelés a táblázathoz
@@ -104,7 +106,7 @@ function startLogin() {
     showLoading(loginButton);
 
     const email = (document.getElementById("loginEmail").value || "").trim();
-    const pwd   = (document.getElementById("loginPassword").value || "").trim();
+    const pwd = (document.getElementById("loginPassword").value || "").trim();
     const msgEl = document.getElementById("loginMessage");
 
     // Legutóbbi email eltárolása
@@ -122,7 +124,7 @@ function startLogin() {
 
     const callbackName = "checkUserCallback_" + Date.now();
 
-    window[callbackName] = function(data) {
+    window[callbackName] = function (data) {
 
         hideLoading(loginButton);
 
@@ -165,12 +167,12 @@ function startLogin() {
 
 function showPasswordSetupScreen(email) {
     const loginDiv = document.getElementById("loginScreen");
-    const pwDiv    = document.getElementById("passwordSetup");
-    const appDiv   = document.getElementById("appContent");
+    const pwDiv = document.getElementById("passwordSetup");
+    const appDiv = document.getElementById("appContent");
 
-    if (loginDiv)  loginDiv.style.display = "none";
-    if (pwDiv)     pwDiv.style.display = "block";
-    if (appDiv)    appDiv.style.display = "none";
+    if (loginDiv) loginDiv.style.display = "none";
+    if (pwDiv) pwDiv.style.display = "block";
+    if (appDiv) appDiv.style.display = "none";
 
     const info = document.getElementById("passwordSetupEmailInfo");
     if (info) info.textContent = "E-mail cím: " + email;
@@ -192,7 +194,7 @@ function cancelPasswordSetup() {
 function saveFirstPassword() {
     const pwd1 = (document.getElementById("newPassword").value || "").trim();
     const pwd2 = (document.getElementById("newPassword2").value || "").trim();
-    const msg  = document.getElementById("passwordSetupMessage");
+    const msg = document.getElementById("passwordSetupMessage");
 
     if (!pwd1 || !pwd2) {
         msg.textContent = "Tölts ki minden mezőt.";
@@ -214,7 +216,7 @@ function saveFirstPassword() {
 
     const callbackName = "setPasswordCallback_" + Date.now();
 
-    window[callbackName] = function(data) {
+    window[callbackName] = function (data) {
         delete window[callbackName];
 
         if (!data || !data.success) {
@@ -241,11 +243,11 @@ function saveFirstPassword() {
 
 function loginWithPassword(email, password) {
     const msgLogin = document.getElementById("loginMessage");
-    const msgPw    = document.getElementById("passwordSetupMessage");
+    const msgPw = document.getElementById("passwordSetupMessage");
 
     const callbackName = "loginCallback_" + Date.now();
 
-    window[callbackName] = function(data) {
+    window[callbackName] = function (data) {
         delete window[callbackName];
 
         if (data && data.success) {
@@ -316,44 +318,81 @@ function log(msg) {
 function convertDriveUrl(url) {
     if (!url) return "";
 
-    // 1) Ha a link eleve működő Drive formátum (file/d/.../view), NE konvertáljuk!
-    if (url.includes("drive.google.com/file/d/")) {
-        return url;
+    const raw = String(url).trim();
+    if (!raw) return "";
+
+    let parsed;
+    try {
+        parsed = new URL(raw);
+    } catch (e) {
+        return raw;
     }
 
-    // 2) Ha már uc?export=view formában van, NE konvertáljuk!
-    if (url.includes("uc?export=view")) {
-        return url;
+    const host = (parsed.hostname || "").toLowerCase();
+
+    // Csak valódi Google Drive / Docs linkeket alakítunk át
+    const isGoogleDriveHost =
+        host === "drive.google.com" ||
+        host === "docs.google.com";
+
+    if (!isGoogleDriveHost) {
+        return raw;
     }
 
-    // 3) Minden más esetben kinyerjük az ID-t
+    // Ha eleve preview vagy direct view formátum, maradjon
+    if (raw.includes("/file/d/") && raw.includes("/preview")) {
+        return raw;
+    }
+    if (raw.includes("uc?export=view")) {
+        return raw;
+    }
+
     let id = "";
 
-    // /file/d/<id>/view
-    const fileMatch = url.match(/\/file\/d\/([^\/\?]+)\//);
+    const fileMatch = raw.match(/\/file\/d\/([^\/\?]+)/i);
     if (fileMatch) id = fileMatch[1];
 
-    // open?id=<id>
-    const openMatch = url.match(/open\?id=([^&]+)/);
-    if (openMatch) id = openMatch[1];
+    const openMatch = raw.match(/[?&]id=([^&]+)/i);
+    if (!id && openMatch) id = openMatch[1];
 
-    // id=<id>
-    const ucMatch = url.match(/id=([^&]+)/);
-    if (!id && ucMatch) id = ucMatch[1];
+    if (!id) {
+        return raw;
+    }
 
-    // 4) Ha nincs ID, visszaadjuk eredetileg
-    if (!id) return url;
-
-    // 5) Ha van ID, megpróbáljuk UC linket építeni
-    return `https://drive.google.com/uc?export=view&id=${id}`;
+    return `https://drive.google.com/file/d/${id}/preview`;
 }
+function normalizeCoverUrl(url) {
+    const raw = String(url || "").trim();
+    if (!raw) return "";
 
+    let result = raw;
+
+    // Google Drive linkek egységesítése
+    if (result.includes("drive.google.com/")) {
+        result = convertDriveUrl(result);
+    }
+
+    // Google Books thumbnail URL-ek biztonságosabbá tétele
+    result = result.replace(/^http:\/\//i, "https://");
+
+    // Ha Google Books zoom paraméter van, nagyobb preview-t kérünk
+    if (result.includes("books.google")) {
+        result = result.replace(/([?&])zoom=\d+/i, "$1zoom=2");
+
+        // edge=cssscan néha törékeny, inkább vegyük ki
+        result = result.replace(/([?&])edge=curl\b/i, "$1");
+        result = result.replace(/[?&]$/, "");
+        result = result.replace(/\?&/, "?");
+    }
+
+    return result;
+}
 
 
 /********** PRICE FORMAT **********/
 function formatPrice(value) {
     if (value === undefined || value === null) return "";
-    
+
     let cleaned = value.toString().trim();
     if (cleaned === "") return "";
 
@@ -400,7 +439,7 @@ function dropdownListsCallback(data) {
     // Szűrőmezők datalist feltöltése
     fillDatalist(document.getElementById("authors_list_filter"), data.authors, "Author");
     fillDatalist(document.getElementById("series_list_filter"), data.series, "Series");
-        // Táblázatos nézet datalist-jei
+    // Táblázatos nézet datalist-jei
     fillDatalist(document.getElementById("authors_list_filter_tabla"), data.authors, "Author");
     fillDatalist(document.getElementById("series_list_filter_tabla"), data.series, "Series");
     // fuzzy keresés modal mezőkben
@@ -455,12 +494,12 @@ function fillDatalist(dl, list, key) {
 let modalMode = "new";      // "new" vagy "edit"
 let modalPending = null;    // { bookData, manualUrl }
 let lastLookupResults = [];
-
+let selectedLookupResultIndex = -1;
 function openBookModal(mode, id) {
     setTimeout(loadDropdownLists, 50);
     modalMode = mode || "new";
     modalPending = null;
-    
+
     if (modalMode === "new") {
         document.getElementById("modalTitle").textContent = "Új könyv felvétele";
         document.getElementById("bm_id").value = "";
@@ -470,19 +509,19 @@ function openBookModal(mode, id) {
         document.getElementById("bm_korabbi").value = "";
         document.getElementById("bm_sorozat").value = "";
         document.getElementById("bm_ssz").value = "";
-document.getElementById("bm_ev").value = "";
-document.getElementById("bm_helyszin").value = "";
-document.getElementById("bm_polc").value = "";
-document.getElementById("bm_oldalszam").value = "";
-document.getElementById("bm_isbn").value = "";
-document.getElementById("bm_kiado").value = "";
-document.getElementById("bm_fordito").value = "";
-document.getElementById("bm_mufaj").value = "";
-document.getElementById("bm_url").value = "";
-document.getElementById("bm_purchased").checked = false;
-document.getElementById("bm_forsale").checked = false;
-document.getElementById("bm_ar").value = "";
-document.getElementById("bm_megjegy").value = "";
+        document.getElementById("bm_ev").value = "";
+        document.getElementById("bm_helyszin").value = "";
+        document.getElementById("bm_polc").value = "";
+        document.getElementById("bm_oldalszam").value = "";
+        document.getElementById("bm_isbn").value = "";
+        document.getElementById("bm_kiado").value = "";
+        document.getElementById("bm_fordito").value = "";
+        document.getElementById("bm_mufaj").value = "";
+        document.getElementById("bm_url").value = "";
+        document.getElementById("bm_purchased").checked = false;
+        document.getElementById("bm_forsale").checked = false;
+        document.getElementById("bm_ar").value = "";
+        document.getElementById("bm_megjegy").value = "";
 
 
         const img = document.getElementById("bm_preview");
@@ -498,35 +537,34 @@ document.getElementById("bm_megjegy").value = "";
         }
 
         document.getElementById("bm_id").value = item["ID"] || "";
-        document.getElementById("bm_szerzo").value   = item["Author"] || "";
-        document.getElementById("bm_cim").value      = item["Title"] || "";
-        document.getElementById("bm_eredeti").value  = item["Original_Title"] || "";
-        document.getElementById("bm_korabbi").value  = item["Previous_Title"] || "";
-        document.getElementById("bm_sorozat").value  = item["Series"] || "";
-        document.getElementById("bm_ssz").value      = item["Number"] || "";
-document.getElementById("bm_ev").value       = item["Year"] || "";
-document.getElementById("bm_helyszin").value = item["Location"] || "";
-document.getElementById("bm_polc").value     = item["Shelf"] || "";
-document.getElementById("bm_oldalszam").value = item["Page_Count"] || "";
-document.getElementById("bm_isbn").value     = item["ISBN"] || "";
-document.getElementById("bm_kiado").value    = item["Publisher"] || "";
-document.getElementById("bm_fordito").value  = item["Translator"] || "";
-document.getElementById("bm_mufaj").value    = item["Genre"] || "";
-document.getElementById("bm_url").value = item["URL"] || "";
-document.getElementById("bm_purchased").checked = (item["Purchased"] === "x");
-document.getElementById("bm_forsale").checked   = (item["For_sale"] === "x");
-document.getElementById("bm_ar").value      = item["Price"] || "";
-document.getElementById("bm_megjegy").value = item["Comment"] || "";
+        document.getElementById("bm_szerzo").value = item["Author"] || "";
+        document.getElementById("bm_cim").value = item["Title"] || "";
+        document.getElementById("bm_eredeti").value = item["Original_Title"] || "";
+        document.getElementById("bm_korabbi").value = item["Previous_Title"] || "";
+        document.getElementById("bm_sorozat").value = item["Series"] || "";
+        document.getElementById("bm_ssz").value = item["Number"] || "";
+        document.getElementById("bm_ev").value = item["Year"] || "";
+        document.getElementById("bm_helyszin").value = item["Location"] || "";
+        document.getElementById("bm_polc").value = item["Shelf"] || "";
+        document.getElementById("bm_oldalszam").value = item["Page_Count"] || "";
+        document.getElementById("bm_isbn").value = item["ISBN"] || "";
+        document.getElementById("bm_kiado").value = item["Publisher"] || "";
+        document.getElementById("bm_fordito").value = item["Translator"] || "";
+        document.getElementById("bm_mufaj").value = item["Genre"] || "";
+        document.getElementById("bm_url").value = item["URL"] || "";
+        document.getElementById("bm_purchased").checked = (item["Purchased"] === "x");
+        document.getElementById("bm_forsale").checked = (item["For_sale"] === "x");
+        document.getElementById("bm_ar").value = item["Price"] || "";
+        document.getElementById("bm_megjegy").value = item["Comment"] || "";
 
-        const img = document.getElementById("bm_preview");
-        if (item["URL"]) {
-            img.src = item["URL"];
-            img.style.display = "block";
-        }
-        else {
-            img.style.display = "none";
-            img.src = "";
-        }
+const img = document.getElementById("bm_preview");
+if (item["URL"]) {
+    img.src = convertDriveUrl(item["URL"]);
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+    img.src = "";
+}
     }
 
     document.getElementById("bookModal").style.display = "flex";
@@ -537,7 +575,252 @@ document.getElementById("bm_megjegy").value = item["Comment"] || "";
 function closeBookModal() {
     document.getElementById("bookModal").style.display = "none";
 }
-function lookupBookMetadataFromModal() {
+function closeLookupResultsModal() {
+    document.getElementById("lookupResultsModal").style.display = "none";
+    document.getElementById("lookupResultsList").innerHTML = "";
+    selectedLookupResultIndex = -1;
+}
+
+function applyLookupResultByIndex(index) {
+    const item = lastLookupResults[index];
+    if (!item) {
+        alert("A kiválasztott találat nem érhető el.");
+        return;
+    }
+
+    selectedLookupResultIndex = index;
+    applyLookupItemToModalEmptyFields(item);
+    closeLookupResultsModal();
+
+    alert("A kiválasztott találat kitöltötte az üres mezőket.");
+    log("Lookup találat kiválasztva. Index: " + index);
+}
+
+function openLookupResultsModal(items) {
+    const listEl = document.getElementById("lookupResultsList");
+    listEl.innerHTML = "";
+
+    items.forEach((item, index) => {
+        const row = document.createElement("div");
+        row.style.border = "1px solid rgba(0,0,0,0.12)";
+        row.style.borderRadius = "10px";
+        row.style.padding = "12px";
+
+        const titleText = item.title || "Nincs cím";
+        const authorText = item.authors || "Nincs szerző";
+        const yearText = item.year ? " (" + item.year + ")" : "";
+const publisherText = item.publisher ? "<div><strong>Kiadó:</strong> " + item.publisher + "</div>" : "";
+const isbnText = item.isbn ? "<div><strong>ISBN:</strong> " + item.isbn + "</div>" : "";
+const sourceText = item.source ? "<div><strong>Forrás:</strong> " + item.source + "</div>" : "";
+
+const coverHtml = item.coverUrl
+    ? `<div style="flex:0 0 72px;">
+            <img
+src="${normalizeCoverUrl(item.coverUrl)}"
+                alt="Borító"
+                style="width:72px;height:108px;object-fit:cover;border-radius:6px;border:1px solid rgba(0,0,0,0.12);background:#f5f5f5;"
+                onerror="this.style.display='none'; this.parentElement.innerHTML='Nincs borító'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center'; this.parentElement.style.fontSize='12px'; this.parentElement.style.textAlign='center'; this.parentElement.style.padding='6px';"
+            >
+       </div>`
+    : `<div style="flex:0 0 72px;width:72px;height:108px;border-radius:6px;border:1px solid rgba(0,0,0,0.12);background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:12px;text-align:center;padding:6px;">
+            Nincs borító
+       </div>`;
+
+row.innerHTML = `
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+        ${coverHtml}
+        <div style="flex:1 1 auto;">
+            <div style="font-weight:600;margin-bottom:6px;">${index + 1}. ${titleText}${yearText}</div>
+            <div style="margin-bottom:6px;"><strong>Szerző:</strong> ${authorText}</div>
+            ${publisherText}
+            ${isbnText}
+            ${sourceText}
+            <div style="margin-top:10px;">
+                <button class="btn btn-primary" type="button">Ezt választom</button>
+            </div>
+        </div>
+    </div>
+`;
+
+        row.querySelector("button").addEventListener("click", function () {
+            applyLookupResultByIndex(index);
+        });
+
+        listEl.appendChild(row);
+    });
+
+    document.getElementById("lookupResultsModal").style.display = "flex";
+}
+function buildGoogleBooksQuery({ isbn, title, author }) {
+    if (isbn) {
+        return `isbn:${isbn}`;
+    }
+
+    const parts = [];
+    if (title) parts.push(`intitle:${title}`);
+    if (author) parts.push(`inauthor:${author}`);
+    return parts.join(" ");
+}
+
+function mapGoogleBookToLookupItem(item) {
+    const info = (item && item.volumeInfo) ? item.volumeInfo : {};
+    const ids = Array.isArray(info.industryIdentifiers) ? info.industryIdentifiers : [];
+
+    const isbn13 = ids.find(x => x && x.type === "ISBN_13" && x.identifier);
+    const isbn10 = ids.find(x => x && x.type === "ISBN_10" && x.identifier);
+
+    return {
+        source: "google_books",
+        sourceId: item && item.id ? String(item.id) : "",
+        title: info.title || "",
+        authors: Array.isArray(info.authors) ? info.authors.join(", ") : "",
+        originalTitle: "",
+        previousTitle: "",
+        series: "",
+        number: "",
+        year: (info.publishedDate || "").match(/\b(1[0-9]{3}|20[0-9]{2}|2100)\b/)?.[1] || "",
+        location: "",
+        shelf: "",
+        pageCount: info.pageCount ? String(info.pageCount) : "",
+        isbn: (isbn13 && isbn13.identifier) || (isbn10 && isbn10.identifier) || "",
+        publisher: info.publisher || "",
+        translator: "",
+        genre: Array.isArray(info.categories) ? info.categories.join(", ") : "",
+coverUrl: normalizeCoverUrl((info.imageLinks && (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail)) || ""),        language: (info.language || "").toLowerCase()
+    };
+}
+function setInputIfEmpty(id, value) {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const current = (el.value || "").trim();
+    const next = String(value || "").trim();
+
+    if (!current && next) {
+        el.value = next;
+    }
+}
+
+function pickGoogleBookBestAuthor(item) {
+    return (item && item.authors) ? item.authors : "";
+}
+
+function pickGoogleBookBestCover(item) {
+    return normalizeCoverUrl((item && item.coverUrl) ? item.coverUrl : "");
+}
+function pickGoogleBookOriginalTitle(item) {
+    const apiTitle = String((item && item.title) || "").trim();
+    const currentMainTitle = String((document.getElementById("bm_cim")?.value) || "").trim();
+
+    if (!apiTitle) return "";
+
+    if (currentMainTitle && apiTitle.toLowerCase() === currentMainTitle.toLowerCase()) {
+        return "";
+    }
+
+    return apiTitle;
+}
+function applyLookupItemToModalEmptyFields(item) {
+    if (!item) return;
+
+    setInputIfEmpty("bm_cim", item.title || "");
+    setInputIfEmpty("bm_szerzo", pickGoogleBookBestAuthor(item));
+    setInputIfEmpty("bm_eredeti", pickGoogleBookOriginalTitle(item));
+    setInputIfEmpty("bm_ev", item.year || "");
+    setInputIfEmpty("bm_oldalszam", item.pageCount || "");
+    setInputIfEmpty("bm_isbn", item.isbn || "");
+    setInputIfEmpty("bm_kiado", item.publisher || "");
+    setInputIfEmpty("bm_mufaj", item.genre || "");
+    setInputIfEmpty("bm_url", pickGoogleBookBestCover(item));
+
+    urlPreviewUpdate();
+}
+async function lookupGoogleBooksFromFrontend({ isbn, title, author }) {
+    const q = buildGoogleBooksQuery({ isbn, title, author });
+
+    if (!q) {
+        return [];
+    }
+
+    const url =
+        "https://www.googleapis.com/books/v1/volumes" +
+        "?q=" + encodeURIComponent(q) +
+        "&langRestrict=hu" +
+        "&printType=books" +
+        "&maxResults=" + GOOGLE_BOOKS_MAX_RESULTS +
+        "&key=" + encodeURIComponent(GOOGLE_BOOKS_API_KEY);
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error("Google Books hiba: " + response.status + " - " + text);
+    }
+
+    const json = await response.json();
+    const items = Array.isArray(json.items) ? json.items : [];
+    return items.map(mapGoogleBookToLookupItem);
+}
+async function lookupBooklineFromBackend({ isbn }) {
+    const cleanIsbn = String(isbn || "").trim();
+    if (!cleanIsbn) {
+        return [];
+    }
+
+    const callbackName = "lookupBooklineCallback_" + Date.now();
+
+    return await new Promise((resolve, reject) => {
+        window[callbackName] = function(data) {
+            try { delete window[callbackName]; } catch (e) {}
+
+            if (!data || !data.success) {
+                reject(new Error((data && data.error) ? data.error : "Bookline backend hiba"));
+                return;
+            }
+
+            resolve(Array.isArray(data.items) ? data.items : []);
+        };
+
+        const s = document.createElement("script");
+        s.src =
+            API_URL +
+            "?action=lookupPublisherPages" +
+            "&isbn=" + encodeURIComponent(cleanIsbn) +
+            "&callback=" + callbackName +
+            "&_=" + Date.now();
+
+        s.onerror = function() {
+            try { delete window[callbackName]; } catch (e) {}
+            reject(new Error("Bookline script betöltési hiba"));
+        };
+
+        document.body.appendChild(s);
+    });
+}
+
+function mergeLookupResults(googleItems, publisherItems) {
+    const merged = [];
+    const seen = new Set();
+
+    function makeKey(item) {
+        return [
+            String(item.title || "").trim().toLowerCase(),
+            String(item.authors || "").trim().toLowerCase(),
+            String(item.isbn || "").replace(/[^0-9x]/gi, "").toLowerCase()
+        ].join("|");
+    }
+
+    [...(googleItems || []), ...(publisherItems || [])].forEach(item => {
+        const key = makeKey(item);
+        if (!seen.has(key)) {
+            seen.add(key);
+            merged.push(item);
+        }
+    });
+
+    return merged;
+}
+async function lookupBookMetadataFromModal() {
     const isbn = (document.getElementById("bm_isbn").value || "").trim();
     const title = (document.getElementById("bm_cim").value || "").trim();
     const author = (document.getElementById("bm_szerzo").value || "").trim();
@@ -550,96 +833,74 @@ function lookupBookMetadataFromModal() {
     const lookupButton = document.getElementById("bm_lookup_btn");
     showLoading(lookupButton);
 
-    const callbackName = "lookupBookMetadataCallback_" + Date.now();
+    try {
+        const googleResults = await lookupGoogleBooksFromFrontend({ isbn, title, author });
 
-    window[callbackName] = function(data) {
-        hideLoading(lookupButton);
-        delete window[callbackName];
+        let booklineResults = [];
+        if (isbn) {
+            try {
+                booklineResults = await lookupBooklineFromBackend({ isbn });
+            } catch (e) {
+                log("Bookline lookup hiba: " + (e && e.message ? e.message : String(e)));
+            }
+        }
 
-        if (!data || !data.success) {
-            alert((data && data.error) ? data.error : "Nem sikerült lekérdezni a könyvadatokat.");
-            log("Lookup hiba: " + JSON.stringify(data || {}));
+        lastLookupResults = mergeLookupResults(googleResults, booklineResults);
+
+        if (!Array.isArray(lastLookupResults) || lastLookupResults.length === 0) {
+            alert("Nem érkezett találat sem Google Booksból, sem Bookline-ról.");
+            log("Összesített lookup: nincs találat.");
             return;
         }
 
-        lastLookupResults = Array.isArray(data.items) ? data.items : [];
+if (lastLookupResults.length === 1) {
+    applyLookupItemToModalEmptyFields(lastLookupResults[0]);
+    alert("Az egyetlen találat kitöltötte az üres mezőket.");
+    log("Összesített lookup kész. Egy találat automatikusan alkalmazva.");
+    return;
+}
 
-        if (lastLookupResults.length === 0) {
-            const debugText = data.debug
-                ? "\n\nDebug:\n" + JSON.stringify(data.debug, null, 2)
-                : "";
-            alert("Nem érkezett találat." + debugText);
-            log("Lookup sikeres, de nincs találat. Debug: " + JSON.stringify(data.debug || {}));
-            return;
-        }
-
-        const previewText = lastLookupResults
-            .slice(0, 5)
-            .map((item, index) => {
-                const titleText = item.title || "Nincs cím";
-                const authorText = item.authors || "Nincs szerző";
-                const yearText = item.year ? " (" + item.year + ")" : "";
-                const sourceText = item.source ? " [" + item.source + "]" : "";
-                return (index + 1) + ". " + titleText + " – " + authorText + yearText + sourceText;
-            })
-            .join("\n");
-
-        alert("Találatok:\n\n" + previewText);
-        log("Könyv metaadat lookup kész. Találatok száma: " + lastLookupResults.length);
-    };
-
-    const url = API_URL +
-        "?action=lookupBookMetadata" +
-        "&isbn=" + encodeURIComponent(isbn) +
-        "&title=" + encodeURIComponent(title) +
-        "&author=" + encodeURIComponent(author) +
-        "&callback=" + callbackName +
-        "&_=" + Date.now();
-
-    const s = document.createElement("script");
-    s.src = url;
-
-    s.onerror = function() {
+openLookupResultsModal(lastLookupResults);
+log("Összesített lookup kész. Több találat érkezett: " + lastLookupResults.length);    } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        alert("Google Books frontend hiba:\n" + msg);
+        log("Google Books frontend hiba: " + msg);
+    } finally {
         hideLoading(lookupButton);
-        delete window[callbackName];
-        alert("A lookup kérés nem töltődött be. Ellenőrizd a deployolt Apps Script URL-t és a friss deployt.");
-        log("Lookup script betöltési hiba: " + url);
-    };
-
-    document.body.appendChild(s);
+    }
 }
 /********** MODAL – mentés logika **********/
 function saveBookFromModal() {
     log("Könyv mentése modalból...");
 
     const szerzo = document.getElementById("bm_szerzo").value.trim();
-    const cim    = document.getElementById("bm_cim").value.trim();
+    const cim = document.getElementById("bm_cim").value.trim();
 
     if (!szerzo || !cim) {
         alert("A Szerző és a Cím mező kitöltése kötelező.");
         return;
     }
 
-const bookData = {
-    Author:         szerzo,
-    Title:          document.getElementById("bm_cim").value.trim(),
-    Original_Title: document.getElementById("bm_eredeti").value.trim(),
-    Previous_Title: document.getElementById("bm_korabbi").value.trim(),
-    Series:         document.getElementById("bm_sorozat").value.trim(),
-    Number:         document.getElementById("bm_ssz").value.trim(),
-    Year:           document.getElementById("bm_ev").value.trim(),
-    Location:       document.getElementById("bm_helyszin").value.trim(),
-    Shelf:          document.getElementById("bm_polc").value.trim(),
-    Page_Count:     document.getElementById("bm_oldalszam").value.trim(),
-    ISBN:           document.getElementById("bm_isbn").value.trim(),
-    Publisher:      document.getElementById("bm_kiado").value.trim(),
-    Translator:     document.getElementById("bm_fordito").value.trim(),
-    Genre:          document.getElementById("bm_mufaj").value.trim(),
-    Purchased:      document.getElementById("bm_purchased").checked ? "x" : "",
-    For_sale:       document.getElementById("bm_forsale").checked ? "x" : "",
-    Price:          document.getElementById("bm_ar").value.trim(),
-    Comment:        document.getElementById("bm_megjegy").value.trim()
-};
+    const bookData = {
+        Author: szerzo,
+        Title: document.getElementById("bm_cim").value.trim(),
+        Original_Title: document.getElementById("bm_eredeti").value.trim(),
+        Previous_Title: document.getElementById("bm_korabbi").value.trim(),
+        Series: document.getElementById("bm_sorozat").value.trim(),
+        Number: document.getElementById("bm_ssz").value.trim(),
+        Year: document.getElementById("bm_ev").value.trim(),
+        Location: document.getElementById("bm_helyszin").value.trim(),
+        Shelf: document.getElementById("bm_polc").value.trim(),
+        Page_Count: document.getElementById("bm_oldalszam").value.trim(),
+        ISBN: document.getElementById("bm_isbn").value.trim(),
+        Publisher: document.getElementById("bm_kiado").value.trim(),
+        Translator: document.getElementById("bm_fordito").value.trim(),
+        Genre: document.getElementById("bm_mufaj").value.trim(),
+        Purchased: document.getElementById("bm_purchased").checked ? "x" : "",
+        For_sale: document.getElementById("bm_forsale").checked ? "x" : "",
+        Price: document.getElementById("bm_ar").value.trim(),
+        Comment: document.getElementById("bm_megjegy").value.trim()
+    };
 
     const manualUrl = document.getElementById("bm_url").value.trim();
     modalPending = { bookData, manualUrl };
@@ -671,57 +932,57 @@ function finalizeSaveBook(kepUrl) {
 
     if (modalMode === "new") {
         // Új könyv
-const url = API_URL +
-    "?action=addBookOnly" +
-    "&szerzo="       + encodeURIComponent(d.Author) +
-    "&cim="          + encodeURIComponent(d.Title) +
-    "&eredeti_cim="  + encodeURIComponent(d.Original_Title) +
-    "&korabbi_cim="  + encodeURIComponent(d.Previous_Title) +
-    "&sorozat="      + encodeURIComponent(d.Series) +
-    "&ssz="          + encodeURIComponent(d.Number) +
-    "&url="          + encodeURIComponent(kepUrl) +
-    "&ev="           + encodeURIComponent(d.Year) +
-    "&helyszin="     + encodeURIComponent(d.Location) +
-    "&polc="         + encodeURIComponent(d.Shelf) +
-    "&oldalszam="    + encodeURIComponent(d.Page_Count) +
-    "&isbn="         + encodeURIComponent(d.ISBN) +
-    "&kiado="        + encodeURIComponent(d.Publisher) +
-    "&fordito="      + encodeURIComponent(d.Translator) +
-    "&mufaj="        + encodeURIComponent(d.Genre) +
-    "&megv="         + encodeURIComponent(d.Purchased) +
-    "&elado="        + encodeURIComponent(d.For_sale) +
-    "&ar="           + encodeURIComponent(d.Price) +
-    "&megjegy="      + encodeURIComponent(d.Comment) +
-    "&callback=modalAddBookValasz";
+        const url = API_URL +
+            "?action=addBookOnly" +
+            "&szerzo=" + encodeURIComponent(d.Author) +
+            "&cim=" + encodeURIComponent(d.Title) +
+            "&eredeti_cim=" + encodeURIComponent(d.Original_Title) +
+            "&korabbi_cim=" + encodeURIComponent(d.Previous_Title) +
+            "&sorozat=" + encodeURIComponent(d.Series) +
+            "&ssz=" + encodeURIComponent(d.Number) +
+            "&url=" + encodeURIComponent(kepUrl) +
+            "&ev=" + encodeURIComponent(d.Year) +
+            "&helyszin=" + encodeURIComponent(d.Location) +
+            "&polc=" + encodeURIComponent(d.Shelf) +
+            "&oldalszam=" + encodeURIComponent(d.Page_Count) +
+            "&isbn=" + encodeURIComponent(d.ISBN) +
+            "&kiado=" + encodeURIComponent(d.Publisher) +
+            "&fordito=" + encodeURIComponent(d.Translator) +
+            "&mufaj=" + encodeURIComponent(d.Genre) +
+            "&megv=" + encodeURIComponent(d.Purchased) +
+            "&elado=" + encodeURIComponent(d.For_sale) +
+            "&ar=" + encodeURIComponent(d.Price) +
+            "&megjegy=" + encodeURIComponent(d.Comment) +
+            "&callback=modalAddBookValasz";
 
         const s = document.createElement("script");
         s.src = url;
         document.body.appendChild(s);
     } else {
         // Szerkesztés
-const url = API_URL +
-    "?action=updateLista" +
-    "&ID="           + encodeURIComponent(id) +
-    "&szerzo="       + encodeURIComponent(d.Author) +
-    "&cim="          + encodeURIComponent(d.Title) +
-    "&eredeti_cim="  + encodeURIComponent(d.Original_Title) +
-    "&korabbi_cim="  + encodeURIComponent(d.Previous_Title) +
-    "&sorozat="      + encodeURIComponent(d.Series) +
-    "&ssz="          + encodeURIComponent(d.Number) +
-    "&url="          + encodeURIComponent(kepUrl) +
-    "&ev="           + encodeURIComponent(d.Year) +
-    "&helyszin="     + encodeURIComponent(d.Location) +
-    "&polc="         + encodeURIComponent(d.Shelf) +
-    "&oldalszam="    + encodeURIComponent(d.Page_Count) +
-    "&isbn="         + encodeURIComponent(d.ISBN) +
-    "&kiado="        + encodeURIComponent(d.Publisher) +
-    "&fordito="      + encodeURIComponent(d.Translator) +
-    "&mufaj="        + encodeURIComponent(d.Genre) +
-    "&megv="         + encodeURIComponent(d.Purchased) +
-    "&elado="        + encodeURIComponent(d.For_sale) +
-    "&ar="           + encodeURIComponent(d.Price) +
-    "&megjegy="      + encodeURIComponent(d.Comment) +
-    "&callback=modalUpdateBookValasz";
+        const url = API_URL +
+            "?action=updateLista" +
+            "&ID=" + encodeURIComponent(id) +
+            "&szerzo=" + encodeURIComponent(d.Author) +
+            "&cim=" + encodeURIComponent(d.Title) +
+            "&eredeti_cim=" + encodeURIComponent(d.Original_Title) +
+            "&korabbi_cim=" + encodeURIComponent(d.Previous_Title) +
+            "&sorozat=" + encodeURIComponent(d.Series) +
+            "&ssz=" + encodeURIComponent(d.Number) +
+            "&url=" + encodeURIComponent(kepUrl) +
+            "&ev=" + encodeURIComponent(d.Year) +
+            "&helyszin=" + encodeURIComponent(d.Location) +
+            "&polc=" + encodeURIComponent(d.Shelf) +
+            "&oldalszam=" + encodeURIComponent(d.Page_Count) +
+            "&isbn=" + encodeURIComponent(d.ISBN) +
+            "&kiado=" + encodeURIComponent(d.Publisher) +
+            "&fordito=" + encodeURIComponent(d.Translator) +
+            "&mufaj=" + encodeURIComponent(d.Genre) +
+            "&megv=" + encodeURIComponent(d.Purchased) +
+            "&elado=" + encodeURIComponent(d.For_sale) +
+            "&ar=" + encodeURIComponent(d.Price) +
+            "&megjegy=" + encodeURIComponent(d.Comment) +
+            "&callback=modalUpdateBookValasz";
 
         const s = document.createElement("script");
         s.src = url;
@@ -740,9 +1001,9 @@ function modalAddBookValasz(data) {
         if (data.duplicate) {
             const d = data.duplicate;
             msg += "\n\nLétező rekord:\n" +
-                   (d.Author || "") + " – " +
-                   (d.Title || "") +
-                   (d.Year ? " (" + d.Year + ")" : "");
+                (d.Author || "") + " – " +
+                (d.Title || "") +
+                (d.Year ? " (" + d.Year + ")" : "");
         }
         alert(msg);
         log("❌ Duplikált rekord (modal új könyv).");
@@ -867,7 +1128,7 @@ function setSort(field) {
 function listaMegjelenites() {
 
     const fszerzo = (document.getElementById("ls_szerzo").value || "").toLowerCase();
-    const fcim    = (document.getElementById("ls_cim").value || "").toLowerCase();
+    const fcim = (document.getElementById("ls_cim").value || "").toLowerCase();
     const fseries = (document.getElementById("ls_sorozat").value || "").toLowerCase();
     const minYear = parseInt(document.getElementById("ls_ev_min").value || "", 10);
     const maxYear = parseInt(document.getElementById("ls_ev_max").value || "", 10);
@@ -875,9 +1136,9 @@ function listaMegjelenites() {
     // --- Lista szűrése a kártyás nézethez ---
     let filtered = lista.filter(item => {
         const author = String(item["Author"] || "").toLowerCase();
-        const title  = String(item["Title"]  || "").toLowerCase();
+        const title = String(item["Title"] || "").toLowerCase();
         const series = String(item["Series"] || "").toLowerCase();
-        const year   = parseInt(item["Year"] || "", 10);
+        const year = parseInt(item["Year"] || "", 10);
         const purchased = item["Purchased"] || "";
 
         if (fszerzo && !author.includes(fszerzo)) return false;
@@ -891,22 +1152,22 @@ function listaMegjelenites() {
             if (isNaN(year) || year > maxYear) return false;
         }
 
-// Vásárlási státusz szűrés
-// Megvásárolva tri-state szűrés
-if (purchaseFilterState === 1 && purchased !== "x") return false; // csak megvásárolt
-if (purchaseFilterState === 2 && purchased === "x") return false; // csak nincs meg
+        // Vásárlási státusz szűrés
+        // Megvásárolva tri-state szűrés
+        if (purchaseFilterState === 1 && purchased !== "x") return false; // csak megvásárolt
+        if (purchaseFilterState === 2 && purchased === "x") return false; // csak nincs meg
 
-// ELADÓ (For_sale) háromállapotú szűrés
-const fsale = item["For_sale"] || "";
+        // ELADÓ (For_sale) háromállapotú szűrés
+        const fsale = item["For_sale"] || "";
 
-if (saleFilterState === 1 && fsale !== "x") return false;   // csak eladó
-if (saleFilterState === 2 && fsale === "x") return false;   // csak nem eladó
+        if (saleFilterState === 1 && fsale !== "x") return false;   // csak eladó
+        if (saleFilterState === 2 && fsale === "x") return false;   // csak nem eladó
 
         return true;
     });
-// Találatok számának kiírása (szűrt / összes)
-document.getElementById("itemCount").textContent =
-    "Találatok: " + filtered.length + " / " + lista.length;
+    // Találatok számának kiírása (szűrt / összes)
+    document.getElementById("itemCount").textContent =
+        "Találatok: " + filtered.length + " / " + lista.length;
 
 
     // Rendezés (ugyanúgy, mint eddig)
@@ -946,7 +1207,7 @@ document.getElementById("itemCount").textContent =
         if (currentPage > totalPages) currentPage = totalPages;
 
         const start = (currentPage - 1) * limit;
-        const end   = start + limit;
+        const end = start + limit;
 
         pageItems = filteredList.slice(start, end);
 
@@ -1074,8 +1335,8 @@ document.getElementById("itemCount").textContent =
     }
 }
 ;
- 
-  // ITT A HELYE A KÁRTYA-NÉZETNEK
+
+// ITT A HELYE A KÁRTYA-NÉZETNEK
 
 function clearListaFilters() {
     document.getElementById("ls_szerzo").value = "";
@@ -1084,7 +1345,7 @@ function clearListaFilters() {
     document.getElementById("ls_ev_min").value = "";
     document.getElementById("ls_ev_max").value = "";
 
-    currentPage = 1;   
+    currentPage = 1;
     listaMegjelenites();
 }
 
@@ -1141,7 +1402,7 @@ function importCsv() {
 
     const reader = new FileReader();
 
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         const text = e.target.result;
 
         let delimiter = ",";
@@ -1176,7 +1437,7 @@ function importCsv() {
         }
 
         const header = parseLine(rows[0]).map(h => h.trim());
-const expected = ["ID","Author","Title","Original_Title","Previous_Title","Series","Number","URL","Year","Location","Shelf","Page_Count","ISBN","Publisher","Translator","Genre","Purchased","For_sale","Price","Comment"];
+        const expected = ["ID", "Author", "Title", "Original_Title", "Previous_Title", "Series", "Number", "URL", "Year", "Location", "Shelf", "Page_Count", "ISBN", "Publisher", "Translator", "Genre", "Purchased", "For_sale", "Price", "Comment"];
         let headerOk = (header.length === expected.length);
         if (headerOk) {
             for (let i = 0; i < expected.length; i++) {
@@ -1189,33 +1450,33 @@ const expected = ["ID","Author","Title","Original_Title","Previous_Title","Serie
 
         if (!headerOk) {
             const msg = "HIBA: A CSV/TSV fejléc nem egyezik a List fül szerkezetével!<br>" +
-                        "Elvárt fejléc:<br>" +
-                        expected.join(", ");
+                "Elvárt fejléc:<br>" +
+                expected.join(", ");
             document.getElementById("importResult").innerHTML = msg;
             log("Import leállt: hibás fejléc.");
             return;
         }
 
-const idxAuthor         = header.indexOf("Author");
-const idxTitle          = header.indexOf("Title");
-const idxOriginal_Title = header.indexOf("Original_Title");
-const idxPrevious_Title = header.indexOf("Previous_Title");
-const idxSeries         = header.indexOf("Series");
-const idxNumber         = header.indexOf("Number");
-const idxURL            = header.indexOf("URL");
-const idxYear           = header.indexOf("Year");
-const idxLocation       = header.indexOf("Location");
-const idxShelf          = header.indexOf("Shelf");
-const idxPageCount      = header.indexOf("Page_Count");
-const idxISBN           = header.indexOf("ISBN");
-const idxPublisher      = header.indexOf("Publisher");
-const idxTranslator     = header.indexOf("Translator");
-const idxGenre          = header.indexOf("Genre");
-const idxForSale        = header.indexOf("For_sale");
-const idxPurchased      = header.indexOf("Purchased");
-const idxPrice          = header.indexOf("Price");
-const idxComment        = header.indexOf("Comment");
- 
+        const idxAuthor = header.indexOf("Author");
+        const idxTitle = header.indexOf("Title");
+        const idxOriginal_Title = header.indexOf("Original_Title");
+        const idxPrevious_Title = header.indexOf("Previous_Title");
+        const idxSeries = header.indexOf("Series");
+        const idxNumber = header.indexOf("Number");
+        const idxURL = header.indexOf("URL");
+        const idxYear = header.indexOf("Year");
+        const idxLocation = header.indexOf("Location");
+        const idxShelf = header.indexOf("Shelf");
+        const idxPageCount = header.indexOf("Page_Count");
+        const idxISBN = header.indexOf("ISBN");
+        const idxPublisher = header.indexOf("Publisher");
+        const idxTranslator = header.indexOf("Translator");
+        const idxGenre = header.indexOf("Genre");
+        const idxForSale = header.indexOf("For_sale");
+        const idxPurchased = header.indexOf("Purchased");
+        const idxPrice = header.indexOf("Price");
+        const idxComment = header.indexOf("Comment");
+
         let imported = 0;
         const resDiv = document.getElementById("importResult");
         resDiv.innerHTML = "";
@@ -1230,7 +1491,7 @@ const idxComment        = header.indexOf("Comment");
                     resDiv.innerHTML += "<br><h4>Kihagyott (duplikált) sorok:</h4>";
                     duplicateRows.forEach((d, idx) => {
                         resDiv.innerHTML +=
-                            (idx+1) + ". " +
+                            (idx + 1) + ". " +
                             "'" + d.Author + "' – '" + d.Title + "'" +
                             (d.Original_Title ? " (" + d.Original_Title + ")" : "") +
                             (d.Year ? ", " + d.Year : "") +
@@ -1248,31 +1509,31 @@ const idxComment        = header.indexOf("Comment");
                 return;
             }
 
-const book = {
-    Author:         (cols[idxAuthor]         || "").trim(),
-    Title:          (cols[idxTitle]          || "").trim(),
-    Original_Title: (cols[idxOriginal_Title] || "").trim(),
-    Previous_Title: (cols[idxPrevious_Title] || "").trim(),
-    Series:         (cols[idxSeries]         || "").trim(),
-    Number:         (cols[idxNumber]         || "").trim(),
-    URL:            (cols[idxURL]            || "").trim(),
-    Year:           (cols[idxYear]           || "").trim(),
-    Location:       (cols[idxLocation]       || "").trim(),
-    Shelf:          (cols[idxShelf]          || "").trim(),
-    Page_Count:     (cols[idxPageCount]      || "").trim(),
-    ISBN:           (cols[idxISBN]           || "").trim(),
-    Publisher:      (cols[idxPublisher]      || "").trim(),
-    Translator:     (cols[idxTranslator]     || "").trim(),
-    Genre:          (cols[idxGenre]          || "").trim(),
-    Purchased:      (cols[idxPurchased]      || "").trim(),
-    For_sale:       (cols[idxForSale]        || "").trim(),
-    Price:          (cols[idxPrice]          || "").trim(),
-    Comment:        (cols[idxComment]        || "").trim()
-};
+            const book = {
+                Author: (cols[idxAuthor] || "").trim(),
+                Title: (cols[idxTitle] || "").trim(),
+                Original_Title: (cols[idxOriginal_Title] || "").trim(),
+                Previous_Title: (cols[idxPrevious_Title] || "").trim(),
+                Series: (cols[idxSeries] || "").trim(),
+                Number: (cols[idxNumber] || "").trim(),
+                URL: (cols[idxURL] || "").trim(),
+                Year: (cols[idxYear] || "").trim(),
+                Location: (cols[idxLocation] || "").trim(),
+                Shelf: (cols[idxShelf] || "").trim(),
+                Page_Count: (cols[idxPageCount] || "").trim(),
+                ISBN: (cols[idxISBN] || "").trim(),
+                Publisher: (cols[idxPublisher] || "").trim(),
+                Translator: (cols[idxTranslator] || "").trim(),
+                Genre: (cols[idxGenre] || "").trim(),
+                Purchased: (cols[idxPurchased] || "").trim(),
+                For_sale: (cols[idxForSale] || "").trim(),
+                Price: (cols[idxPrice] || "").trim(),
+                Comment: (cols[idxComment] || "").trim()
+            };
             log("DEBUG IMPORT: " + JSON.stringify(book));
 
             const callbackName = "importCsvCallback_" + i;
-            window[callbackName] = function(data) {
+            window[callbackName] = function (data) {
                 if (data && data.success) {
                     imported++;
                     const b = data.inserted || book;
@@ -1287,7 +1548,7 @@ const book = {
                     log(lineMsg);
 
                 } else if (data && data.error &&
-                           data.error.indexOf("Duplikált rekord") !== -1) {
+                    data.error.indexOf("Duplikált rekord") !== -1) {
 
                     const warn =
                         "❌ Duplikáció (" + i + "): A könyv már szerepel → kihagyva.";
@@ -1310,28 +1571,28 @@ const book = {
                 sendNext(i + 1);
             };
 
-const url = API_URL +
-    "?action=importCsvRow" +
-    "&Author="         + encodeURIComponent(book.Author) +
-    "&Title="          + encodeURIComponent(book.Title) +
-    "&Original_Title=" + encodeURIComponent(book.Original_Title) +
-    "&Previous_Title=" + encodeURIComponent(book.Previous_Title) +
-    "&Series="         + encodeURIComponent(book.Series) +
-    "&Number="         + encodeURIComponent(book.Number) +
-    "&URL="            + encodeURIComponent(book.URL) +
-    "&Year="           + encodeURIComponent(book.Year) +
-    "&Location="       + encodeURIComponent(book.Location) +
-    "&Shelf="          + encodeURIComponent(book.Shelf) +
-    "&Page_Count="     + encodeURIComponent(book.Page_Count) +
-    "&ISBN="           + encodeURIComponent(book.ISBN) +
-    "&Publisher="      + encodeURIComponent(book.Publisher) +
-    "&Translator="     + encodeURIComponent(book.Translator) +
-    "&Genre="          + encodeURIComponent(book.Genre) +
-    "&For_sale="       + encodeURIComponent(book.For_sale) +
-    "&Purchased="      + encodeURIComponent(book.Purchased) +
-    "&Price="          + encodeURIComponent(book.Price) +
-    "&Comment="        + encodeURIComponent(book.Comment) +
-    "&callback="       + callbackName;
+            const url = API_URL +
+                "?action=importCsvRow" +
+                "&Author=" + encodeURIComponent(book.Author) +
+                "&Title=" + encodeURIComponent(book.Title) +
+                "&Original_Title=" + encodeURIComponent(book.Original_Title) +
+                "&Previous_Title=" + encodeURIComponent(book.Previous_Title) +
+                "&Series=" + encodeURIComponent(book.Series) +
+                "&Number=" + encodeURIComponent(book.Number) +
+                "&URL=" + encodeURIComponent(book.URL) +
+                "&Year=" + encodeURIComponent(book.Year) +
+                "&Location=" + encodeURIComponent(book.Location) +
+                "&Shelf=" + encodeURIComponent(book.Shelf) +
+                "&Page_Count=" + encodeURIComponent(book.Page_Count) +
+                "&ISBN=" + encodeURIComponent(book.ISBN) +
+                "&Publisher=" + encodeURIComponent(book.Publisher) +
+                "&Translator=" + encodeURIComponent(book.Translator) +
+                "&Genre=" + encodeURIComponent(book.Genre) +
+                "&For_sale=" + encodeURIComponent(book.For_sale) +
+                "&Purchased=" + encodeURIComponent(book.Purchased) +
+                "&Price=" + encodeURIComponent(book.Price) +
+                "&Comment=" + encodeURIComponent(book.Comment) +
+                "&callback=" + callbackName;
 
             const s = document.createElement("script");
             s.src = url;
@@ -1399,7 +1660,7 @@ function tablaMegjelenites() {
 
     // --- Szűrési mezők ---
     const fszerzo = (document.getElementById("ts_szerzo").value || "").toLowerCase();
-    const fcim    = (document.getElementById("ts_cim").value || "").toLowerCase();
+    const fcim = (document.getElementById("ts_cim").value || "").toLowerCase();
     const fseries = (document.getElementById("ts_sorozat").value || "").toLowerCase();
     const minYear = parseInt(document.getElementById("ts_ev_min").value || "", 10);
     const maxYear = parseInt(document.getElementById("ts_ev_max").value || "", 10);
@@ -1408,9 +1669,9 @@ function tablaMegjelenites() {
     let filtered = lista.filter(item => {
 
         const author = String(item["Author"] || "").toLowerCase();
-        const title  = String(item["Title"]  || "").toLowerCase();
+        const title = String(item["Title"] || "").toLowerCase();
         const series = String(item["Series"] || "").toLowerCase();
-        const year   = parseInt(item["Year"] || "", 10);
+        const year = parseInt(item["Year"] || "", 10);
         const purchased = item["Purchased"] || "";
 
         if (fszerzo && !author.includes(fszerzo)) return false;
@@ -1424,20 +1685,20 @@ function tablaMegjelenites() {
             if (isNaN(year) || year > maxYear) return false;
         }
 
-    // Vásárlási státusz szűrés
-// Vásárlási státusz szűrés – tri-state alapján
-if (purchaseFilterState === 1 && purchased !== "x") return false; // csak megvásárolt
-if (purchaseFilterState === 2 && purchased === "x") return false; // csak nincs meg
+        // Vásárlási státusz szűrés
+        // Vásárlási státusz szűrés – tri-state alapján
+        if (purchaseFilterState === 1 && purchased !== "x") return false; // csak megvásárolt
+        if (purchaseFilterState === 2 && purchased === "x") return false; // csak nincs meg
 
         // ELADÓ (For_sale) háromállapotú szűrés
-    const fsale = item["For_sale"] || "";
+        const fsale = item["For_sale"] || "";
 
-    if (saleFilterState === 1 && fsale !== "x") return false; // csak eladó
-    if (saleFilterState === 2 && fsale === "x") return false; // csak nem eladó
+        if (saleFilterState === 1 && fsale !== "x") return false; // csak eladó
+        if (saleFilterState === 2 && fsale === "x") return false; // csak nem eladó
 
         return true;
     });
-    
+
     // --- Sorok kiírása ---
     filtered.forEach((item, index) => {
 
@@ -1491,7 +1752,7 @@ function clearTablaFilters() {
 }
 
 /********** INDULÁS **********/
-window.onload = function() {
+window.onload = function () {
     const savedEmail = localStorage.getItem("loggedInUserEmail");
 
     if (savedEmail) {
@@ -1533,28 +1794,17 @@ function urlPreviewUpdate() {
     previewImg.style.display = "none"; // Először elrejtjük
 
     if (rawUrl) {
-        let displayUrl = rawUrl;
+const displayUrl = normalizeCoverUrl(rawUrl);
 
-        // Drive linket átalakítjuk DIREKT KÉP formátumra
-        if (rawUrl.includes("drive.google.com/")) {
-            // Reguláris kifejezés a FILE_ID kinyerésére a leggyakoribb formátumokból
-            const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)|id=([a-zA-Z0-9_-]+)/);
-
-            if (match && (match[1] || match[2])) {
-                const fileId = match[1] || match[2];
-                // HASZNÁLD EZT A FORMÁTUMOT:
-                displayUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-                console.log("Átalakított Drive URL (preview):", displayUrl);
-            } else {
-                console.warn("Nem sikerült kinyerni a Drive fájlazonosítót (File ID). Az eredeti URL marad.");
-            }
-        }
-        
-        // Előnézeti kép beállítása
-        previewImg.src = displayUrl;
+previewImg.src = displayUrl;
+previewImg.style.display = "block";
+previewImg.onerror = function() {
+    previewImg.style.display = "none";
+    previewImg.src = "";
+};
         previewImg.style.display = "block";
     } else {
-        previewImg.src = ""; 
+        previewImg.src = "";
     }
 }
 // Stabil login form submit kötés (mobilon is mindig működik)
@@ -1618,8 +1868,8 @@ function toggleSaleFilter() {
     }
 
     // Mindkét nézet újraszűrése
-listaSzures();
-tablaSzures();
+    listaSzures();
+    tablaSzures();
 }
 let purchaseFilterState = 0;
 // 0 = mindegy
@@ -1644,8 +1894,8 @@ function togglePurchaseFilter() {
     }
 
     // Mindkét nézet újraszűrése
-listaSzures();
-tablaSzures();
+    listaSzures();
+    tablaSzures();
 }
 
 

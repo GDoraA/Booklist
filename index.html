@@ -1,25 +1,25 @@
 <!DOCTYPE html>
 <html lang="hu">
+
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <title>Booklist</title>
 
     <!-- Font Awesome ikonok -->
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-          integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
-          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
-        <meta name="theme-color" content="#a7c7ff">
-        <!-- JAVÍTÁS: favicon beállítása, hogy ne 404 legyen a favicon.ico -->
+    <meta name="theme-color" content="#a7c7ff">
+    <!-- JAVÍTÁS: favicon beállítása, hogy ne 404 legyen a favicon.ico -->
     <link rel="icon" type="image/png" href="assets/books_256.png">
 
-        <script>
+    <script>
         // Service Worker regisztráció – csak biztonságos környezetben
-        (function() {
+        (function () {
 
             const isLocalhost =
                 location.hostname === "localhost" ||
@@ -35,403 +35,389 @@
             }
 
         })();
-        </script>
+    </script>
 
 
 
 </head>
 
 <body>
-<!-- LOGIN KÉPERNYŐ -->
-<div id="loginScreen" class="page" style="max-width:400px;margin:20px auto;display:none;">
-    <h1>Bejelentkezés</h1>
-    <form id="loginForm" autocomplete="on" method="post"> 
+    <!-- LOGIN KÉPERNYŐ -->
+    <div id="loginScreen" class="page" style="max-width:400px;margin:20px auto;display:none;">
+        <h1>Bejelentkezés</h1>
+        <form id="loginForm" autocomplete="on" method="post">
 
-        <label for="loginEmail">E-mail cím</label>
-        <input type="email" id="loginEmail" 
-               name="username" 
-               placeholder="pl. valaki@pelda.hu"
-               autocomplete="username"
-               required>
+            <label for="loginEmail">E-mail cím</label>
+            <input type="email" id="loginEmail" name="username" placeholder="pl. valaki@pelda.hu"
+                autocomplete="username" required>
 
-        <label for="loginPassword" style="margin-top:10px;display:block;">Jelszó</label>
-        <input type="password" id="loginPassword" 
-               name="password" 
-               placeholder="Jelszó"
-               autocomplete="current-password"
-               required>
+            <label for="loginPassword" style="margin-top:10px;display:block;">Jelszó</label>
+            <input type="password" id="loginPassword" name="password" placeholder="Jelszó"
+                autocomplete="current-password" required>
 
-        <button type="submit" id="loginButton" class="btn btn-primary" style="margin-top:12px;">
-            Belépés
-        </button>
+            <button type="submit" id="loginButton" class="btn btn-primary" style="margin-top:12px;">
+                Belépés
+            </button>
 
 
-    </form>
-    <div id="loginMessage" style="margin-top:10px;color:#b02a37;display:none;"></div>
-</div>
-
-<!-- ELSŐ JELSZÓ BEÁLLÍTÁSA -->
-<div id="passwordSetup" class="page" style="max-width:400px;margin:20px auto;display:none;">
-    <h1>Első bejelentkezés – jelszó beállítása</h1>
-
-    <p id="passwordSetupEmailInfo" style="font-size:14px;color:#555;"></p>
-
-    <label for="newPassword">Új jelszó</label>
-    <input type="password" id="newPassword" placeholder="Min. 8 karakter">
-
-    <label for="newPassword2" style="margin-top:10px;display:block;">Új jelszó ismét</label>
-    <input type="password" id="newPassword2" placeholder="Írd be újra a jelszót">
-
-    <button class="btn btn-primary" style="margin-top:12px;" onclick="saveFirstPassword()">
-        Jelszó mentése és belépés
-    </button>
-    <button class="btn btn-secondary" style="margin-top:8px;" onclick="cancelPasswordSetup()">
-        Mégse
-    </button>
-
-    <div id="passwordSetupMessage" style="margin-top:10px;color:#b02a37;display:none;"></div>
-</div>
-<div id="appContent" style="display:none;">
-
-<!-- FEJLÉC -->
-<div class="header">
-    <div class="header-title">
-        📖 GDA könyvei
-    </div>
-</div>
-
-
-
-<div class="container">
-
-
-    <nav>
-        <button id="tab_lista" class="active" onclick="mutat('lista')">
-            📝 Kártyák
-        </button>
-        <button id="tab_tabla" onclick="mutat('tabla')">
-            📊 Táblázat
-        </button>
-
-        <button id="tab_import" onclick="mutat('import')">
-            📥 Import
-        </button>
-        <button id="tab_logout" onclick="logout()" style="margin-left:auto;color:#eb8f98;">
-            🚪 Kilépés
-        </button>
-        </nav>
-
-
-
-    <!-- LISTA -->
-    <div class="page" id="lista">
-        <div class="title-and-fontsize">
-            <h1>Könyvlista</h1>
-            
-            <div id="fontSizeSelector" style="text-align:center; margin:3px 0;">
-            <button class="btn btn-secondary" onclick="setFontSize('large')">L</button>
-            <button class="btn btn-secondary" onclick="setFontSize('medium')">M</button>
-            <button class="btn btn-secondary" onclick="setFontSize('small')">S</button>
-            </div>
-        </div>
-        <div class="stats-bar">
-            <div class="stat-card stat-all">
-                Összes könyv: <span id="stat_total">0</span>
-            </div>
-
-            <div class="stat-card stat-owned">
-                Megvásárolva: <span id="stat_purchased">0</span>
-            </div>
-
-            <div class="stat-card stat-missing">
-                Nincs még meg: <span id="stat_missing">0</span>
-            </div>
-        </div>
-
-
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
-            <button class="btn btn-primary" onclick="openBookModal('new')">➕ Új könyv felvétele</button>
-            <button class="btn btn-secondary" onclick="betoltesLista()">🔄 Lista frissítése</button>
-        </div>
-
-        <h3>🔍 Szűrés</h3>
-            <div class="filters">
-
-                <div>
-                    <input id="ls_szerzo" 
-                        list="authors_list_filter" 
-                        placeholder="Szerző"
-                        oninput="listaSzures()">
-                    <datalist id="authors_list_filter"></datalist>
-                </div>
-
-                <div>
-                    <input id="ls_cim" 
-                        placeholder="Cím"
-                        oninput="listaSzures()">
-                </div>
-
-                <div>
-                    <input id="ls_sorozat" 
-                        list="series_list_filter" 
-                        placeholder="Sorozat"
-                        oninput="listaSzures()">
-                    <datalist id="series_list_filter"></datalist>
-                </div>
-
-                <div>
-                    <input id="ls_ev_min" 
-                        type="number" 
-                        min="1" max="9999" step="1"
-                        placeholder="Év (tól)"
-                        oninput="validateYearFilter(this); listaSzures()">
-                </div>
-
-                <div>
-                    <input id="ls_ev_max" 
-                        type="number" 
-                        min="1" max="9999" step="1"
-                        placeholder="Év (ig)"
-                        oninput="validateYearFilter(this); listaSzures()">
-                </div>
-
-                <div>
-                    <label>Megvásárolva:</label>
-                    <span id="purchaseFilter" class="tri-state" onclick="togglePurchaseFilter()">⬜</span>
-                </div>
-
-                <div>
-                    <label>Eladó:</label>
-                    <span id="saleFilter" class="tri-state" onclick="toggleSaleFilter()">⬜</span>
-                </div>
-
-            </div>
-
-
-        <button class="btn btn-secondary" onclick="clearListaFilters()" style="margin-top:10px;">
-            Szűrők törlése
-        </button>
-
-        <!-- 🔽 ELEM-SZÁM + LAPOZÁS BLOKK 🔽 -->
-        <div class="pagination-bar">
-            <div>
-                <label>Elemek száma:</label>
-                <select id="limitSelect" onchange="changeLimit()">
-                    <option value="all" selected>Összes</option>
-                    <option value="10">10</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                    <option value="500">500</option>
-                    <option value="1000">1000</option>
-                </select>
-
-            </div>
-            <div id="itemCount" class="item-count">Találatok: …</div>
-            <div class="pager">
-                <button onclick="firstPage()">⏮️</button>
-                <button onclick="prevPage()">◀️</button>
-                <span id="pageInfo">1 / 1</span>
-                <button onclick="nextPage()">▶️</button>
-                <button onclick="lastPage()">⏭️</button>
-            </div>
-        </div>
-        <!-- 🔼 ELEM-SZÁM + LAPOZÁS BLOKK 🔼 -->
-        <!-- ÚJ: kártya nézet konténere -->
-        <div id="cardContainer" class="card-container"></div>
-
+        </form>
+        <div id="loginMessage" style="margin-top:10px;color:#b02a37;display:none;"></div>
     </div>
 
-    <!-- TÁBLÁZATOS LISTA -->
-    <div class="page" id="tabla">
-        <h1>Táblázatos lista</h1>
-        <h3>🔍 Szűrés</h3>
-        <div class="filters">
+    <!-- ELSŐ JELSZÓ BEÁLLÍTÁSA -->
+    <div id="passwordSetup" class="page" style="max-width:400px;margin:20px auto;display:none;">
+        <h1>Első bejelentkezés – jelszó beállítása</h1>
 
-            <div>
-                <input id="ts_szerzo"
-                    list="authors_list_filter_tabla"
-                    placeholder="Szerző"
-                    oninput="tablaSzures()">
-                <datalist id="authors_list_filter_tabla"></datalist>
+        <p id="passwordSetupEmailInfo" style="font-size:14px;color:#555;"></p>
+
+        <label for="newPassword">Új jelszó</label>
+        <input type="password" id="newPassword" placeholder="Min. 8 karakter">
+
+        <label for="newPassword2" style="margin-top:10px;display:block;">Új jelszó ismét</label>
+        <input type="password" id="newPassword2" placeholder="Írd be újra a jelszót">
+
+        <button class="btn btn-primary" style="margin-top:12px;" onclick="saveFirstPassword()">
+            Jelszó mentése és belépés
+        </button>
+        <button class="btn btn-secondary" style="margin-top:8px;" onclick="cancelPasswordSetup()">
+            Mégse
+        </button>
+
+        <div id="passwordSetupMessage" style="margin-top:10px;color:#b02a37;display:none;"></div>
+    </div>
+    <div id="appContent" style="display:none;">
+
+        <!-- FEJLÉC -->
+        <div class="header">
+            <div class="header-title">
+                📖 GDA könyvei
             </div>
-
-            <div>
-                <input id="ts_cim"
-                    placeholder="Cím"
-                    oninput="tablaSzures()">
-            </div>
-
-            <div>
-                <input id="ts_sorozat"
-                    list="series_list_filter_tabla"
-                    placeholder="Sorozat"
-                    oninput="tablaSzures()">
-                <datalist id="series_list_filter_tabla"></datalist>
-            </div>
-
-            <div>
-                <input id="ts_ev_min"
-                    type="number" min="1" max="9999" step="1"
-                    placeholder="Év (tól)"
-                    oninput="validateYearFilter(this); tablaSzures()">
-            </div>
-
-            <div>
-                <input id="ts_ev_max"
-                    type="number" min="1" max="9999" step="1"
-                    placeholder="Év (ig)"
-                    oninput="validateYearFilter(this); tablaSzures()">
-            </div>
-
-            <div>
-                <label>Megvásárolva:</label>
-                <span id="purchaseFilterTable" class="tri-state" onclick="togglePurchaseFilter()">⬜</span>
-            </div>
-
-            <div>
-                <label>Eladó:</label>
-                <span id="saleFilterTable" class="tri-state" onclick="toggleSaleFilter()">⬜</span>
-            </div>
-
-
         </div>
 
-    <button class="btn btn-secondary" onclick="clearTablaFilters()" style="margin-top:10px;">
-        Szűrők törlése
-    </button>
-        <div class="table-wrapper mt-8">
-            <div class="table-scroll">
-                <table id="tabla_lista">
-                    <thead>
-                        <tr>
-                            <!-- ÚJ SORSZÁM OSZLOP -->
-                            <!-- index.html – Sorszám oszlop stílusos fejléce -->
-                            <th style="width:50px; text-align:right;">Ssz.</th>
-                            <th class="sortable" onclick="setSort('Author')">Szerző</th>
-                            <th class="sortable" onclick="setSort('Title')">Cím</th>
-                            <th class="sortable" onclick="setSort('Series')">Sorozat</th>
-<th class="sortable" onclick="setSort('Year')">Év</th>
-<th class="sortable" onclick="setSort('Location')">Helyszín</th>
-<th class="sortable" onclick="setSort('Shelf')">Polc</th>
-<th class="sortable" onclick="setSort('Page_Count')">Oldalszám</th>
-<th class="sortable" onclick="setSort('ISBN')">ISBN</th>
-<th class="sortable" onclick="setSort('Publisher')">Kiadó</th>
-<th class="sortable" onclick="setSort('Translator')">Fordító</th>
-<th class="sortable" onclick="setSort('Genre')">Műfaj</th>
-<th class="sortable" onclick="setSort('Purchased')">Megv.</th>
-                            <th class="sortable" onclick="setSort('For_sale')">Eladó</th>
-                            <th class="sortable" onclick="setSort('Price')">Ár</th>
-                            <th>Művelet</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+
+
+        <div class="container">
+
+
+            <nav>
+                <button id="tab_lista" class="active" onclick="mutat('lista')">
+                    📝 Kártyák
+                </button>
+                <button id="tab_tabla" onclick="mutat('tabla')">
+                    📊 Táblázat
+                </button>
+
+                <button id="tab_import" onclick="mutat('import')">
+                    📥 Import
+                </button>
+                <button id="tab_logout" onclick="logout()" style="margin-left:auto;color:#eb8f98;">
+                    🚪 Kilépés
+                </button>
+            </nav>
+
+
+
+            <!-- LISTA -->
+            <div class="page" id="lista">
+                <div class="title-and-fontsize">
+                    <h1>Könyvlista</h1>
+
+                    <div id="fontSizeSelector" style="text-align:center; margin:3px 0;">
+                        <button class="btn btn-secondary" onclick="setFontSize('large')">L</button>
+                        <button class="btn btn-secondary" onclick="setFontSize('medium')">M</button>
+                        <button class="btn btn-secondary" onclick="setFontSize('small')">S</button>
+                    </div>
+                </div>
+                <div class="stats-bar">
+                    <div class="stat-card stat-all">
+                        Összes könyv: <span id="stat_total">0</span>
+                    </div>
+
+                    <div class="stat-card stat-owned">
+                        Megvásárolva: <span id="stat_purchased">0</span>
+                    </div>
+
+                    <div class="stat-card stat-missing">
+                        Nincs még meg: <span id="stat_missing">0</span>
+                    </div>
+                </div>
+
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+                    <button class="btn btn-primary" onclick="openBookModal('new')">➕ Új könyv felvétele</button>
+                    <button class="btn btn-secondary" onclick="betoltesLista()">🔄 Lista frissítése</button>
+                </div>
+
+                <h3>🔍 Szűrés</h3>
+                <div class="filters">
+
+                    <div>
+                        <input id="ls_szerzo" list="authors_list_filter" placeholder="Szerző" oninput="listaSzures()">
+                        <datalist id="authors_list_filter"></datalist>
+                    </div>
+
+                    <div>
+                        <input id="ls_cim" placeholder="Cím" oninput="listaSzures()">
+                    </div>
+
+                    <div>
+                        <input id="ls_sorozat" list="series_list_filter" placeholder="Sorozat" oninput="listaSzures()">
+                        <datalist id="series_list_filter"></datalist>
+                    </div>
+
+                    <div>
+                        <input id="ls_ev_min" type="number" min="1" max="9999" step="1" placeholder="Év (tól)"
+                            oninput="validateYearFilter(this); listaSzures()">
+                    </div>
+
+                    <div>
+                        <input id="ls_ev_max" type="number" min="1" max="9999" step="1" placeholder="Év (ig)"
+                            oninput="validateYearFilter(this); listaSzures()">
+                    </div>
+
+                    <div>
+                        <label>Megvásárolva:</label>
+                        <span id="purchaseFilter" class="tri-state" onclick="togglePurchaseFilter()">⬜</span>
+                    </div>
+
+                    <div>
+                        <label>Eladó:</label>
+                        <span id="saleFilter" class="tri-state" onclick="toggleSaleFilter()">⬜</span>
+                    </div>
+
+                </div>
+
+
+                <button class="btn btn-secondary" onclick="clearListaFilters()" style="margin-top:10px;">
+                    Szűrők törlése
+                </button>
+
+                <!-- 🔽 ELEM-SZÁM + LAPOZÁS BLOKK 🔽 -->
+                <div class="pagination-bar">
+                    <div>
+                        <label>Elemek száma:</label>
+                        <select id="limitSelect" onchange="changeLimit()">
+                            <option value="all" selected>Összes</option>
+                            <option value="10">10</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="500">500</option>
+                            <option value="1000">1000</option>
+                        </select>
+
+                    </div>
+                    <div id="itemCount" class="item-count">Találatok: …</div>
+                    <div class="pager">
+                        <button onclick="firstPage()">⏮️</button>
+                        <button onclick="prevPage()">◀️</button>
+                        <span id="pageInfo">1 / 1</span>
+                        <button onclick="nextPage()">▶️</button>
+                        <button onclick="lastPage()">⏭️</button>
+                    </div>
+                </div>
+                <!-- 🔼 ELEM-SZÁM + LAPOZÁS BLOKK 🔼 -->
+                <!-- ÚJ: kártya nézet konténere -->
+                <div id="cardContainer" class="card-container"></div>
+
+            </div>
+
+            <!-- TÁBLÁZATOS LISTA -->
+            <div class="page" id="tabla">
+                <h1>Táblázatos lista</h1>
+                <h3>🔍 Szűrés</h3>
+                <div class="filters">
+
+                    <div>
+                        <input id="ts_szerzo" list="authors_list_filter_tabla" placeholder="Szerző"
+                            oninput="tablaSzures()">
+                        <datalist id="authors_list_filter_tabla"></datalist>
+                    </div>
+
+                    <div>
+                        <input id="ts_cim" placeholder="Cím" oninput="tablaSzures()">
+                    </div>
+
+                    <div>
+                        <input id="ts_sorozat" list="series_list_filter_tabla" placeholder="Sorozat"
+                            oninput="tablaSzures()">
+                        <datalist id="series_list_filter_tabla"></datalist>
+                    </div>
+
+                    <div>
+                        <input id="ts_ev_min" type="number" min="1" max="9999" step="1" placeholder="Év (tól)"
+                            oninput="validateYearFilter(this); tablaSzures()">
+                    </div>
+
+                    <div>
+                        <input id="ts_ev_max" type="number" min="1" max="9999" step="1" placeholder="Év (ig)"
+                            oninput="validateYearFilter(this); tablaSzures()">
+                    </div>
+
+                    <div>
+                        <label>Megvásárolva:</label>
+                        <span id="purchaseFilterTable" class="tri-state" onclick="togglePurchaseFilter()">⬜</span>
+                    </div>
+
+                    <div>
+                        <label>Eladó:</label>
+                        <span id="saleFilterTable" class="tri-state" onclick="toggleSaleFilter()">⬜</span>
+                    </div>
+
+
+                </div>
+
+                <button class="btn btn-secondary" onclick="clearTablaFilters()" style="margin-top:10px;">
+                    Szűrők törlése
+                </button>
+                <div class="table-wrapper mt-8">
+                    <div class="table-scroll">
+                        <table id="tabla_lista">
+                            <thead>
+                                <tr>
+                                    <!-- ÚJ SORSZÁM OSZLOP -->
+                                    <!-- index.html – Sorszám oszlop stílusos fejléce -->
+                                    <th style="width:50px; text-align:right;">Ssz.</th>
+                                    <th class="sortable" onclick="setSort('Author')">Szerző</th>
+                                    <th class="sortable" onclick="setSort('Title')">Cím</th>
+                                    <th class="sortable" onclick="setSort('Series')">Sorozat</th>
+                                    <th class="sortable" onclick="setSort('Year')">Év</th>
+                                    <th class="sortable" onclick="setSort('Location')">Helyszín</th>
+                                    <th class="sortable" onclick="setSort('Shelf')">Polc</th>
+                                    <th class="sortable" onclick="setSort('Page_Count')">Oldalszám</th>
+                                    <th class="sortable" onclick="setSort('ISBN')">ISBN</th>
+                                    <th class="sortable" onclick="setSort('Publisher')">Kiadó</th>
+                                    <th class="sortable" onclick="setSort('Translator')">Fordító</th>
+                                    <th class="sortable" onclick="setSort('Genre')">Műfaj</th>
+                                    <th class="sortable" onclick="setSort('Purchased')">Megv.</th>
+                                    <th class="sortable" onclick="setSort('For_sale')">Eladó</th>
+                                    <th class="sortable" onclick="setSort('Price')">Ár</th>
+                                    <th>Művelet</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- IMPORT -->
+            <div class="page" id="import">
+                <h1>CSV / TSV importálása</h1>
+
+                <p>Elvárt struktúra (List fül fejléc sorrendje):</p>
+                <pre>ID,Author,Title,Original_Title,Previous_Title,Series,Number,URL,Year,Location,Shelf,Page_Count,ISBN,Publisher,Translator,Genre,Purchased,For_sale,Price,Comment</pre>
+                <p>A fájl lehet vesszővel, pontosvesszővel vagy TAB-bal tagolt.</p>
+
+                <input type="file" id="csvFile" accept=".csv,.tsv,.txt"><br><br>
+                <button class="btn btn-primary" onclick="importCsv()">Importálás</button>
+
+                <h3>Eredmény:</h3>
+                <div id="importResult"></div>
+            </div>
+
+            <h3 style="margin-top:22px;">Log</h3>
+            <div id="log"></div>
+
+        </div> <!-- /container -->
+
+
+
+    </div> <!-- /appContent -->
+    <!-- MODAL: Új könyv / Szerkesztés – közös űrlap -->
+    <div id="bookModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Könyv</h2>
+                <button class="modal-close-btn" onclick="closeBookModal()">&times;</button>
+            </div>
+
+            <input type="hidden" id="bm_id">
+
+            <div class="modal-grid">
+
+                <input id="bm_szerzo" list="authors_list_modal" placeholder="Szerző *">
+                <datalist id="authors_list_modal"></datalist>
+
+                <input id="bm_cim" placeholder="Cím *">
+
+                <input id="bm_eredeti" placeholder="Eredeti cím">
+
+                <input id="bm_korabbi" placeholder="Korábbi cím">
+
+                <input id="bm_sorozat" list="series_list_modal" placeholder="Sorozat">
+                <datalist id="series_list_modal"></datalist>
+
+                <input id="bm_ssz" placeholder="Sorszám">
+
+                <input id="bm_ev" type="number" min="1" max="9999" step="1" placeholder="Év"
+                    oninput="validateYearFilter(this)">
+
+                <input id="bm_helyszin" placeholder="Helyszín">
+                <input id="bm_polc" placeholder="Polc">
+                <input id="bm_oldalszam" type="number" min="1" step="1" placeholder="Oldalszám">
+                <input id="bm_isbn" placeholder="ISBN">
+                <input id="bm_kiado" placeholder="Kiadó">
+                <input id="bm_fordito" placeholder="Fordító">
+                <input id="bm_mufaj" placeholder="Műfaj">
+
+                <input id="bm_url" placeholder="Kép URL (ha nincs feltöltött kép)" oninput="urlPreviewUpdate()">
+
+                <div class="modal-checkbox-row">
+                    <input type="checkbox" step="1" id="bm_purchased">
+                    <label for="bm_purchased">Megvásárolva</label>
+                </div>
+
+                <div class="modal-checkbox-row">
+                    <input type="checkbox" step="1" id="bm_forsale">
+                    <label for="bm_forsale">Eladó</label>
+                </div>
+
+                <input id="bm_ar" type="number" step="1" placeholder="Ár">
+
+                <textarea id="bm_megjegy" rows="3" placeholder="Megjegyzés"></textarea>
+
+
+
+            </div>
+
+            <div class="modal-image-section">
+                <span class="img-label">Borító előnézet</span><br>
+                <img id="bm_preview" alt="Borító előnézet" style="max-width:200px; display:none;">
+            </div>
+
+
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeBookModal()">Mégse</button>
+                <button id="bm_lookup_btn" class="btn btn-secondary" type="button"
+                    onclick="lookupBookMetadataFromModal()">
+                    🔎 Adatok kitöltése API-ból
+                </button>
+                <button class="btn btn-primary" type="button" onclick="saveBookFromModal()">Mentés</button>
             </div>
         </div>
-        
     </div>
-
-    <!-- IMPORT -->
-    <div class="page" id="import">
-        <h1>CSV / TSV importálása</h1>
-
-        <p>Elvárt struktúra (List fül fejléc sorrendje):</p>
-<pre>ID,Author,Title,Original_Title,Previous_Title,Series,Number,URL,Year,Location,Shelf,Page_Count,ISBN,Publisher,Translator,Genre,Purchased,For_sale,Price,Comment</pre>
-        <p>A fájl lehet vesszővel, pontosvesszővel vagy TAB-bal tagolt.</p>
-
-        <input type="file" id="csvFile" accept=".csv,.tsv,.txt"><br><br>
-        <button class="btn btn-primary" onclick="importCsv()">Importálás</button>
-
-        <h3>Eredmény:</h3>
-        <div id="importResult"></div>
-    </div>
-
-    <h3 style="margin-top:22px;">Log</h3>
-    <div id="log"></div>
-
-</div> <!-- /container -->
-
-
-
-</div> <!-- /appContent -->
-<!-- MODAL: Új könyv / Szerkesztés – közös űrlap -->
-<div id="bookModal" class="modal-overlay">
+    <div id="lookupResultsModal" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
-            <h2 id="modalTitle">Könyv</h2>
-            <button class="modal-close-btn" onclick="closeBookModal()">&times;</button>
+            <h2>Könyvtalálatok kiválasztása</h2>
+            <button class="modal-close-btn" type="button" onclick="closeLookupResultsModal()">&times;</button>
         </div>
 
-        <input type="hidden" id="bm_id">
-
-        <div class="modal-grid">
-
-            <input id="bm_szerzo" list="authors_list_modal" placeholder="Szerző *">
-            <datalist id="authors_list_modal"></datalist>
-
-            <input id="bm_cim" placeholder="Cím *">
-
-            <input id="bm_eredeti" placeholder="Eredeti cím">
-
-            <input id="bm_korabbi" placeholder="Korábbi cím">
-
-            <input id="bm_sorozat" list="series_list_modal" placeholder="Sorozat">
-            <datalist id="series_list_modal"></datalist>
-
-            <input id="bm_ssz" placeholder="Sorszám">
-
-<input id="bm_ev" type="number" min="1" max="9999" step="1"
-    placeholder="Év" oninput="validateYearFilter(this)">
-
-<input id="bm_helyszin" placeholder="Helyszín">
-<input id="bm_polc" placeholder="Polc">
-<input id="bm_oldalszam" type="number" min="1" step="1" placeholder="Oldalszám">
-<input id="bm_isbn" placeholder="ISBN">
-<input id="bm_kiado" placeholder="Kiadó">
-<input id="bm_fordito" placeholder="Fordító">
-<input id="bm_mufaj" placeholder="Műfaj">
-
-<input id="bm_url" placeholder="Kép URL (ha nincs feltöltött kép)" oninput="urlPreviewUpdate()">
-
-            <div class="modal-checkbox-row">
-                <input type="checkbox" step="1" id="bm_purchased">
-                <label for="bm_purchased">Megvásárolva</label>
-            </div>
-
-            <div class="modal-checkbox-row">
-                <input type="checkbox" step="1" id="bm_forsale">
-                <label for="bm_forsale">Eladó</label>
-            </div>
-
-            <input id="bm_ar" type="number" step="1" placeholder="Ár">
-            
-            <textarea id="bm_megjegy" rows="3" placeholder="Megjegyzés"></textarea>
-
-
-
-        </div>
-
-        <div class="modal-image-section">
-            <span class="img-label">Borító előnézet</span><br>
-            <img id="bm_preview" alt="Borító előnézet" style="max-width:200px; display:none;">
-        </div>
-
-
+        <div id="lookupResultsList" style="display:flex;flex-direction:column;gap:10px;"></div>
 
         <div class="modal-footer">
-            <button class="btn btn-secondary" type="button" onclick="closeBookModal()">Mégse</button>
-<button id="bm_lookup_btn" class="btn btn-secondary" type="button" onclick="lookupBookMetadataFromModal()">
-    🔎 Adatok kitöltése API-ból
-</button>
-            <button class="btn btn-primary" type="button" onclick="saveBookFromModal()">Mentés</button>
+            <button class="btn btn-secondary" type="button" onclick="closeLookupResultsModal()">Mégse</button>
         </div>
     </div>
 </div>
-<script src="app.js"></script>
-<div style="text-align:center;margin-top:30px;margin-bottom:20px;font-size:12px;color:#777;">
-    <div>App verzió: <span id="appVersion">betöltés...</span></div>
-    <div>SW verzió: <span id="swVersion">betöltés...</span></div>
-    <div>Build timestamp: <span id="buildTime">betöltés...</span></div>
-</div>
+    <script src="app.js"></script>
+    <div style="text-align:center;margin-top:30px;margin-bottom:20px;font-size:12px;color:#777;">
+        <div>App verzió: <span id="appVersion">betöltés...</span></div>
+        <div>SW verzió: <span id="swVersion">betöltés...</span></div>
+        <div>Build timestamp: <span id="buildTime">betöltés...</span></div>
+    </div>
 </body>
+
 </html>

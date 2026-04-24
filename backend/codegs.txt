@@ -126,39 +126,7 @@ function updateUniqueList_(sheetName, columnName, value) {
     sheet.appendRow(row);
   }
 }
-/***********************************************************
- * KÖNYVADATAK LEKÉRÉSE – IDEIGLENES DEBUG VÁLTOZAT
- ***********************************************************/
-function lookupBookMetadata_(params) {
-  const isbn = String(params.isbn || "").trim();
-  const title = String(params.title || "").trim();
-  const author = String(params.author || "").trim();
 
-  return {
-    success: true,
-    debug: true,
-    received: {
-      isbn: isbn,
-      title: title,
-      author: author
-    },
-    items: [
-      {
-        source: "debug",
-        title: title || "Teszt könyv",
-        authors: author || "Teszt szerző",
-        year: "2024",
-        isbn: isbn || "",
-        publisher: "Teszt kiadó",
-        pageCount: "123",
-        translator: "",
-        genre: "Teszt műfaj",
-        coverUrl: "",
-        language: "hu"
-      }
-    ]
-  };
-}
 /***********************************************************
  * KÖNYVADATAK LEKÉRÉSE – GOOGLE BOOKS + OPEN LIBRARY
  ***********************************************************/
@@ -397,47 +365,57 @@ function searchGoogleBooks_(queryContext) {
   const items = Array.isArray(json.items) ? json.items : [];
   return items.map(item => mapGoogleBookItem_(item, queryContext));
 }
-function fetchOpenLibraryJson_(url) {
-  Utilities.sleep(1100);
 
-  const response = UrlFetchApp.fetch(url, {
-    muteHttpExceptions: true,
-    headers: {
-      "User-Agent": OPEN_LIBRARY_USER_AGENT
-    }
-  });
-
-  const code = response.getResponseCode();
-  const text = response.getContentText();
-
-  if (code < 200 || code >= 300) {
-    throw new Error("Open Library hiba: " + code + " - " + text);
-  }
-
-  return JSON.parse(text);
-}
 /**
  * Open Library keresés fallbackként.
  */
 function searchOpenLibrary_(queryContext) {
+  function normalizeAuthorForSearch_(author) {
+    author = String(author || "").trim();
+    if (!author) return "";
+
+    // "Adler, Elizabeth" -> "Elizabeth Adler"
+    if (author.indexOf(",") !== -1) {
+      const parts = author.split(",").map(x => x.trim()).filter(Boolean);
+      if (parts.length === 2) {
+        return parts[1] + " " + parts[0];
+      }
+    }
+
+    return author.replace(/,/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  const fields = [
+    "key",
+    "title",
+    "author_name",
+    "first_publish_year",
+    "publisher",
+    "isbn",
+    "language",
+    "cover_i",
+    "subject"
+  ].join(",");
+
   let url = "";
 
   if (queryContext.isbn) {
     url =
       "https://openlibrary.org/search.json?isbn=" +
       encodeURIComponent(queryContext.isbn) +
-      "&lang=hu" +
+      "&fields=" + encodeURIComponent(fields) +
       "&limit=" + BOOK_LOOKUP_MAX_RESULTS;
   } else {
-    const q = [queryContext.title, queryContext.author]
-      .filter(Boolean)
-      .join(" ");
+    const title = String(queryContext.title || "").trim();
+    const author = normalizeAuthorForSearch_(queryContext.author);
 
-    url =
-      "https://openlibrary.org/search.json?q=" +
-      encodeURIComponent(q) +
-      "&lang=hu" +
-      "&limit=" + BOOK_LOOKUP_MAX_RESULTS;
+    const params = [];
+    if (title)  params.push("title=" + encodeURIComponent(title));
+    if (author) params.push("author=" + encodeURIComponent(author));
+    params.push("fields=" + encodeURIComponent(fields));
+    params.push("limit=" + BOOK_LOOKUP_MAX_RESULTS);
+
+    url = "https://openlibrary.org/search.json?" + params.join("&");
   }
 
   const json = fetchOpenLibraryJson_(url);
@@ -450,45 +428,29 @@ function searchOpenLibrary_(queryContext) {
  */
 function lookupBookMetadata_(params) {
   const queryContext = {
-    isbn: String(params.isbn || '').trim(),
-    title: String(params.title || '').trim(),
-    author: String(params.author || '').trim(),
-    queryType: String(params.isbn || '').trim() ? 'isbn' : 'title_author'
+    isbn: String(params.isbn || "").trim(),
+    title: String(params.title || "").trim(),
+    author: String(params.author || "").trim(),
+    queryType: String(params.isbn || "").trim() ? "isbn" : "title_author"
   };
 
   if (!queryContext.isbn && !queryContext.title && !queryContext.author) {
     return {
       success: false,
-      error: 'Legalább ISBN vagy cím/szerző megadása szükséges.'
+      error: "Legalább ISBN vagy cím/szerző megadása szükséges."
     };
   }
 
   let googleResults = [];
   let openLibraryResults = [];
-  let googleError = '';
-  let openLibraryError = '';
+  let googleError = "Google Books ideiglenesen kikapcsolva (geo restriction).";
+  let openLibraryError = "";
 
   try {
-    googleResults = searchGoogleBooks_(queryContext);
+    openLibraryResults = searchOpenLibrary_(queryContext);
   } catch (err) {
-googleError = err && err.message ? err.message : String(err);
-
-if (googleError.indexOf("unknownLocation") !== -1) {
-  googleError = "Google Books geo restriction (unknownLocation)";
-}    googleResults = [];
-  }
-
-  const shouldUseFallback =
-    googleResults.length === 0 ||
-    googleResults.every(item => !item.title);
-
-  if (shouldUseFallback) {
-    try {
-      openLibraryResults = searchOpenLibrary_(queryContext);
-    } catch (err) {
-      openLibraryError = err && err.message ? err.message : String(err);
-      openLibraryResults = [];
-    }
+    openLibraryError = err && err.message ? err.message : String(err);
+    openLibraryResults = [];
   }
 
   const merged = dedupeLookupCandidates_(googleResults.concat(openLibraryResults))
@@ -508,8 +470,7 @@ if (googleError.indexOf("unknownLocation") !== -1) {
       googleCount: googleResults.length,
       openLibraryCount: openLibraryResults.length,
       googleError: googleError,
-      openLibraryError: openLibraryError,
-      usedFallback: shouldUseFallback
+      openLibraryError: openLibraryError
     }
   };
 }
