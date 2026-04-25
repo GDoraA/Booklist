@@ -1,0 +1,423 @@
+/***********************************************************
+ * OPEN LIBRARY SEGÉDFÜGGVÉNYEK
+ *
+ * Ebben a fájlban kizárólag az Open Library API-hoz
+ * kapcsolódó keresési, JSON-letöltési és normalizálási
+ * függvények vannak.
+ *
+ * Ezeket használja:
+ * - lookupBookMetadata_()
+ *
+ * A fájlban található fő függvények:
+ *
+ * 1. fetchOpenLibraryJson_(url)
+ *    - Open Library JSON API-t hív, kezeli a 404 és 429 válaszokat.
+ *
+ * 2. mapOpenLibraryDoc_(doc, queryContext)
+ *    - Open Library dokumentumból egységes belső könyvtalálat objektumot készít.
+ *
+ * 3. searchOpenLibrary_(queryContext)
+ *    - Open Library keresést futtat ISBN, cím, szerző vagy kombinált query alapján.
+ *
+ * A searchOpenLibrary_() belső helper függvényei:
+ *
+ * - normalizeAuthorForSearch_(author)
+ *   - Szerzőnevet kereséshez normalizál, például "Vezetéknév, Keresztnév" alakból
+ *     "Keresztnév Vezetéknév" alakot készít.
+ *
+ * - buildFields_()
+ *   - Összeállítja az Open Library API-tól lekérendő mezők listáját.
+ *
+ * - tryUrl_(url)
+ *   - Lefuttat egy Open Library API-hívást, és egységes docs/meta objektumot ad vissza.
+ *
+ * - dedupeDocs_(docs)
+ *   - Open Library dokumentumokat deduplikál key + title + author_name alapján.
+ ***********************************************************/
+
+/**
+ * Open Library JSON API válasz letöltése.
+ *
+ * Bemenet:
+ * - url: teljes Open Library API URL
+ *
+ * Működés:
+ * - vár 1100 ms-ot a hívás előtt, hogy csökkentse a túl gyors API-hívások esélyét
+ * - UrlFetchApp.fetch() segítségével lekéri az API választ
+ * - User-Agent fejlécet küld az OPEN_LIBRARY_USER_AGENT konstans alapján
+ * - a HTTP státuszt kézzel kezeli
+ *
+ * Speciális hibakezelés:
+ * - 404 esetén nem dob hibát, hanem üres docs listát ad vissza
+ * - 429 esetén nem dob hibát, hanem rateLimited metaadatot ad vissza
+ * - egyéb nem 2xx státusz esetén hibát dob
+ *
+ * Kimenet:
+ * - Open Library JSON objektum
+ * - a válaszhoz hozzáad egy _meta mezőt:
+ *   {
+ *     status: HTTP státuszkód,
+ *     url: hívott URL,
+ *     rateLimited: true // csak 429 esetén
+ *   }
+ *
+ * Függőségek:
+ * - OPEN_LIBRARY_USER_AGENT globális konstans
+ */
+function fetchOpenLibraryJson_(url) {
+  Utilities.sleep(1100);
+
+  const response = UrlFetchApp.fetch(url, {
+    muteHttpExceptions: true,
+    headers: {
+      "User-Agent": OPEN_LIBRARY_USER_AGENT
+    }
+  });
+
+  const code = response.getResponseCode();
+  const text = response.getContentText();
+
+  if (code === 404) {
+    return {
+      docs: [],
+      _meta: {
+        status: 404,
+        url: url
+      }
+    };
+  }
+
+  if (code === 429) {
+    return {
+      docs: [],
+      _meta: {
+        status: 429,
+        url: url,
+        rateLimited: true
+      }
+    };
+  }
+
+  if (code < 200 || code >= 300) {
+    throw new Error("Open Library hiba: " + code + " - " + text);
+  }
+
+  const json = JSON.parse(text);
+  json._meta = {
+    status: code,
+    url: url
+  };
+
+  return json;
+}
+
+/**
+ * Open Library dokumentum átalakítása egységes belső könyvtalálat objektummá.
+ *
+ * Bemenet:
+ * - doc: egy Open Library keresési dokumentum
+ * - queryContext: keresési kontextus, például:
+ *   {
+ *     isbn: "...",
+ *     title: "...",
+ *     author: "...",
+ *     queryType: "isbn" vagy "title_author"
+ *   }
+ *
+ * Működés:
+ * - az Open Library mezőit az alkalmazás közös lookup objektumformájára alakítja
+ * - az első ISBN-t választja, ha van
+ * - az első publisher értéket választja, ha van
+ * - a magyar nyelvet a language listában szereplő "hun" alapján azonosítja
+ * - ha van cover_i, Open Library borító URL-t épít belőle
+ * - a subject listából legfeljebb az első 5 elemet használja műfaj / téma mezőként
+ *
+ * Kimenet:
+ * - egységes belső könyvtalálat objektum
+ *
+ * Megjegyzés:
+ * - az Open Library sok mezője opcionális, ezért minden mezőnél védett értékkiolvasás történik
+ */
+function mapOpenLibraryDoc_(doc, queryContext) {
+  const isbn =
+    Array.isArray(doc && doc.isbn) && doc.isbn.length
+      ? String(doc.isbn[0])
+      : "";
+
+  const publisher =
+    Array.isArray(doc && doc.publisher) && doc.publisher.length
+      ? String(doc.publisher[0])
+      : "";
+
+  const languageList = Array.isArray(doc && doc.language)
+    ? doc.language
+    : [];
+
+  const hasHun = languageList.some(x =>
+    String(x).toLowerCase() === "hun"
+  );
+
+  const coverId = doc && doc.cover_i
+    ? String(doc.cover_i)
+    : "";
+
+  return {
+    source: "open_library",
+    sourceId: doc && doc.key ? String(doc.key) : "",
+    title: doc && doc.title ? String(doc.title) : "",
+    authors: Array.isArray(doc && doc.author_name)
+      ? doc.author_name.join(", ")
+      : "",
+    originalTitle: "",
+    previousTitle: "",
+    series: "",
+    number: "",
+    year: doc && doc.first_publish_year
+      ? String(doc.first_publish_year)
+      : "",
+    location: "",
+    shelf: "",
+    pageCount: "",
+    isbn: isbn,
+    publisher: publisher,
+    translator: "",
+    genre: Array.isArray(doc && doc.subject)
+      ? doc.subject.slice(0, 5).join(", ")
+      : "",
+    coverUrl: coverId
+      ? "https://covers.openlibrary.org/b/id/" + coverId + "-L.jpg"
+      : "",
+    language: hasHun ? "hu" : "",
+    rawScore: 0,
+    score: 0,
+    queryType: queryContext.queryType || "title_author"
+  };
+}
+
+/**
+ * Open Library keresés futtatása ISBN, cím, szerző vagy kombinált query alapján.
+ *
+ * Bemenet:
+ * - queryContext:
+ *   {
+ *     isbn: "...",
+ *     title: "...",
+ *     author: "...",
+ *     queryType: "isbn" vagy "title_author"
+ *   }
+ *
+ * Működés:
+ * - ISBN esetén közvetlen ISBN keresést futtat
+ * - cím+szerző esetén először title + author keresést próbál
+ * - ha van cím, külön title keresést is előkészít
+ * - ha van szerző, külön author keresést is előkészít
+ * - végül kombinált q keresést is előkészít
+ * - a lehetséges URL-eket sorban próbálja
+ * - az első nem üres docs találatnál megáll
+ * - a találatokat deduplikálja
+ * - a dokumentumokat egységes belső könyvtalálat objektummá alakítja
+ *
+ * Kimenet:
+ * {
+ *   items: [...],
+ *   debug: [...]
+ * }
+ *
+ * A debug lista tartalmazza a kipróbált Open Library URL-ek metaadatait.
+ *
+ * Függőségek:
+ * - BOOK_LOOKUP_MAX_RESULTS globális konstans
+ * - fetchOpenLibraryJson_()
+ * - mapOpenLibraryDoc_()
+ */
+function searchOpenLibrary_(queryContext) {
+  /**
+   * Szerzőnév normalizálása Open Library kereséshez.
+   *
+   * Példa:
+   * - "Berry, Steve" → "Steve Berry"
+   * - "Steve Berry" → "Steve Berry"
+   */
+  function normalizeAuthorForSearch_(author) {
+    author = String(author || "").trim();
+
+    if (!author) {
+      return "";
+    }
+
+    if (author.indexOf(",") !== -1) {
+      const parts = author
+        .split(",")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+      if (parts.length === 2) {
+        return parts[1] + " " + parts[0];
+      }
+    }
+
+    return author
+      .replace(/,/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  /**
+   * Az Open Library API-tól lekérendő mezők listájának összeállítása.
+   *
+   * Csak azokat a mezőket kérjük le, amelyekből az alkalmazás
+   * belső könyvtalálat objektumot tud készíteni.
+   */
+  function buildFields_() {
+    return [
+      "key",
+      "title",
+      "author_name",
+      "first_publish_year",
+      "publisher",
+      "isbn",
+      "language",
+      "cover_i",
+      "subject"
+    ].join(",");
+  }
+
+  /**
+   * Egy Open Library API URL kipróbálása.
+   *
+   * Bemenet:
+   * - url: Open Library keresési URL
+   *
+   * Kimenet:
+   * {
+   *   docs: [...],
+   *   meta: {...}
+   * }
+   */
+  function tryUrl_(url) {
+    const json = fetchOpenLibraryJson_(url);
+    const docs = Array.isArray(json.docs) ? json.docs : [];
+
+    return {
+      docs: docs,
+      meta: json._meta || {
+        url: url,
+        status: 200
+      }
+    };
+  }
+
+  /**
+   * Open Library dokumentumok deduplikálása.
+   *
+   * Deduplikációs kulcs:
+   * - doc.key
+   * - doc.title
+   * - doc.author_name lista
+   */
+  function dedupeDocs_(docs) {
+    const seen = {};
+    const result = [];
+
+    docs.forEach(doc => {
+      const key = [
+        String(doc.key || ""),
+        String(doc.title || ""),
+        Array.isArray(doc.author_name)
+          ? doc.author_name.join("|")
+          : ""
+      ].join("||");
+
+      if (!seen[key]) {
+        seen[key] = true;
+        result.push(doc);
+      }
+    });
+
+    return result;
+  }
+
+  const fields = buildFields_();
+  const tried = [];
+  let allDocs = [];
+
+  if (queryContext.isbn) {
+    const url =
+      "https://openlibrary.org/search.json?isbn=" +
+      encodeURIComponent(queryContext.isbn) +
+      "&fields=" + encodeURIComponent(fields) +
+      "&limit=" + BOOK_LOOKUP_MAX_RESULTS;
+
+    const r = tryUrl_(url);
+    tried.push(r.meta);
+    allDocs = r.docs;
+
+    return {
+      items: dedupeDocs_(allDocs)
+        .slice(0, BOOK_LOOKUP_MAX_RESULTS)
+        .map(doc => mapOpenLibraryDoc_(doc, queryContext)),
+      debug: tried
+    };
+  }
+
+  const title = String(queryContext.title || "").trim();
+  const author = normalizeAuthorForSearch_(queryContext.author);
+
+  const urls = [];
+
+  if (title && author) {
+    urls.push(
+      "https://openlibrary.org/search.json?title=" +
+      encodeURIComponent(title) +
+      "&author=" + encodeURIComponent(author) +
+      "&fields=" + encodeURIComponent(fields) +
+      "&limit=" + BOOK_LOOKUP_MAX_RESULTS
+    );
+  }
+
+  if (title) {
+    urls.push(
+      "https://openlibrary.org/search.json?title=" +
+      encodeURIComponent(title) +
+      "&fields=" + encodeURIComponent(fields) +
+      "&limit=" + BOOK_LOOKUP_MAX_RESULTS
+    );
+  }
+
+  if (author) {
+    urls.push(
+      "https://openlibrary.org/search.json?author=" +
+      encodeURIComponent(author) +
+      "&fields=" + encodeURIComponent(fields) +
+      "&limit=" + BOOK_LOOKUP_MAX_RESULTS
+    );
+  }
+
+  if (title || author) {
+    const q = [title, author].filter(Boolean).join(" ");
+
+    urls.push(
+      "https://openlibrary.org/search.json?q=" +
+      encodeURIComponent(q) +
+      "&fields=" + encodeURIComponent(fields) +
+      "&limit=" + BOOK_LOOKUP_MAX_RESULTS
+    );
+  }
+
+  for (const url of urls) {
+    const r = tryUrl_(url);
+    tried.push(r.meta);
+
+    if (r.docs.length > 0) {
+      allDocs = r.docs;
+      break;
+    }
+  }
+
+  return {
+    items: dedupeDocs_(allDocs)
+      .slice(0, BOOK_LOOKUP_MAX_RESULTS)
+      .map(doc => mapOpenLibraryDoc_(doc, queryContext)),
+    debug: tried
+  };
+}

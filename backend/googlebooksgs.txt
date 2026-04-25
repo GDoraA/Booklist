@@ -1,0 +1,243 @@
+/***********************************************************
+ * GOOGLE BOOKS SEGÉDFÜGGVÉNYEK
+ *
+ * Ebben a fájlban kizárólag a Google Books API-hoz
+ * kapcsolódó keresési, mezőkinyerési és normalizálási
+ * függvények vannak.
+ *
+ * Ezeket használja:
+ * - lookupBookMetadata_()
+ *
+ * A fájlban található függvények:
+ *
+ * 1. extractYear_(value)
+ *    - Szövegből vagy dátumból négyjegyű évszámot nyer ki.
+ *
+ * 2. extractGoogleIsbn_(industryIdentifiers)
+ *    - Google Books industryIdentifiers listából ISBN-13-at,
+ *      ennek hiányában ISBN-10-et választ.
+ *
+ * 3. extractGoogleTranslator_(volumeInfo)
+ *    - Fordító kinyerésére fenntartott helper; jelenleg üres stringet ad.
+ *
+ * 4. mapGoogleBookItem_(item, queryContext)
+ *    - Google Books API találatból egységes belső könyvtalálat objektumot készít.
+ *
+ * 5. searchGoogleBooks_(queryContext)
+ *    - Google Books keresést futtat ISBN vagy cím+szerző alapján.
+ ***********************************************************/
+
+/**
+ * Négyjegyű évszám kinyerése tetszőleges szövegből vagy dátumszövegből.
+ *
+ * Bemenet:
+ * - value: dátum vagy szöveg, például "2004-05-01", "2018", "Megjelent: 2018"
+ *
+ * Működés:
+ * - stringgé alakítja a bemenetet
+ * - regex segítségével megkeresi az első 1000–2100 közötti évszámot
+ *
+ * Kimenet:
+ * - megtalált év stringként
+ * - ha nincs évszám, üres string
+ *
+ * Példa:
+ * - "2004-05-01" → "2004"
+ * - "2018. január" → "2018"
+ */
+function extractYear_(value) {
+  const match = String(value || "").match(/\b(1[0-9]{3}|20[0-9]{2}|2100)\b/);
+  return match ? match[1] : "";
+}
+
+/**
+ * ISBN kiválasztása Google Books industryIdentifiers mezőből.
+ *
+ * Bemenet:
+ * - industryIdentifiers: Google Books volumeInfo.industryIdentifiers lista
+ *
+ * Működés:
+ * - ellenőrzi, hogy a bemenet tömb-e
+ * - először ISBN_13 típusú azonosítót keres
+ * - ha nincs ISBN_13, akkor ISBN_10 típusút keres
+ *
+ * Kimenet:
+ * - ISBN string
+ * - ha nincs használható ISBN, üres string
+ *
+ * Példa Google Books mezőre:
+ * [
+ *   { type: "ISBN_13", identifier: "9789634066903" },
+ *   { type: "ISBN_10", identifier: "963406690X" }
+ * ]
+ */
+function extractGoogleIsbn_(industryIdentifiers) {
+  const ids = Array.isArray(industryIdentifiers) ? industryIdentifiers : [];
+  const isbn13 = ids.find(x => x && x.type === "ISBN_13" && x.identifier);
+  const isbn10 = ids.find(x => x && x.type === "ISBN_10" && x.identifier);
+
+  return (isbn13 && isbn13.identifier) || (isbn10 && isbn10.identifier) || "";
+}
+
+/**
+ * Fordító kinyerése Google Books volumeInfo objektumból.
+ *
+ * Bemenet:
+ * - volumeInfo: Google Books volumeInfo objektum
+ *
+ * Működés:
+ * - jelenleg nem nyer ki fordítót, mert a Google Books válaszban
+ *   általában nincs megbízható külön translator mező
+ *
+ * Kimenet:
+ * - jelenleg mindig üres string
+ *
+ * Megjegyzés:
+ * - a contributors változó előkészítésként marad, ha később
+ *   bővülne a Google Books mezőfeldolgozás
+ */
+function extractGoogleTranslator_(volumeInfo) {
+  const contributors = Array.isArray(volumeInfo && volumeInfo.authors)
+    ? volumeInfo.authors
+    : [];
+
+  return "";
+}
+
+/**
+ * Google Books API találat átalakítása egységes belső könyvtalálat objektummá.
+ *
+ * Bemenet:
+ * - item: egy Google Books API volume találat
+ * - queryContext: keresési kontextus, például:
+ *   {
+ *     isbn: "...",
+ *     title: "...",
+ *     author: "...",
+ *     queryType: "isbn" vagy "title_author"
+ *   }
+ *
+ * Működés:
+ * - a Google Books volumeInfo mezőiből kinyeri a könyvadatokat
+ * - szerzőlistát vesszővel elválasztott stringgé alakít
+ * - évszámot publishedDate mezőből nyer ki
+ * - ISBN-t industryIdentifiers alapján választ
+ * - borítót imageLinks.thumbnail vagy imageLinks.smallThumbnail alapján választ
+ * - a kimenetet az alkalmazásban használt közös lookup objektumformára alakítja
+ *
+ * Kimenet:
+ * - egységes belső könyvtalálat objektum
+ *
+ * Függőségek:
+ * - extractYear_()
+ * - extractGoogleIsbn_()
+ * - extractGoogleTranslator_()
+ */
+function mapGoogleBookItem_(item, queryContext) {
+  const info = item && item.volumeInfo ? item.volumeInfo : {};
+  const imageLinks = info.imageLinks || {};
+  const language = String(info.language || "").toLowerCase();
+
+  return {
+    source: "google_books",
+    sourceId: item && item.id ? String(item.id) : "",
+    title: info.title || "",
+    authors: Array.isArray(info.authors) ? info.authors.join(", ") : "",
+    originalTitle: "",
+    previousTitle: "",
+    series: "",
+    number: "",
+    year: extractYear_(info.publishedDate),
+    location: "",
+    shelf: "",
+    pageCount: info.pageCount ? String(info.pageCount) : "",
+    isbn: extractGoogleIsbn_(info.industryIdentifiers),
+    publisher: info.publisher || "",
+    translator: extractGoogleTranslator_(info),
+    genre: Array.isArray(info.categories) ? info.categories.join(", ") : "",
+    coverUrl: imageLinks.thumbnail || imageLinks.smallThumbnail || "",
+    language: language,
+    rawScore: 0,
+    score: 0,
+    queryType: queryContext.queryType || "title_author"
+  };
+}
+
+/**
+ * Google Books keresés futtatása ISBN vagy cím+szerző alapján.
+ *
+ * Bemenet:
+ * - queryContext:
+ *   {
+ *     isbn: "...",
+ *     title: "...",
+ *     author: "...",
+ *     queryType: "isbn" vagy "title_author"
+ *   }
+ *
+ * Működés:
+ * - ha van ISBN, isbn: keresést épít
+ * - ha nincs ISBN, akkor intitle: és inauthor: keresési részeket épít
+ * - meghívja a Google Books volumes API-t
+ * - magyar nyelvre szűr a langRestrict=hu paraméterrel
+ * - könyvekre szűr a printType=books paraméterrel
+ * - maximum BOOK_LOOKUP_MAX_RESULTS találatot kér
+ * - ha elérhető, hozzáadja a GOOGLE_BOOKS_API_KEY kulcsot
+ * - a válasz items listáját egységes belső könyvtalálat objektumokká alakítja
+ *
+ * Kimenet:
+ * - normalizált Google Books találatok listája
+ *
+ * Hibakezelés:
+ * - nem 2xx HTTP státusz esetén hibát dob
+ *
+ * Függőségek:
+ * - BOOK_LOOKUP_MAX_RESULTS globális konstans
+ * - GOOGLE_BOOKS_API_KEY globális konstans
+ * - mapGoogleBookItem_()
+ *
+ * Megjegyzés:
+ * - a Google Books API időnként 403 hibát adhat földrajzi / hozzáférési okból;
+ *   ezt nem itt nyeljük el, hanem a hívó lookupBookMetadata_() kezeli.
+ */
+function searchGoogleBooks_(queryContext) {
+  const queryParts = [];
+
+  if (queryContext.isbn) {
+    queryParts.push("isbn:" + queryContext.isbn);
+  } else {
+    if (queryContext.title) {
+      queryParts.push("intitle:" + queryContext.title);
+    }
+
+    if (queryContext.author) {
+      queryParts.push("inauthor:" + queryContext.author);
+    }
+  }
+
+  const q = queryParts.join("+");
+
+  let url =
+    "https://www.googleapis.com/books/v1/volumes" +
+    "?q=" + encodeURIComponent(q) +
+    "&langRestrict=hu" +
+    "&printType=books" +
+    "&maxResults=" + BOOK_LOOKUP_MAX_RESULTS;
+
+  if (GOOGLE_BOOKS_API_KEY) {
+    url += "&key=" + encodeURIComponent(GOOGLE_BOOKS_API_KEY);
+  }
+
+  const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  const code = response.getResponseCode();
+  const text = response.getContentText();
+
+  if (code < 200 || code >= 300) {
+    throw new Error("Google Books hiba: " + code + " - " + text);
+  }
+
+  const json = JSON.parse(text);
+  const items = Array.isArray(json.items) ? json.items : [];
+
+  return items.map(item => mapGoogleBookItem_(item, queryContext));
+}

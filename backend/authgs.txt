@@ -1,0 +1,228 @@
+/**
+ * Jelszó hash-elése SHA-256 algoritmussal.
+ *
+ * Bemenet:
+ * - pwd: sima szöveges jelszó
+ *
+ * Kimenet:
+ * - hexadecimális SHA-256 hash string
+ *
+ * Megjegyzés:
+ * - Üres jelszó esetén üres stringet ad vissza.
+ * - A jelszót soha nem tároljuk sima szövegként, csak a hash kerül a Users sheetbe.
+ */
+function hashPassword_(pwd) {
+  if (!pwd) return "";
+
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    pwd,
+    Utilities.Charset.UTF_8
+  );
+
+  return bytes
+    .map(function(b) {
+      const v = (b & 0xFF).toString(16);
+      return v.length === 1 ? "0" + v : v;
+    })
+    .join("");
+}
+
+/**
+ * Felhasználói jelszó beállítása vagy felülírása a Users sheetben.
+ *
+ * Bemenet:
+ * - email: a felhasználó email címe
+ * - plainPassword: a beállítandó sima szöveges jelszó
+ *
+ * Működés:
+ * - megkeresi a Users sheetben az adott email címet
+ * - SHA-256 hash-t készít a jelszóból
+ * - a hash-t beírja a PasswordHash oszlopba
+ *
+ * Kimenet:
+ * - { success: true }, ha sikerült menteni
+ * - { success: false, error: "..." }, ha hiányzik adat, oszlop vagy felhasználó
+ *
+ * Függőségek:
+ * - getSheet_()
+ * - hashPassword_()
+ */
+function setUserPassword_(email, plainPassword) {
+  if (!email || !plainPassword) {
+    return { success: false, error: "Hiányzó email vagy jelszó" };
+  }
+
+  const sheet = getSheet_("Users");
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length < 2) {
+    return { success: false, error: "Nincs felhasználó a Users lapon" };
+  }
+
+  const headers = data[0];
+  const emailCol = headers.indexOf("Email");
+  const pwdCol = headers.indexOf("PasswordHash");
+
+  if (emailCol === -1 || pwdCol === -1) {
+    return {
+      success: false,
+      error: "Hiányzik az Email vagy PasswordHash oszlop a Users lapon"
+    };
+  }
+
+  const emailLower = String(email).trim().toLowerCase();
+  const hash = hashPassword_(plainPassword);
+
+  for (let i = 1; i < data.length; i++) {
+    const rowEmail = String(data[i][emailCol] || "").trim().toLowerCase();
+
+    if (rowEmail === emailLower) {
+      sheet.getRange(i + 1, pwdCol + 1).setValue(hash);
+      return { success: true };
+    }
+  }
+
+  return { success: false, error: "Felhasználó nem található: " + email };
+}
+
+/**
+ * Felhasználói státusz ellenőrzése email cím alapján.
+ *
+ * Bemenet:
+ * - email: a belépni próbáló felhasználó email címe
+ *
+ * Működés:
+ * - beolvassa a Users sheet tartalmát
+ * - megkeresi az email címet kisbetűsített összehasonlítással
+ * - ellenőrzi, hogy van-e már PasswordHash érték
+ *
+ * Kimenet:
+ * - ha nincs ilyen felhasználó:
+ *   {
+ *     success: false,
+ *     exists: false,
+ *     needsPasswordSetup: false
+ *   }
+ *
+ * - ha létezik:
+ *   {
+ *     success: true,
+ *     exists: true,
+ *     needsPasswordSetup: true/false,
+ *     role: "...",
+ *     name: "..."
+ *   }
+ *
+ * Függőségek:
+ * - readSheet_()
+ */
+function checkUserStatus_(email) {
+  const users = readSheet_("Users");
+
+  const emailLower = String(email || "").trim().toLowerCase();
+  let found = null;
+
+  for (let i = 0; i < users.length; i++) {
+    const u = users[i];
+    const uEmail = String(u.Email || "").trim().toLowerCase();
+
+    if (uEmail === emailLower) {
+      found = u;
+      break;
+    }
+  }
+
+  if (!found) {
+    return {
+      success: false,
+      exists: false,
+      needsPasswordSetup: false
+    };
+  }
+
+  const hasPwd = !!(
+    found.PasswordHash &&
+    String(found.PasswordHash).trim() !== ""
+  );
+
+  return {
+    success: true,
+    exists: true,
+    needsPasswordSetup: !hasPwd,
+    role: found.Role || "",
+    name: found.Name || ""
+  };
+}
+
+/**
+ * Felhasználó beléptetése email + jelszó alapján.
+ *
+ * Bemenet:
+ * - email: a belépő felhasználó email címe
+ * - plainPassword: a felhasználó által megadott sima szöveges jelszó
+ *
+ * Működés:
+ * - beolvassa a Users sheet tartalmát
+ * - megkeresi az email címet
+ * - SHA-256 hash-t készít a megadott jelszóból
+ * - összehasonlítja a Users sheetben tárolt PasswordHash értékkel
+ *
+ * Kimenet:
+ * - sikeres belépés esetén:
+ *   {
+ *     success: true,
+ *     role: "...",
+ *     name: "..."
+ *   }
+ *
+ * - sikertelen belépés esetén:
+ *   {
+ *     success: false,
+ *     error: "..."
+ *   }
+ *
+ * Függőségek:
+ * - readSheet_()
+ * - hashPassword_()
+ */
+function loginUser_(email, plainPassword) {
+  const users = readSheet_("Users");
+  const emailLower = String(email || "").trim().toLowerCase();
+  const pwdHash = hashPassword_(plainPassword);
+
+  let found = null;
+
+  for (let i = 0; i < users.length; i++) {
+    const u = users[i];
+    const uEmail = String(u.Email || "").trim().toLowerCase();
+
+    if (uEmail === emailLower) {
+      found = u;
+      break;
+    }
+  }
+
+  if (!found) {
+    return { success: false, error: "Nincs ilyen felhasználó" };
+  }
+
+  const storedHash = String(found.PasswordHash || "").trim();
+
+  if (!storedHash) {
+    return {
+      success: false,
+      error: "Még nincs beállítva jelszó (első bejelentkezés)"
+    };
+  }
+
+  if (storedHash !== pwdHash) {
+    return { success: false, error: "Hibás jelszó" };
+  }
+
+  return {
+    success: true,
+    role: found.Role || "",
+    name: found.Name || ""
+  };
+}

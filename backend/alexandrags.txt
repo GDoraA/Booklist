@@ -1,0 +1,270 @@
+/***********************************************************
+ * ALEXANDRA SEGÉDFÜGGVÉNYEK
+ *
+ * Ebben a fájlban kizárólag az Alexandra-specifikus keresési
+ * és termékoldal-feldolgozási függvények vannak.
+ *
+ * Ezeket használja:
+ * - lookupBookMetadata_()
+ * - lookupPublisherPages action a doGet(e) route-on keresztül
+ *
+ * A fájlban található függvények:
+ *
+ * 1. searchAlexandraByIsbn_(isbn)
+ *    - ISBN alapján keres Alexandra oldalon, majd az első termékoldalból könyvadatot készít.
+ *
+ * 2. searchAlexandraByTitleAuthor_(title, author)
+ *    - Cím+szerző alapján keres Alexandra oldalon, termék URL-eket gyűjt,
+ *      majd a termékoldalakat beágyazott parserlogikával feldolgozza.
+ *
+ * 3. parseAlexandraProductPage_(productUrl)
+ *   - Egy Alexandra termékoldal HTML-jéből egységes belső könyvtalálat objektumot készít.
+ ***********************************************************/
+
+/**
+ * Egy Alexandra termékoldal feldolgozása egységes belső könyvtalálat objektummá.
+ *
+ * Bemenet:
+ * - productUrl: Alexandra termékoldal URL
+ *
+ * Működés:
+ * - letölti a termékoldal HTML-jét
+ * - regexekkel kinyeri a fő könyvadatokat
+ * - az adatokat az alkalmazás közös lookup objektumformájára alakítja
+ *
+ * Kinyert mezők:
+ * - cím
+ * - szerző
+ * - kiadó
+ * - év
+ * - oldalszám
+ * - ISBN
+ * - borító URL
+ *
+ * Kimenet:
+ * - egységes belső könyvtalálat objektum
+ * - ha nincs cím, null
+ *
+ * Függőségek:
+ * - fetchPublisherHtml_()
+ * - extractFirstMatch_()
+ */
+function parseAlexandraProductPage_(productUrl) {
+  const productHtml = fetchPublisherHtml_(productUrl);
+
+const rawTitle =
+  extractFirstMatch_(productHtml, /<meta property="og:title" content="([^"]+)"/i) ||
+  extractFirstMatch_(productHtml, /<h1[^>]*>([\s\S]*?)<\/h1>/i);
+
+let title = rawTitle;
+let author =
+  extractFirstMatch_(productHtml, /Szerző[\s\S]{0,200}?<[^>]+>([\s\S]*?)<\/[^>]+>/i);
+
+const alexandraTitleMatch = String(rawTitle || "").match(
+  /^Könyv:\s*([^:]+):\s*(.+?)\s*-\s*Alexandra\.hu/i
+);
+
+if (alexandraTitleMatch) {
+  if (!author) {
+    author = alexandraTitleMatch[1].trim();
+  }
+
+  title = alexandraTitleMatch[2].trim();
+}
+
+  const publisher =
+    extractFirstMatch_(productHtml, /Kiadó[\s\S]{0,200}?<[^>]+>([\s\S]*?)<\/[^>]+>/i);
+
+  const year =
+    extractFirstMatch_(productHtml, /Kiadás éve[\s\S]{0,120}?([12][0-9]{3})/i);
+
+  const pageCount =
+    extractFirstMatch_(productHtml, /Oldalszám[\s\S]{0,120}?([0-9]+)/i);
+
+  const imageUrl =
+    extractFirstMatch_(productHtml, /<meta property="og:image" content="([^"]+)"/i);
+
+  const foundIsbn =
+    extractFirstMatch_(productHtml, /ISBN[\s\S]{0,120}?([0-9Xx\-]{10,20})/i);
+
+  if (!title) {
+    return null;
+  }
+
+  return {
+    source: "alexandra",
+    sourceId: productUrl,
+    title: title,
+    authors: author,
+    originalTitle: "",
+    previousTitle: "",
+    series: "",
+    number: "",
+    year: year,
+    location: "",
+    shelf: "",
+    pageCount: pageCount,
+    isbn: foundIsbn,
+    publisher: publisher,
+    translator: "",
+    genre: "",
+    coverUrl: imageUrl,
+    language: "hu"
+  };
+}
+/**
+ * Alexandra keresés ISBN alapján.
+ *
+ * Bemenet:
+ * - isbn: keresett ISBN
+ *
+ * Működés:
+ * - megtisztítja az ISBN-t, csak számokat és X karaktert hagyva
+ * - Alexandra keresési URL-t épít
+ * - letölti a keresési HTML-t
+ * - kinyeri az első Alexandra termékoldal URL-t
+ * - letölti a termékoldal HTML-jét
+ * - regexekkel kinyeri a fő könyvadatokat
+ *
+ * Kinyert mezők:
+ * - cím
+ * - szerző
+ * - kiadó
+ * - év
+ * - oldalszám
+ * - ISBN
+ * - borító URL
+ *
+ * Kimenet:
+ * - egy elemű Alexandra találatlista
+ * - üres lista, ha nincs ISBN, nincs termékoldal vagy nincs cím
+ *
+ * Függőségek:
+ * - fetchPublisherHtml_()
+ * - extractFirstMatch_()
+ */
+function searchAlexandraByIsbn_(isbn) {
+  const cleanIsbn = String(isbn || "").replace(/[^0-9Xx]/g, "");
+
+  if (!cleanIsbn) {
+    return [];
+  }
+
+  const searchUrl =
+    "https://alexandra.hu/kereses?kereses=" + encodeURIComponent(cleanIsbn);
+
+  const searchHtml = fetchPublisherHtml_(searchUrl);
+
+  const productMatch =
+    searchHtml.match(/https:\/\/alexandra\.hu\/konyv\/[^"' ]+/i);
+
+  if (!productMatch) {
+    return [];
+  }
+
+  const productUrl = productMatch[0];
+
+  const item = parseAlexandraProductPage_(productUrl);
+
+  if (!item) {
+    return [];
+  }
+
+  if (normalizeIsbnForCompare_(item.isbn) !== normalizeIsbnForCompare_(cleanIsbn)) {
+    return [];
+  }
+
+  return [item];
+}
+
+/**
+ * Alexandra keresés cím és szerző alapján.
+ *
+ * Bemenet:
+ * - title: keresett cím
+ * - author: keresett szerző
+ *
+ * Működés:
+ * - cím+szerző keresőkifejezést épít
+ * - letölti az Alexandra keresési HTML-t
+ * - termékoldal URL-eket gyűjt a keresési HTML-ből
+ * - URL-eket deduplikál
+ * - legfeljebb 5 termékoldalt dolgoz fel
+ * - minden termékoldalon beágyazott parserlogikával kinyeri a könyvadatokat
+ * - csak releváns cím/szerző találatokat tart meg
+ *
+ * Kimenet:
+ * - Alexandra találatok listája
+ *
+ * Fontos megjegyzés:
+ * - a termékoldal-feldolgozás jelenleg be van ágyazva ebbe a függvénybe
+ * - később külön, kis refaktorlépésben érdemes kivezetni
+ *   parseAlexandraProductPage_(productUrl) függvénybe
+ *
+ * Függőségek:
+ * - fetchPublisherHtml_()
+ * - extractFirstMatch_()
+ * - isRelevantTitleAuthorMatch_()
+ */
+function searchAlexandraByTitleAuthor_(title, author) {
+  const cleanTitle = String(title || "").trim();
+  const cleanAuthor = String(author || "").trim();
+
+  const query = [cleanTitle, cleanAuthor]
+    .filter(function (x) {
+      return x;
+    })
+    .join(" ")
+    .trim();
+
+  if (!query) {
+    return [];
+  }
+
+  const searchUrl =
+    "https://alexandra.hu/kereses?kereses=" + encodeURIComponent(query);
+
+  const searchHtml = fetchPublisherHtml_(searchUrl);
+
+  const matches = String(searchHtml || "").match(/https:\/\/alexandra\.hu\/konyv\/[^"' ]+/ig);
+
+  if (!matches || matches.length === 0) {
+    return [];
+  }
+
+  const uniqueUrls = [];
+  const seen = {};
+
+  matches.forEach(function (url) {
+    const cleanUrl = String(url || "")
+      .split("#")[0]
+      .split("?")[0];
+
+    if (!seen[cleanUrl]) {
+      seen[cleanUrl] = true;
+      uniqueUrls.push(cleanUrl);
+    }
+  });
+
+  const results = [];
+
+  uniqueUrls.slice(0, 5).forEach(function (productUrl) {
+    try {
+      const item = parseAlexandraProductPage_(productUrl);
+
+      if (!item) {
+        return;
+      }
+
+      if (!isRelevantTitleAuthorMatch_(item, cleanTitle, cleanAuthor)) {
+        return;
+      }
+
+      results.push(item);
+    } catch (err) {
+      // Egy hibás termékoldal ne állítsa le a teljes Alexandra keresést.
+    }
+  });
+
+  return results;
+}

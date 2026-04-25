@@ -1,0 +1,317 @@
+/***********************************************************
+ * BOOKLINE SEGÉDFÜGGVÉNYEK
+ *
+ * Ebben a fájlban kizárólag a Bookline-specifikus keresési,
+ * URL-építési és termékoldal-feldolgozási függvények vannak.
+ *
+ * Ezeket használja:
+ * - lookupBookMetadata_()
+ * - lookupPublisherPages action a doGet(e) route-on keresztül
+ *
+ * A fájlban található függvények:
+ *
+ * 1. parseBooklineProductPage_(productUrl)
+ *    - Egy Bookline termékoldal HTML-jéből egységes belső könyvtalálat objektumot készít.
+ *
+ * 2. slugifyBooklineVParam_(value)
+ *    - Szöveget Bookline _v URL-paraméterhez hasonló slug formára alakít.
+ *
+ * 3. buildBooklineCandidateUrls_(title, author)
+ *    - Cím és szerző alapján lehetséges Bookline termékoldal URL-eket generál fallbackként.
+ *
+ * 4. searchBooklineByIsbn_(isbn)
+ *    - ISBN alapján keres Bookline-on, majd az első termékoldalból könyvadatot készít.
+ *
+ * 5. searchBooklineByTitleAuthor_(title, author)
+ *    - Cím+szerző alapján keres Bookline-on, termékoldalakat gyűjt, majd feldolgozza őket.
+ ***********************************************************/
+
+/**
+ * Egy Bookline termékoldal feldolgozása egységes belső könyvtalálat objektummá.
+ *
+ * Bemenet:
+ * - productUrl: Bookline termékoldal URL
+ *
+ * Működés:
+ * - letölti a termékoldal HTML-jét
+ * - regexekkel kinyeri a fő könyvadatokat
+ * - tisztítja a címet, ha az elején szerepel a szerző neve
+ * - kiszűri a nyilvánvalóan hibás kiadóértékeket
+ *
+ * Kinyert mezők:
+ * - cím
+ * - szerző
+ * - eredeti cím
+ * - fordító
+ * - kiadó
+ * - kiadási év
+ * - oldalszám
+ * - ISBN
+ * - borító URL
+ *
+ * Kimenet:
+ * - egységes belső könyvtalálat objektum
+ * - ha nincs cím, null
+ *
+ * Függőségek:
+ * - fetchHtml_()
+ * - extractFirstMatch_()
+ */
+function parseBooklineProductPage_(productUrl) {
+  const productHtml = fetchHtml_(productUrl);
+
+  const title =
+    extractFirstMatch_(productHtml, /<meta property="og:title" content="([^"]+)"/i) ||
+    extractFirstMatch_(productHtml, /<h1[^>]*>([\s\S]*?)<\/h1>/i);
+
+  const author =
+    extractFirstMatch_(productHtml, /setTargeting\(['"]author['"],\s*['"]([^'"]+)['"]\)/i) ||
+    extractFirstMatch_(productHtml, /<meta name="author" content="([^"]+)"/i) ||
+    extractFirstMatch_(productHtml, /Szerző[\s\S]{0,300}?<a[^>]*>([\s\S]*?)<\/a>/i);
+
+  const publisherRaw =
+    extractFirstMatch_(productHtml, /<a[^>]*class=["'][^"']*c-product__publisher[^"']*["'][^>]*>([\s\S]*?)<\/a>/i);
+
+  const publisher = String(publisherRaw || "")
+    .replace(/,\s*[12][0-9]{3}\s*$/, "")
+    .trim();
+
+  const year =
+    String(publisherRaw || "").match(/\b(1[0-9]{3}|20[0-9]{2}|2100)\b/)?.[1] || "";
+
+  const pageCount =
+    extractFirstMatch_(productHtml, /([0-9]{1,5})\s*oldal\s*･\s*[^･<]*ISBN/i) ||
+    extractFirstMatch_(productHtml, /<li>\s*([0-9]{1,5})\s*oldal\s*<\/li>/i) ||
+    extractFirstMatch_(productHtml, /Oldalak száma[\s\S]{0,160}?([0-9]+)/i);
+
+  const imageUrl =
+    extractFirstMatch_(productHtml, /<meta property="og:image" content="([^"]+)"/i);
+
+  const foundIsbn =
+    extractFirstMatch_(productHtml, /ISBN[\s\S]{0,200}?([0-9Xx\-]{10,20})/i);
+
+  const originalTitle =
+    extractFirstMatch_(productHtml, /Eredeti cím:\s*([^<]+)/i);
+
+  const translator =
+    extractFirstMatch_(productHtml, /Fordító:\s*<a[^>]*>([\s\S]*?)<\/a>/i);
+
+  if (!title) {
+    return null;
+  }
+
+  const cleanTitle = author && title.indexOf(author + ":") === 0
+    ? title.substring((author + ":").length).trim()
+    : title;
+
+  const cleanPublisher = /véleményt|értékelés|kosár|kedvencek|megosztás/i.test(String(publisher || ""))
+    ? ""
+    : publisher;
+
+  return {
+    source: "bookline",
+    sourceId: productUrl,
+    title: cleanTitle,
+    authors: author,
+    originalTitle: originalTitle,
+    previousTitle: "",
+    series: "",
+    number: "",
+    year: year,
+    location: "",
+    shelf: "",
+    pageCount: pageCount,
+    isbn: foundIsbn,
+    publisher: cleanPublisher,
+    translator: translator,
+    genre: "",
+    coverUrl: imageUrl,
+    language: "hu"
+  };
+}
+
+/**
+ * Szöveg átalakítása Bookline _v URL-paraméterhez hasonló slug formára.
+ *
+ * Bemenet:
+ * - value: cím vagy szerző szöveg
+ *
+ * Működés:
+ * - kisbetűsíti a szöveget
+ * - eltávolítja az ékezeteket
+ * - minden nem betű / nem szám karaktert aláhúzásra cserél
+ * - levágja a szélső aláhúzásokat
+ * - több egymás utáni aláhúzást egyre cserél
+ *
+ * Kimenet:
+ * - Bookline-kompatibilis slug-szerű string
+ *
+ * Példa:
+ * - "A Jefferson-kód" → "a_jefferson_kod"
+ * - "Steve Berry" → "steve_berry"
+ */
+function slugifyBooklineVParam_(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_");
+}
+
+/**
+ * Bookline fallback termékoldal URL-ek generálása cím és szerző alapján.
+ *
+ * Jelenlegi stratégia:
+ * - szándékosan nem generálunk közvetlen Bookline termékoldal URL-t
+ * - a korábbi fix id=307717 alapú fallback hibás Jefferson-kód találatokat okozott
+ * - a Bookline keresés csak a keresési HTML-ből kinyert valódi termékoldal-linkekkel dolgozhat
+ *
+ * Kimenet:
+ * - jelenleg mindig üres lista
+ *
+ * Megjegyzés:
+ * - a függvényt megtartjuk, mert a searchBooklineByTitleAuthor_() hívási helye számíthat rá
+ * - új fallback stratégia csak külön, teszttel igazolt lépésben vezethető be
+ */
+function buildBooklineCandidateUrls_(title, author) {
+  return [];
+}
+
+/**
+ * Bookline keresés ISBN alapján.
+ *
+ * Bemenet:
+ * - isbn: keresett ISBN
+ *
+ * Működés:
+ * - megtisztítja az ISBN-t, csak számokat és X karaktert hagyva
+ * - Bookline keresési URL-t épít
+ * - letölti a keresési oldalt
+ * - kinyeri az első Bookline termékoldal URL-t
+ * - letölti a termékoldalt
+ * - kinyeri a fő könyvadatokat
+ *
+ * Kimenet:
+ * - egy elemű könyvtalálat lista
+ * - üres lista, ha nincs ISBN, nincs termékoldal vagy nincs cím
+ *
+ * Megjegyzés:
+ * - ez a függvény önállóan parse-ol, nem a parseBooklineProductPage_()
+ *   függvényt hívja; ezt most még nem refaktoráljuk, csak áthelyezzük.
+ *
+ * Függőségek:
+ * - fetchHtml_()
+ * - extractFirstMatch_()
+ */
+function searchBooklineByIsbn_(isbn) {
+  const cleanIsbn = String(isbn || "").replace(/[^0-9Xx]/g, "");
+
+  if (!cleanIsbn) {
+    return [];
+  }
+
+  const searchUrl = "https://bookline.hu/search/search.action?desc=" + encodeURIComponent(cleanIsbn);
+  const searchHtml = fetchHtml_(searchUrl);
+
+  const productMatch = searchHtml.match(/https:\/\/bookline\.hu\/product\/home\.action\?_v=[^"' ]+/i);
+
+  if (!productMatch) {
+    return [];
+  }
+
+  const productUrl = productMatch[0];
+
+  const item = parseBooklineProductPage_(productUrl);
+
+  if (!item) {
+    return [];
+  }
+
+  return [item];
+
+}
+
+/**
+ * Bookline keresés cím és szerző alapján.
+ *
+ * Bemenet:
+ * - title: keresett cím
+ * - author: keresett szerző
+ *
+ * Működés:
+ * - cím+szerző keresőkifejezést épít
+ * - letölti a Bookline keresési HTML-t
+ * - megpróbál termékoldal URL-eket kinyerni
+ * - ha nincs találat a keresési HTML-ben, fallback URL-eket generál
+ * - legfeljebb 5 termékoldalt dolgoz fel
+ * - minden termékoldalt parseBooklineProductPage_() dolgoz fel
+ * - csak releváns cím/szerző találatokat tart meg
+ * - a végén ISBN vagy sourceId alapján deduplikál
+ *
+ * Kimenet:
+ * - Bookline találatok listája
+ *
+ * Függőségek:
+ * - fetchHtml_()
+ * - buildBooklineCandidateUrls_()
+ * - parseBooklineProductPage_()
+ * - isRelevantTitleAuthorMatch_()
+ * - dedupeItemsByIsbnOrSourceId_()
+ */
+function searchBooklineByTitleAuthor_(title, author) {
+  const cleanTitle = String(title || "").trim();
+  const cleanAuthor = String(author || "").trim();
+
+  const query = [cleanTitle, cleanAuthor]
+    .filter(function(x) {
+      return x;
+    })
+    .join(" ")
+    .trim();
+
+  if (!query) {
+    return [];
+  }
+
+  const searchUrl = "https://bookline.hu/search/search.action?desc=" + encodeURIComponent(query);
+  const searchHtml = fetchHtml_(searchUrl);
+
+  let productMatches = String(searchHtml || "").match(/https:\/\/bookline\.hu\/product\/home\.action\?_v=[^"' ]+/ig);
+
+  if (!productMatches || productMatches.length === 0) {
+    productMatches = buildBooklineCandidateUrls_(cleanTitle, cleanAuthor);
+  }
+
+  if (!productMatches || productMatches.length === 0) {
+    return [];
+  }
+
+  const uniqueUrls = [];
+  const seen = {};
+
+  productMatches.forEach(function(url) {
+    if (!seen[url]) {
+      seen[url] = true;
+      uniqueUrls.push(url);
+    }
+  });
+
+  const results = [];
+
+  uniqueUrls.slice(0, 5).forEach(function(productUrl) {
+    try {
+      const item = parseBooklineProductPage_(productUrl);
+
+      if (item && isRelevantTitleAuthorMatch_(item, cleanTitle, cleanAuthor)) {
+        results.push(item);
+      }
+    } catch (err) {
+      // Egy hibás Bookline termékoldal ne állítsa meg a teljes Bookline keresést.
+    }
+  });
+
+  return dedupeItemsByIsbnOrSourceId_(results);
+}

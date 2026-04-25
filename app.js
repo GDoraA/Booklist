@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbwxLGEYTmkzZ0G-6Npm_pFMf-yCHuDiHwEC1t14UlMHXcWdnovv_CqIb1cVM3qTTAlfig/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzCE9WBTX9EZhvqwxvLQj39fluAlQpwh-DphKKByOQ4pNLON1FSYiJsD73FRHpf-8NzPA/exec";
 const GOOGLE_BOOKS_API_KEY = "AIzaSyA-OgB7xZn15ITtZkzeaLO8k8gvxODyKtM";
 const GOOGLE_BOOKS_MAX_RESULTS = 10;
 /********** LOGIN ÁLLAPOT **********/

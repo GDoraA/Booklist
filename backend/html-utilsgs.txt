@@ -1,0 +1,277 @@
+/***********************************************************
+ * HTML SEGÉDFÜGGVÉNYEK
+ *
+ * Ebben a fájlban kizárólag a külső HTML oldalak
+ * letöltéséhez és egyszerű feldolgozásához szükséges
+ * közös helper függvények vannak.
+ *
+ * Ezeket használják többek között:
+ * - Bookline keresés és termékoldal parser
+ * - Libri keresés és termékoldal parser
+ * - Alexandra keresés és termékoldal parser
+ *
+ * A fájlban található függvények:
+ *
+ * 1. fetchPublisherHtml_(url)
+ *    - Külső kiadói / webshop HTML oldal letöltése.
+ *
+ * 2. fetchFirstAvailablePublisherHtml_(urls)
+ *    - Több URL közül az első sikeresen letölthető HTML-t adja vissza.
+ *
+ * 3. fetchHtml_(url)
+ *    - Általános HTML-letöltő helper; a meglévő Bookline kód ezt hívja.
+ *
+ * 4. stripHtml_(html)
+ *    - HTML tagek eltávolítása és whitespace-ek normalizálása.
+ *
+ * 5. decodeHtmlEntities_(text)
+ *    - Alap HTML entitások visszaalakítása normál karakterekké.
+ *
+ * 6. extractFirstMatch_(html, regex)
+ *    - Egy regex első capture groupját kinyeri, HTML-teleníti és dekódolja.
+ ***********************************************************/
+/**
+ * Külső kiadói / webshop HTML oldal letöltése.
+ *
+ * Bemenet:
+ * - url: a letöltendő oldal teljes URL-je
+ *
+ * Működés:
+ * - UrlFetchApp.fetch() segítségével lekéri az oldalt
+ * - böngészőszerű User-Agent fejlécet küld
+ * - muteHttpExceptions: true miatt a nem 2xx válaszokat is kézzel kezeli
+ *
+ * Kimenet:
+ * - sikeres 2xx HTTP válasz esetén a HTML szöveg
+ *
+ * Hibakezelés:
+ * - ha a HTTP státusz nem 2xx, hibát dob
+ *
+ * Felhasználás:
+ * - elsősorban Bookline / Libri / Alexandra oldalak letöltésére
+ */
+function fetchPublisherHtml_(url) {
+  const response = UrlFetchApp.fetch(url, {
+    muteHttpExceptions: true,
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; GDAKonyvek/1.0; +mailto:galbacsdori@gmail.com)"
+    }
+  });
+
+  const code = response.getResponseCode();
+  const html = response.getContentText("UTF-8");
+
+  if (code < 200 || code >= 300) {
+    throw new Error("Kiadói oldal letöltési hiba: " + code + " - " + url);
+  }
+
+  return html;
+}
+/**
+ * Libri HTML oldal letöltése explicit ISO-8859-2 dekódolással.
+ *
+ * Cél:
+ * - a Libri termékoldalak magyar ékezetes karaktereinek helyes kezelése
+ *
+ * Miért külön helper:
+ * - a Libri HTML charset deklarációja ISO-8859-2
+ * - a sima response.getContentText() / UTF-8 dekódolás sérült karaktereket adhat
+ * - nem módosítjuk ezzel a Bookline és Alexandra letöltést
+ *
+ * Bemenet:
+ * - url: Libri termékoldal URL
+ *
+ * Kimenet:
+ * - helyesen dekódolt HTML szöveg
+ */
+function fetchLibriHtml_(url) {
+  const response = UrlFetchApp.fetch(url, {
+    muteHttpExceptions: true,
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; GDAKonyvek/1.0; +mailto:galbacsdori@gmail.com)"
+    }
+  });
+
+  const code = response.getResponseCode();
+
+  if (code < 200 || code >= 300) {
+    throw new Error("Kiadói oldal letöltési hiba: " + code + " - " + url);
+  }
+
+  return response.getBlob().getDataAsString("ISO-8859-2");
+}
+/**
+ * Több lehetséges HTML URL közül az első sikeresen letölthetőt adja vissza.
+ *
+ * Bemenet:
+ * - urls: URL-ek listája
+ *
+ * Működés:
+ * - sorban megpróbálja letölteni az URL-eket
+ * - ha egy URL 404 hibát ad, továbbmegy a következőre
+ * - ha más típusú hiba történik, azt továbbdobja
+ *
+ * Kimenet:
+ * - siker esetén:
+ *   {
+ *     url: "...",
+ *     html: "..."
+ *   }
+ *
+ * - ha egyik URL sem tölthető:
+ *   {
+ *     url: "",
+ *     html: "",
+ *     error: "..."
+ *   }
+ *
+ * Függőségek:
+ * - fetchPublisherHtml_()
+ */
+function fetchFirstAvailablePublisherHtml_(urls) {
+  let lastError = "";
+
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
+
+    try {
+      return {
+        url: url,
+        html: fetchPublisherHtml_(url)
+      };
+    } catch (err) {
+      lastError = err && err.message ? err.message : String(err);
+
+      if (lastError.indexOf("Kiadói oldal letöltési hiba: 404") !== -1) {
+        continue;
+      }
+
+      throw err;
+    }
+  }
+
+  return {
+    url: "",
+    html: "",
+    error: lastError
+  };
+}
+
+/**
+ * Általános HTML-letöltő helper.
+ *
+ * Bemenet:
+ * - url: a letöltendő oldal teljes URL-je
+ *
+ * Működés:
+ * - UrlFetchApp.fetch() segítségével lekéri az oldalt
+ * - böngészőszerű User-Agent fejlécet küld
+ * - nem 2xx HTTP válasz esetén hibát dob
+ *
+ * Kimenet:
+ * - HTML szöveg
+ *
+ * Megjegyzés:
+ * - szerepe nagyon hasonló a fetchPublisherHtml_() függvényhez
+ * - egyelőre megtartjuk külön néven, mert a meglévő Bookline kód ezt hívja
+ */
+function fetchHtml_(url) {
+  const response = UrlFetchApp.fetch(url, {
+    muteHttpExceptions: true,
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; GDAKonyvek/1.0; +mailto:galbacsdori@gmail.com)"
+    }
+  });
+
+  const code = response.getResponseCode();
+  const html = response.getContentText("UTF-8");
+
+  if (code < 200 || code >= 300) {
+    throw new Error("HTML fetch hiba: " + code + " - " + url);
+  }
+
+  return html;
+}
+
+/**
+ * HTML szöveg egyszerű tisztítása.
+ *
+ * Bemenet:
+ * - html: HTML tartalom vagy HTML-részlet
+ *
+ * Működés:
+ * - eltávolítja a HTML tageket
+ * - az &nbsp; entitást szóközre cseréli
+ * - több whitespace karaktert egy szóközzé normalizál
+ * - levágja az elejéről és végéről a felesleges whitespace-t
+ *
+ * Kimenet:
+ * - tisztított, egyszerű szöveg
+ *
+ * Megjegyzés:
+ * - ez nem teljes HTML parser, csak egyszerű regex alapú tisztító
+ */
+function stripHtml_(html) {
+  return String(html || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Alap HTML entitások visszaalakítása karakterekké.
+ *
+ * Bemenet:
+ * - text: dekódolandó szöveg
+ *
+ * Működés:
+ * - a leggyakoribb HTML entitásokat normál karakterekre cseréli
+ *
+ * Kimenet:
+ * - dekódolt szöveg
+ *
+ * Kezelt entitások:
+ * - &amp;  → &
+ * - &quot; → "
+ * - &#39;  → '
+ * - &lt;   → <
+ * - &gt;   → >
+ */
+function decodeHtmlEntities_(text) {
+  return String(text || "")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+/**
+ * Egy regex első capture groupját kinyeri HTML-ből.
+ *
+ * Bemenet:
+ * - html: a vizsgált HTML szöveg
+ * - regex: reguláris kifejezés, amelynek az első capture groupja tartalmazza a keresett értéket
+ *
+ * Működés:
+ * - lefuttatja a regexet a HTML-en
+ * - ha van találat, az első capture groupot veszi ki
+ * - a kapott értéket HTML-teleníti
+ * - majd dekódolja az alap HTML entitásokat
+ *
+ * Kimenet:
+ * - megtalált és tisztított szöveg
+ * - ha nincs találat, üres string
+ *
+ * Függőségek:
+ * - stripHtml_()
+ * - decodeHtmlEntities_()
+ *
+ * Példa:
+ * - extractFirstMatch_(html, /<h1[^>]*>([\s\S]*?)<\/h1>/i)
+ */
+function extractFirstMatch_(html, regex) {
+  const m = String(html || "").match(regex);
+  return m ? decodeHtmlEntities_(stripHtml_(m[1])) : "";
+}

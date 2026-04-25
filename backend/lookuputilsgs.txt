@@ -1,0 +1,397 @@
+/***********************************************************
+ * LOOKUP SEGÉDFÜGGVÉNYEK
+ *
+ * Ebben a fájlban a könyvadat-kereséshez használt közös
+ * normalizáló, relevancia-ellenőrző, ISBN-szűrő, deduplikáló
+ * és pontozó helper függvények vannak.
+ *
+ * Ezeket használják többek között:
+ * - Google Books találatok pontozása
+ * - Open Library találatok pontozása
+ * - Bookline / Libri / Alexandra találatok szűrése
+ * - több forrásból érkező találatok deduplikálása
+ *
+ * A fájlban található függvények:
+ *
+ * 1. normalizeText_(value)
+ *    - Szöveget kisbetűssé, ékezetmentessé és trimeltté alakít.
+ *
+ * 2. normalizeLooseMatch_(value)
+ *    - Erősen normalizált keresési kulcsot készít szóközök és írásjelek nélkül.
+ *
+ * 3. normalizeIsbnForCompare_(value)
+ *    - ISBN összehasonlításhoz csak számokat és X karaktert hagy meg.
+ *
+ * 4. isRelevantTitleAuthorMatch_(item, wantedTitle, wantedAuthor)
+ *    - Eldönti, hogy egy találat releváns-e a keresett címhez és/vagy szerzőhöz.
+ *
+ * 5. filterPublisherItemsByRequestedIsbn_(items, requestedIsbn)
+ *    - ISBN alapján kiszűri a nem egyező kiadói / webshop találatokat.
+ *
+ * 6. dedupeLookupCandidates_(items)
+ *    - Találatokat deduplikál cím + szerző + ISBN kombináció alapján.
+ *
+ * 7. dedupeItemsByIsbnOrSourceId_(items)
+ *    - Találatokat ISBN alapján, ISBN hiányában sourceId alapján deduplikál.
+ *
+ * 8. scoreLookupCandidate_(candidate, queryContext)
+ *    - Pontszámot ad egy könyvtalálatnak egyezés és adatkitöltöttség alapján.
+ ***********************************************************/
+
+/**
+ * Szöveg egyszerű normalizálása összehasonlításhoz.
+ *
+ * Bemenet:
+ * - value: tetszőleges érték, amelyet szövegként kell kezelni
+ *
+ * Működés:
+ * - stringgé alakítja az értéket
+ * - levágja az elejéről és végéről a whitespace-eket
+ * - kisbetűssé alakítja
+ * - eltávolítja az ékezeteket Unicode normalizálással
+ *
+ * Kimenet:
+ * - normalizált string
+ *
+ * Felhasználás:
+ * - címek, szerzők, ISBN-ek, nyelvek egyszerű összehasonlítása
+ */
+function normalizeText_(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+/**
+ * Szöveg erősen normalizált keresési kulccsá alakítása.
+ *
+ * Bemenet:
+ * - value: tetszőleges érték, amelyből laza összehasonlító kulcs készül
+ *
+ * Működés:
+ * - stringgé alakítja az értéket
+ * - levágja a szélső whitespace-eket
+ * - kisbetűssé alakítja
+ * - eltávolítja az ékezeteket
+ * - eltávolít minden nem betű / nem szám karaktert
+ *
+ * Kimenet:
+ * - erősen normalizált string
+ *
+ * Példa:
+ * - "A Jefferson-kód" → "ajeffersonkod"
+ *
+ * Felhasználás:
+ * - cím és szerző lazább egyeztetése webshop URL-ekkel vagy sourceId mezőkkel
+ */
+function normalizeLooseMatch_(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+/**
+ * ISBN normalizálása összehasonlításhoz.
+ *
+ * Bemenet:
+ * - value: ISBN vagy ISBN-szerű szöveg
+ *
+ * Működés:
+ * - eltávolít minden karaktert, ami nem szám vagy X/x
+ * - kisbetűsíti az eredményt
+ *
+ * Kimenet:
+ * - normalizált ISBN string
+ *
+ * Példa:
+ * - "978-963-406-690-3" → "9789634066903"
+ *
+ * Felhasználás:
+ * - ISBN találatok pontos összehasonlítása több forrás között
+ */
+function normalizeIsbnForCompare_(value) {
+  return String(value || "")
+    .replace(/[^0-9Xx]/g, "")
+    .toLowerCase();
+}
+
+/**
+ * Eldönti, hogy egy könyvtalálat releváns-e a keresett címhez és/vagy szerzőhöz.
+ *
+ * Bemenet:
+ * - item: egységes belső könyvtalálat objektum
+ * - wantedTitle: keresett cím
+ * - wantedAuthor: keresett szerző
+ *
+ * Működés:
+ * - normalizált és erősen normalizált kulcsokat képez
+ * - összeveti a keresett címet az item.title és item.sourceId értékeivel
+ * - összeveti a keresett szerzőt az item.authors és item.sourceId értékeivel
+ *
+ * Kimenet:
+ * - true, ha a találat relevánsnak tekinthető
+ * - false, ha nincs cím/szerző bemenet vagy nincs értelmezhető egyezés
+ *
+ * Megjegyzés:
+ * - ha cím és szerző is meg van adva, jelenleg elég az egyik egyezése
+ * - ez szándékosan megengedőbb logika a webshop HTML találatok miatt
+ *
+ * Függőségek:
+ * - normalizeText_()
+ * - normalizeLooseMatch_()
+ */
+function isRelevantTitleAuthorMatch_(item, wantedTitle, wantedAuthor) {
+  const wantedTitleNorm = normalizeText_(wantedTitle);
+  const wantedAuthorNorm = normalizeText_(wantedAuthor);
+
+  const itemTitleNorm = normalizeText_(item && item.title);
+  const itemAuthorsNorm = normalizeText_(item && item.authors);
+  const itemSourceIdNorm = normalizeText_(item && item.sourceId);
+
+  const wantedTitleLoose = normalizeLooseMatch_(wantedTitle);
+  const wantedAuthorLoose = normalizeLooseMatch_(wantedAuthor);
+
+  const itemTitleLoose = normalizeLooseMatch_(item && item.title);
+  const itemAuthorsLoose = normalizeLooseMatch_(item && item.authors);
+  const itemSourceIdLoose = normalizeLooseMatch_(item && item.sourceId);
+
+  if (!wantedTitleNorm && !wantedAuthorNorm) {
+    return false;
+  }
+
+  let titleMatches = false;
+  let authorMatches = false;
+
+  if (wantedTitleNorm) {
+    titleMatches =
+      itemTitleNorm.indexOf(wantedTitleNorm) !== -1 ||
+      wantedTitleNorm.indexOf(itemTitleNorm) !== -1 ||
+      itemSourceIdNorm.indexOf(wantedTitleNorm) !== -1 ||
+      itemTitleLoose.indexOf(wantedTitleLoose) !== -1 ||
+      itemSourceIdLoose.indexOf(wantedTitleLoose) !== -1;
+  }
+
+  if (wantedAuthorNorm) {
+    authorMatches =
+      itemAuthorsNorm.indexOf(wantedAuthorNorm) !== -1 ||
+      itemSourceIdNorm.indexOf(wantedAuthorNorm) !== -1 ||
+      itemAuthorsLoose.indexOf(wantedAuthorLoose) !== -1 ||
+      itemSourceIdLoose.indexOf(wantedAuthorLoose) !== -1;
+  }
+
+  if (wantedTitleNorm && wantedAuthorNorm) {
+    return titleMatches || authorMatches;
+  }
+
+  return titleMatches || authorMatches;
+}
+
+/**
+ * Webshop / kiadói találatok szűrése a kért ISBN alapján.
+ *
+ * Bemenet:
+ * - items: könyvtalálat objektumok listája
+ * - requestedIsbn: a felhasználó által keresett ISBN
+ *
+ * Működés:
+ * - normalizálja a kért ISBN-t
+ * - normalizálja minden találat ISBN-jét
+ * - csak a pontosan egyező ISBN-ű találatokat tartja meg
+ *
+ * Kimenet:
+ * - szűrt találatlista
+ *
+ * Megjegyzés:
+ * - ha nincs kért ISBN, változatlanul visszaadja az eredeti listát
+ * - ha egy találatnak nincs ISBN-je ISBN keresésnél, azt kiszűri
+ *
+ * Függőségek:
+ * - normalizeIsbnForCompare_()
+ */
+function filterPublisherItemsByRequestedIsbn_(items, requestedIsbn) {
+  const wanted = normalizeIsbnForCompare_(requestedIsbn);
+
+  if (!wanted) {
+    return items || [];
+  }
+
+  return (items || []).filter(function(item) {
+    const found = normalizeIsbnForCompare_(item && item.isbn);
+
+    if (!found) {
+      return false;
+    }
+
+    return found === wanted;
+  });
+}
+
+/**
+ * Több forrásból érkező könyvtalálatok deduplikálása.
+ *
+ * Bemenet:
+ * - items: könyvtalálat objektumok listája
+ *
+ * Működés:
+ * - minden találathoz kulcsot képez:
+ *   cím + szerző + ISBN
+ * - a kulcsot normalizált értékekből állítja elő
+ * - az első előfordulást megtartja
+ * - az azonos kulcsú későbbi találatokat eldobja
+ *
+ * Kimenet:
+ * - deduplikált találatlista
+ *
+ * Függőségek:
+ * - normalizeText_()
+ */
+function dedupeLookupCandidates_(items) {
+  const seen = {};
+  const result = [];
+
+  items.forEach(item => {
+    const key = [
+      normalizeText_(item.title),
+      normalizeText_(item.authors),
+      normalizeText_(item.isbn)
+    ].join("|");
+
+    if (!seen[key]) {
+      seen[key] = true;
+      result.push(item);
+    }
+  });
+
+  return result;
+}
+
+/**
+ * Webshop találatok deduplikálása ISBN vagy sourceId alapján.
+ *
+ * Bemenet:
+ * - items: könyvtalálat objektumok listája
+ *
+ * Működés:
+ * - ha van ISBN, abból képez deduplikációs kulcsot
+ * - ha nincs ISBN, akkor a sourceId mezőt használja
+ * - az első előfordulást megtartja
+ * - az azonos kulcsú későbbi találatokat eldobja
+ *
+ * Kimenet:
+ * - deduplikált találatlista
+ *
+ * Felhasználás:
+ * - Bookline / Libri / Alexandra termékoldal találatok szűrése
+ *
+ * Függőségek:
+ * - normalizeIsbnForCompare_()
+ */
+function dedupeItemsByIsbnOrSourceId_(items) {
+  const seen = {};
+  const result = [];
+
+  (items || []).forEach(function(item) {
+    const isbnKey = normalizeIsbnForCompare_(item && item.isbn);
+    const sourceIdKey = String((item && item.sourceId) || "")
+      .trim()
+      .toLowerCase();
+
+    const key = isbnKey ? "isbn:" + isbnKey : "source:" + sourceIdKey;
+
+    if (!key || seen[key]) {
+      return;
+    }
+
+    seen[key] = true;
+    result.push(item);
+  });
+
+  return result;
+}
+
+/**
+ * Könyvtalálat pontozása a keresési kontextus alapján.
+ *
+ * Bemenet:
+ * - candidate: egységes belső könyvtalálat objektum
+ * - queryContext: keresési kontextus
+ *   {
+ *     isbn: "...",
+ *     title: "...",
+ *     author: "..."
+ *   }
+ *
+ * Működés:
+ * - ISBN keresésnél a pontos ISBN egyezést nagyon magas ponttal jutalmazza
+ * - cím+szerző keresésnél a pontos vagy részleges cím/szerző egyezést pontozza
+ * - magyar nyelvű találat plusz pontot kap
+ * - kitöltött borító, kiadó, oldalszám és év plusz pontot kap
+ *
+ * Kimenet:
+ * - numerikus pontszám
+ *
+ * Felhasználás:
+ * - lookupBookMetadata_() a találatok rendezéséhez
+ *
+ * Függőségek:
+ * - normalizeText_()
+ */
+function scoreLookupCandidate_(candidate, queryContext) {
+  let score = 0;
+
+  const wantedIsbn = normalizeText_(queryContext.isbn);
+  const wantedTitle = normalizeText_(queryContext.title);
+  const wantedAuthor = normalizeText_(queryContext.author);
+
+  const candidateIsbn = normalizeText_(candidate.isbn);
+  const candidateTitle = normalizeText_(candidate.title);
+  const candidateAuthors = normalizeText_(candidate.authors);
+  const candidateLanguage = normalizeText_(candidate.language);
+
+  if (wantedIsbn) {
+    if (candidateIsbn && candidateIsbn === wantedIsbn) {
+      score += 1000;
+    }
+
+    if (candidate.source === "google_books") {
+      score += 50;
+    }
+  } else {
+    if (wantedTitle && candidateTitle === wantedTitle) {
+      score += 300;
+    } else if (wantedTitle && candidateTitle.includes(wantedTitle)) {
+      score += 180;
+    }
+
+    if (wantedAuthor && candidateAuthors.includes(wantedAuthor)) {
+      score += 180;
+    }
+  }
+
+  if (candidateLanguage === "hu" || candidateLanguage === "hun") {
+    score += 120;
+  }
+
+  if (candidate.coverUrl) {
+    score += 20;
+  }
+
+  if (candidate.publisher) {
+    score += 15;
+  }
+
+  if (candidate.pageCount) {
+    score += 15;
+  }
+
+  if (candidate.year) {
+    score += 10;
+  }
+
+  return score;
+}

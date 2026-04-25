@@ -1,0 +1,783 @@
+/***********************************************************
+ * LIBRI SEGÉDFÜGGVÉNYEK
+ *
+ * Ebben a fájlban kizárólag a Libri-specifikus keresési,
+ * URL-építési, URL-kinyerési, találatvalidálási és
+ * termékoldal-feldolgozási függvények vannak.
+ *
+ * Ezeket használja:
+ * - lookupBookMetadata_()
+ * - lookupPublisherPages action a doGet(e) route-on keresztül
+ *
+ * A fájlban található függvények:
+ *
+ * 1. parseLibriProductPage_(productUrl)
+ *    - Egy Libri termékoldal HTML-jéből egységes belső könyvtalálat objektumot készít.
+ *
+ * 2. isValidLibriProductItem_(item)
+ *    - Ellenőrzi, hogy egy Libri találat használható-e.
+ *
+ * 3. searchLibriByIsbn_(isbn)
+ *    - ISBN alapján keres a Libri oldalán.
+ *
+ * 4. extractLibriProductUrls_(html)
+ *    - Libri keresési HTML-ből termékoldal URL-eket nyer ki.
+ *
+ * 5. slugifyLibriPart_(value)
+ *    - Szöveget Libri URL slug részévé alakít.
+ *
+ * 6. buildLibriCandidateUrls_(title, author)
+ *    - Cím+szerző alapján lehetséges Libri termékoldal URL-eket generál fallbackként.
+ *
+ * 7. searchLibriProductUrlsViaGoogle_(title, author)
+ *    - Google keresési HTML-ből próbál Libri termékoldal URL-eket kinyerni.
+ *
+ * 8. searchLibriByTitleAuthor_(title, author)
+ *    - Cím+szerző alapján több Libri keresési URL-t próbál, majd termékoldalakat dolgoz fel.
+ ***********************************************************/
+
+/**
+ * Egy Libri termékoldal feldolgozása egységes belső könyvtalálat objektummá.
+ *
+ * Bemenet:
+ * - productUrl: Libri termékoldal URL
+ *
+ * Működés:
+ * - letölti a termékoldal HTML-jét
+ * - regexekkel kinyeri a fő könyvadatokat
+ * - az adatokat az alkalmazás közös lookup objektumformájára alakítja
+ *
+ * Kinyert mezők:
+ * - cím
+ * - szerző
+ * - kiadó
+ * - év
+ * - oldalszám
+ * - ISBN
+ * - borító URL
+ *
+ * Kimenet:
+ * - egységes belső könyvtalálat objektum
+ * - ha nincs cím, null
+ *
+ * Függőségek:
+ * - fetchPublisherHtml_()
+ * - extractFirstMatch_()
+ */
+function escapeRegExp_(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Egy Libri datas táblamező értékének kinyerése.
+ *
+ * A Libri termékoldalon a termékadatok jellemzően ilyen formában vannak:
+ *
+ * <div class="datas">
+ *   <table>
+ *     <tr><th>Kiadó</th><td>...</td></tr>
+ *     <tr><th>Kiadás éve</th><td>2018</td></tr>
+ *     <tr><th>Nyelv</th><td>MAGYAR</td></tr>
+ *     <tr><th>Oldalak száma:</th><td>576</td></tr>
+ *     <tr><th>Fordító</th><td>Lantos István</td></tr>
+ *     <tr><th>ISBN</th><td>9789634066903</td></tr>
+ *   </table>
+ * </div>
+ *
+ * Bemenet:
+ * - html: Libri termékoldal HTML-je
+ * - fieldName: keresett mezőnév, például:
+ *   - "Kiadó"
+ *   - "Kiadás éve"
+ *   - "Oldalak száma"
+ *   - "Fordító"
+ *   - "ISBN"
+ *   - "Nyelv"
+ *
+ * Kimenet:
+ * - a hozzá tartozó <td> tisztított szövege
+ * - ha nincs találat, üres string
+ */
+function extractLibriDatasField_(html, fieldName) {
+  const text = String(html || "");
+  const wanted = String(fieldName || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/:$/, "");
+
+  if (!wanted) {
+    return "";
+  }
+
+  const datasMatch = text.match(/<div[^>]*class=["'][^"']*\bdatas\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+  const source = datasMatch && datasMatch[1] ? datasMatch[1] : text;
+
+  const rowRegex = /<tr[^>]*>\s*<th[^>]*>([\s\S]*?)<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/ig;
+  let match;
+
+  while ((match = rowRegex.exec(source)) !== null) {
+    const rawLabel = stripHtml_(match[1]);
+    const normalizedLabel = String(rawLabel || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/:$/, "");
+
+    if (normalizedLabel === wanted) {
+      return decodeHtmlEntities_(stripHtml_(match[2]))
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+  }
+
+  return "";
+}
+
+function normalizeLibriLanguage_(value) {
+  const v = String(value || "").trim().toLowerCase();
+
+  if (!v) {
+    return "";
+  }
+
+  if (v === "magyar" || v === "hu" || v === "hun") {
+    return "hu";
+  }
+
+  return v;
+}
+function parseLibriProductPage_(productUrl) {
+  const productHtml = fetchLibriHtml_(productUrl);
+
+  const title =
+    extractFirstMatch_(productHtml, /<h1[^>]*itemprop=["']name["'][^>]*>([\s\S]*?)<\/h1>/i) ||
+    extractFirstMatch_(productHtml, /<h1[^>]*class=["'][^"']*h2[^"']*mb-2[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i) ||
+    extractFirstMatch_(productHtml, /<meta property="og:title" content="([^"]+)"/i);
+
+  const author =
+    extractFirstMatch_(productHtml, /<p[^>]*class=["'][^"']*author[^"']*["'][\s\S]{0,500}?<a[^>]*itemprop=["']name["'][^>]*>([\s\S]*?)<\/a>/i) ||
+    extractFirstMatch_(productHtml, /<a[^>]*href=["']\/szerzok\/[^"']+["'][^>]*itemprop=["']name["'][^>]*>([\s\S]*?)<\/a>/i) ||
+    "";
+
+  if (!title) {
+    return null;
+  }
+
+  let cleanTitle = String(title || "").trim();
+
+  if (author) {
+    const escapedAuthor = String(author)
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    cleanTitle = cleanTitle
+      .replace(new RegExp("\\s*\\(" + escapedAuthor + "\\)\\s*$", "i"), "")
+      .trim();
+  }
+
+  const publisher =
+    extractLibriDatasField_(productHtml, "Kiadó") ||
+    "";
+
+  const year =
+    extractLibriDatasField_(productHtml, "Kiadás éve") ||
+    "";
+
+  const pageCount =
+    extractLibriDatasField_(productHtml, "Oldalak száma") ||
+    "";
+
+  const foundIsbn =
+    extractLibriDatasField_(productHtml, "ISBN") ||
+    extractFirstMatch_(productHtml, /<meta property="og:isbn" content="([^"]+)"/i) ||
+    "";
+
+  const translator =
+    extractLibriDatasField_(productHtml, "Fordító") ||
+    "";
+
+  const language =
+    normalizeLibriLanguage_(
+      extractLibriDatasField_(productHtml, "Nyelv")
+    ) || "hu";
+
+  const imageUrl =
+    extractFirstMatch_(productHtml, /<meta property="og:image" content="([^"]+)"/i);
+
+  return {
+    source: "libri",
+    sourceId: productUrl,
+    title: cleanTitle,
+    authors: author,
+    originalTitle: "",
+    previousTitle: "",
+    series: "",
+    number: "",
+    year: year,
+    location: "",
+    shelf: "",
+    pageCount: pageCount,
+    isbn: foundIsbn,
+    publisher: publisher,
+    translator: translator,
+    genre: "",
+    coverUrl: imageUrl,
+    language: language
+  };
+}
+
+/**
+ * Libri találat validálása.
+ *
+ * Bemenet:
+ * - item: egységes belső könyvtalálat objektum
+ *
+ * Működés:
+ * - ellenőrzi, hogy létezik-e a találat
+ * - kötelezővé teszi az ISBN meglétét
+ * - kötelezővé teszi a borító URL meglétét
+ * - kiszűri a Libri megosztási logót tartalmazó álborítókat
+ * - kiszűr néhány nyilvánvalóan hibás gyűjtőoldal-jellegű találatot
+ *
+ * Kimenet:
+ * - true, ha a találat használható
+ * - false, ha nem használható
+ *
+ * Függőségek:
+ * - normalizeIsbnForCompare_()
+ */
+function isValidLibriProductItem_(item) {
+  if (!item) {
+    return false;
+  }
+
+  const title = String(item.title || "").toLowerCase();
+  const isbn = normalizeIsbnForCompare_(item.isbn);
+  const coverUrl = String(item.coverUrl || "").toLowerCase();
+
+  if (!isbn) {
+    return false;
+  }
+
+  if (!coverUrl) {
+    return false;
+  }
+
+  if (coverUrl.indexOf("libri_logo_toshare") !== -1) {
+    return false;
+  }
+
+  if (title.indexOf("krimi") !== -1 && title.indexOf("könyv") !== -1 && title.indexOf("oldal") !== -1) {
+    return false;
+  }
+
+  if (title.indexOf("konyv") !== -1 && title.indexOf("oldal") !== -1 && !isbn) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Libri keresés ISBN alapján.
+ *
+ * Bemenet:
+ * - isbn: keresett ISBN
+ *
+ * Működés:
+ * - megtisztítja az ISBN-t
+ * - Libri keresési URL-t épít
+ * - letölti a keresési HTML-t
+ * - 404 esetén nem áll le hibával, hanem üres találatot ad vissza
+ * - kinyeri az első Libri termékoldal URL-t
+ * - letölti a termékoldalt
+ * - kinyeri a fő könyvadatokat
+ *
+ * Kimenet:
+ * - egy elemű Libri találatlista
+ * - üres lista, ha nincs ISBN, nincs termékoldal vagy nincs cím
+ *
+ * Megjegyzés:
+ * - ez a függvény jelenleg önállóan parse-ol, nem a parseLibriProductPage_()
+ *   függvényt hívja. Ezt most még nem refaktoráljuk.
+ *
+ * Függőségek:
+ * - fetchPublisherHtml_()
+ * - extractFirstMatch_()
+ */
+function searchLibriByIsbn_(isbn) {
+  const cleanIsbn = String(isbn || "").replace(/[^0-9Xx]/g, "");
+
+  if (!cleanIsbn) {
+    return [];
+  }
+
+  const searchUrl =
+    "https://www.libri.hu/kereses/?q=" + encodeURIComponent(cleanIsbn);
+
+  let searchHtml = "";
+
+  try {
+    searchHtml = fetchPublisherHtml_(searchUrl);
+  } catch (err) {
+    const msg = err && err.message ? err.message : String(err);
+
+    if (msg.indexOf("Kiadói oldal letöltési hiba: 404") !== -1) {
+      searchHtml = "";
+    } else {
+      throw err;
+    }
+  }
+
+  if (!searchHtml) {
+    return [];
+  }
+
+  const productMatch =
+    searchHtml.match(/https:\/\/www\.libri\.hu\/konyv\/[^"' ]+/i);
+
+  if (!productMatch) {
+    return [];
+  }
+
+  const productUrl = productMatch[0];
+
+  const item = parseLibriProductPage_(productUrl);
+
+  if (!item) {
+    return [];
+  }
+
+  return [item];
+
+}
+
+/**
+ * Libri termékoldal URL-ek kinyerése keresési HTML-ből.
+ *
+ * Bemenet:
+ * - html: Libri keresési oldal HTML-je
+ *
+ * Működés:
+ * - href attribútumokból és abszolút URL szövegekből is próbál URL-eket kinyerni
+ * - relatív /konyv/ URL-eket abszolút URL-re alakít
+ * - csak https://www.libri.hu/konyv/ kezdetű URL-eket tart meg
+ * - csak .html végű termékoldalakat tart meg
+ * - duplikált URL-eket kiszűr
+ *
+ * Kimenet:
+ * - Libri termékoldal URL-ek listája
+ */
+function extractLibriProductUrls_(html) {
+  const text = String(html || "");
+  const urls = [];
+  const seen = {};
+
+  function addUrl(url) {
+    const clean = String(url || "")
+      .replace(/&amp;/g, "&")
+      .split("#")[0]
+      .split("?")[0]
+      .trim();
+
+    if (!clean) {
+      return;
+    }
+
+    let absolute = clean;
+
+    if (absolute.indexOf("//www.libri.hu/konyv/") === 0) {
+      absolute = "https:" + absolute;
+    } else if (absolute.indexOf("/konyv/") === 0) {
+      absolute = "https://www.libri.hu" + absolute;
+    }
+
+    if (absolute.indexOf("https://www.libri.hu/konyv/") !== 0) {
+      return;
+    }
+
+    if (!/\.html$/i.test(absolute)) {
+      return;
+    }
+
+    if (!seen[absolute]) {
+      seen[absolute] = true;
+      urls.push(absolute);
+    }
+  }
+
+  let m;
+
+  const hrefRegex = /href=["']([^"']*\/konyv\/[^"']+\.html[^"']*)["']/ig;
+  while ((m = hrefRegex.exec(text)) !== null) {
+    addUrl(m[1]);
+  }
+
+  const absoluteRegex = /https:\/\/www\.libri\.hu\/konyv\/[^"' <]+\.html/ig;
+  while ((m = absoluteRegex.exec(text)) !== null) {
+    addUrl(m[0]);
+  }
+
+  return urls;
+}
+
+/**
+ * Szöveg Libri URL slug részévé alakítása.
+ *
+ * Bemenet:
+ * - value: cím vagy szerző
+ *
+ * Működés:
+ * - kisbetűsíti
+ * - eltávolítja az ékezeteket
+ * - nem betű / nem szám karaktereket kötőjelre cserél
+ * - levágja a szélső kötőjeleket
+ *
+ * Kimenet:
+ * - Libri URL-ben használható slug-szerű string
+ *
+ * Példa:
+ * - "A Jefferson-kód" → "a-jefferson-kod"
+ */
+function slugifyLibriPart_(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ő/g, "o")
+    .replace(/ű/g, "u")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Lehetséges Libri termékoldal URL-ek generálása cím és szerző alapján.
+ *
+ * Bemenet:
+ * - title: könyvcím
+ * - author: szerző
+ *
+ * Működés:
+ * - slugot készít a címből és szerzőből
+ * - a szerző slugban a kötőjeleket aláhúzásra cseréli,
+ *   mert a Libri URL-ekben gyakran így szerepelnek a szerzőnevek
+ * - több gyakori URL-változatot generál:
+ *   - alap .html
+ *   - --1.html
+ *   - --2.html
+ *   - --3.html
+ * - duplikált URL-t nem vesz fel kétszer
+ *
+ * Kimenet:
+ * - lehetséges Libri termékoldal URL-ek listája
+ *
+ * Függőségek:
+ * - slugifyLibriPart_()
+ */
+function buildLibriCandidateUrls_(title, author) {
+  const titleSlug = slugifyLibriPart_(title);
+  const authorSlugDash = slugifyLibriPart_(author);
+  const authorSlugUnderscore = authorSlugDash.replace(/-/g, "_");
+
+  if (!titleSlug) {
+    return [];
+  }
+
+  const urls = [];
+  const seen = {};
+
+  function add(path) {
+    const url = "https://www.libri.hu/konyv/" + path;
+
+    if (!seen[url]) {
+      seen[url] = true;
+      urls.push(url);
+    }
+  }
+
+  if (authorSlugUnderscore) {
+    add(authorSlugUnderscore + "." + titleSlug + ".html");
+    add(authorSlugUnderscore + "." + titleSlug + "--1.html");
+    add(authorSlugUnderscore + "." + titleSlug + "--2.html");
+    add(authorSlugUnderscore + "." + titleSlug + "--3.html");
+  }
+
+  add(titleSlug + ".html");
+  add(titleSlug + "--1.html");
+  add(titleSlug + "--2.html");
+  add(titleSlug + "--3.html");
+
+  return urls;
+}
+
+/**
+ * Libri termékoldal URL-ek keresése Google találati HTML-ből.
+ *
+ * Bemenet:
+ * - title: keresett cím
+ * - author: keresett szerző
+ *
+ * Működés:
+ * - Google keresési URL-t épít site:libri.hu/konyv szűréssel
+ * - letölti a Google találati HTML-t
+ * - megpróbál közvetlen Libri termékoldal URL-eket kinyerni
+ * - Google redirect URL-ekből is próbálja kinyerni a q paraméterben lévő Libri URL-t
+ * - csak valódi Libri /konyv/ .html URL-eket tart meg
+ * - legfeljebb 5 URL-t ad vissza
+ *
+ * Kimenet:
+ * - Libri termékoldal URL-ek listája
+ *
+ * Megjegyzés:
+ * - ha a Google HTML letöltése hibázik, üres listát ad vissza
+ *
+ * Függőségek:
+ * - fetchPublisherHtml_()
+ */
+function searchLibriProductUrlsViaGoogle_(title, author) {
+  const cleanTitle = String(title || "").trim();
+  const cleanAuthor = String(author || "").trim();
+
+  const query = [
+    "site:libri.hu/konyv",
+    cleanTitle,
+    cleanAuthor
+  ]
+    .filter(function (x) {
+      return x;
+    })
+    .join(" ")
+    .trim();
+
+  if (!query) {
+    return [];
+  }
+
+  const url = "https://www.google.com/search?q=" + encodeURIComponent(query);
+
+  let html = "";
+
+  try {
+    html = fetchPublisherHtml_(url);
+  } catch (err) {
+    return [];
+  }
+
+  const urls = [];
+  const seen = {};
+  const text = String(html || "");
+
+  function addUrl(rawUrl) {
+    let u = String(rawUrl || "")
+      .replace(/&amp;/g, "&")
+      .trim();
+
+    const qMatch = u.match(/[?&]q=(https%3A%2F%2Fwww\.libri\.hu%2Fkonyv%2F[^&]+)/i);
+    if (qMatch) {
+      u = decodeURIComponent(qMatch[1]);
+    }
+
+    const directMatch = u.match(/https:\/\/www\.libri\.hu\/konyv\/[^"' <&]+\.html/i);
+    if (directMatch) {
+      u = directMatch[0];
+    }
+
+    u = u.split("#")[0].split("?")[0];
+
+    if (u.indexOf("https://www.libri.hu/konyv/") !== 0) {
+      return;
+    }
+
+    if (!/\.html$/i.test(u)) {
+      return;
+    }
+
+    if (!seen[u]) {
+      seen[u] = true;
+      urls.push(u);
+    }
+  }
+
+  let m;
+
+  const hrefRegex = /href=["']([^"']+)["']/ig;
+  while ((m = hrefRegex.exec(text)) !== null) {
+    addUrl(m[1]);
+  }
+
+  const directRegex = /https:\/\/www\.libri\.hu\/konyv\/[^"' <&]+\.html/ig;
+  while ((m = directRegex.exec(text)) !== null) {
+    addUrl(m[0]);
+  }
+
+  return urls.slice(0, 5);
+}
+
+/**
+ * Libri keresés cím és szerző alapján.
+ *
+ * Bemenet:
+ * - title: keresett cím
+ * - author: keresett szerző
+ *
+ * Működés:
+ * - cím+szerző keresőkifejezést épít
+ * - több Libri keresési URL-változatot próbál
+ * - a sikeresen letöltött keresési HTML-ből termékoldal URL-eket nyer ki
+ * - ha nincs keresési HTML, fallback termékoldal URL-eket generál
+ * - ha nincs kinyert URL, szintén fallback URL-eket generál
+ * - legfeljebb 5 termékoldalt dolgoz fel a normál ágban
+ * - a találatokat validálja
+ * - csak releváns cím/szerző találatokat tart meg
+ * - a végén ISBN vagy sourceId alapján deduplikál
+ *
+ * Kimenet:
+ * - Libri találatok listája
+ *
+ * Fontos megjegyzés:
+ * - a fallback ágban jelenleg a meglévő kódból áthozott módon
+ *   parseBooklineProductPage_(productUrl) szerepel.
+ * - Ez logikailag valószínűleg parseLibriProductPage_(productUrl) lenne,
+ *   de ebben a refaktor-lépésben nem módosítjuk, mert most csak
+ *   fájlba rendezés történik.
+ *
+ * Függőségek:
+ * - fetchFirstAvailablePublisherHtml_()
+ * - buildLibriCandidateUrls_()
+ * - extractLibriProductUrls_()
+ * - fetchPublisherHtml_()
+ * - extractFirstMatch_()
+ * - isValidLibriProductItem_()
+ * - isRelevantTitleAuthorMatch_()
+ * - dedupeItemsByIsbnOrSourceId_()
+ * - parseBooklineProductPage_() a jelenlegi fallback ág miatt
+ */
+function searchLibriByTitleAuthor_(title, author) {
+  const cleanTitle = String(title || "").trim();
+  const cleanAuthor = String(author || "").trim();
+
+  const query = [cleanTitle, cleanAuthor]
+    .filter(function (x) {
+      return x;
+    })
+    .join(" ")
+    .trim();
+
+  if (!query) {
+    return [];
+  }
+
+  const encodedQuery = encodeURIComponent(query);
+
+  const searchUrls = [
+    "https://www.libri.hu/kereses?search=" + encodedQuery,
+    "https://www.libri.hu/kereses?text=" + encodedQuery,
+    "https://www.libri.hu/kereses?query=" + encodedQuery,
+    "https://www.libri.hu/kereses/?q=" + encodedQuery
+  ];
+
+  const fetched = fetchFirstAvailablePublisherHtml_(searchUrls);
+  const searchHtml = fetched.html || "";
+
+  if (!searchHtml) {
+    const fallbackUrls = buildLibriCandidateUrls_(cleanTitle, cleanAuthor);
+    const results = [];
+
+    fallbackUrls.slice(0, 10).forEach(function (productUrl) {
+      try {
+        const item = parseLibriProductPage_(productUrl);
+
+        if (
+          item &&
+          isValidLibriProductItem_(item) &&
+          isRelevantTitleAuthorMatch_(item, cleanTitle, cleanAuthor)
+        ) {
+          results.push(item);
+        }
+      } catch (err) {
+        // Egy nem létező URL vagy hibás termékoldal ne állítsa meg a teljes Libri keresést.
+      }
+    });
+
+    return dedupeItemsByIsbnOrSourceId_(results);
+  }
+
+  let uniqueUrls = extractLibriProductUrls_(searchHtml);
+
+  if (!uniqueUrls || uniqueUrls.length === 0) {
+    uniqueUrls = buildLibriCandidateUrls_(cleanTitle, cleanAuthor);
+  }
+
+  if (!uniqueUrls || uniqueUrls.length === 0) {
+    return [];
+  }
+
+  const results = [];
+
+  uniqueUrls.slice(0, 5).forEach(function (productUrl) {
+    try {
+      const productHtml = fetchPublisherHtml_(productUrl);
+
+      const title =
+        extractFirstMatch_(productHtml, /<meta property="og:title" content="([^"]+)"/i) ||
+        extractFirstMatch_(productHtml, /<h1[^>]*>([\s\S]*?)<\/h1>/i);
+
+      const author =
+        extractFirstMatch_(productHtml, /<meta name="author" content="([^"]+)"/i) ||
+        extractFirstMatch_(productHtml, /Szerző[\s\S]{0,200}?<[^>]+>([\s\S]*?)<\/[^>]+>/i);
+
+      const publisher =
+        extractFirstMatch_(productHtml, /Kiadó[\s\S]{0,200}?<[^>]+>([\s\S]*?)<\/[^>]+>/i);
+
+      const year =
+        extractFirstMatch_(productHtml, /Kiadás éve[\s\S]{0,120}?([12][0-9]{3})/i);
+
+      const pageCount =
+        extractFirstMatch_(productHtml, /Oldalszám[\s\S]{0,120}?([0-9]+)/i);
+
+      const imageUrl =
+        extractFirstMatch_(productHtml, /<meta property="og:image" content="([^"]+)"/i);
+
+      const foundIsbn =
+        extractFirstMatch_(productHtml, /ISBN[\s\S]{0,120}?([0-9Xx\-]{10,20})/i);
+
+      if (title) {
+        const item = {
+          source: "libri",
+          sourceId: productUrl,
+          title: title,
+          authors: author,
+          originalTitle: "",
+          previousTitle: "",
+          series: "",
+          number: "",
+          year: year,
+          location: "",
+          shelf: "",
+          pageCount: pageCount,
+          isbn: foundIsbn,
+          publisher: publisher,
+          translator: "",
+          genre: "",
+          coverUrl: imageUrl,
+          language: "hu"
+        };
+
+        if (
+          item &&
+          isValidLibriProductItem_(item) &&
+          isRelevantTitleAuthorMatch_(item, cleanTitle, cleanAuthor)
+        ) {
+          results.push(item);
+        }
+      }
+    } catch (err) {
+      // Egy hibás Libri termékoldal ne állítsa meg a teljes keresést.
+    }
+  });
+
+  return dedupeItemsByIsbnOrSourceId_(results);
+}

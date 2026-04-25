@@ -1,0 +1,22 @@
+/***********************************************************
+ * KONFIGURÁCIÓ
+ *
+ * Ebben a fájlban a globális konfigurációs konstansok vannak.
+ * Ezeket több .gs modul is használja.
+ ***********************************************************/
+
+// Fő munkalap neve
+const SHEET_LISTA = "List";
+
+// Lenyíló / egyedi lista munkalapok nevei
+const SHEET_AUTHORS = "Authors";
+const SHEET_SERIES = "SeriesList";
+
+// Google Books API kulcs
+const GOOGLE_BOOKS_API_KEY = "AIzaSyA-OgB7xZn15ITtZkzeaLO8k8gvxODyKtM";
+
+// Maximum ennyi lookup találatot adunk vissza a frontendnek
+const BOOK_LOOKUP_MAX_RESULTS = 5;
+
+// Open Library API User-Agent
+const OPEN_LIBRARY_USER_AGENT = "GDAKonyvek/1.0 (galbacsdori@gmail.com)";

@@ -1,0 +1,209 @@
+/***********************************************************
+ * BOOKS LOOKUP ORCHESTRATION
+ *
+ * Ebben a fájlban a könyvmetaadat-keresés fő összefogó
+ * függvénye található.
+ *
+ * Ez a réteg nem konkrét forrásból parse-ol adatot, hanem
+ * meghívja az egyes forrásspecifikus keresőket, majd a
+ * találatokat összefésüli, deduplikálja, pontozza és rendezi.
+ *
+ * A fájlban található függvények:
+ *
+ * 1. lookupBookMetadata_(params)
+ *    - Összefogja a Google Books, Open Library, Bookline,
+ *      Libri és Alexandra kereséseket.
+ ***********************************************************/
+
+/**
+ * Könyvmetaadatok keresése több külső forrásból.
+ *
+ * Bemenet:
+ * - params:
+ *   {
+ *     isbn: "...",
+ *     title: "...",
+ *     author: "..."
+ *   }
+ *
+ * Működés:
+ * - keresési kontextust épít a bemenetből
+ * - ha van ISBN, ISBN alapú keresésként kezeli a kérést
+ * - ha nincs ISBN, cím/szerző alapú keresésként kezeli
+ * - meghívja a Google Books keresőt
+ * - meghívja az Open Library keresőt
+ * - ISBN esetén meghívja a Bookline, Libri és Alexandra ISBN keresőket
+ * - minden forrást külön try/catch blokkban kezel, hogy egy hibás külső forrás
+ *   ne állítsa le a teljes lookup folyamatot
+ * - ISBN keresésnél a webshop találatokat visszaszűri a kért ISBN-re
+ * - a találatokat deduplikálja
+ * - minden találatot pontoz
+ * - pontszám szerint csökkenő sorrendbe rendezi
+ * - legfeljebb BOOK_LOOKUP_MAX_RESULTS találatot ad vissza
+ *
+ * Kimenet siker esetén:
+ * {
+ *   success: true,
+ *   queryType: "isbn" vagy "title_author",
+ *   items: [...],
+ *   debug: {...}
+ * }
+ *
+ * Kimenet hibás bemenet esetén:
+ * {
+ *   success: false,
+ *   error: "Legalább ISBN vagy cím/szerző megadása szükséges."
+ * }
+ *
+ * Debug mezők:
+ * - queryContext: normalizált keresési kontextus
+ * - googleCount: Google Books találatok száma
+ * - openLibraryCount: Open Library találatok száma
+ * - booklineCount: Bookline találatok száma
+ * - libriCount: Libri találatok száma
+ * - alexandraCount: Alexandra találatok száma
+ * - googleError: Google Books hibaüzenet, ha volt
+ * - openLibraryError: Open Library hibaüzenet, ha volt
+ * - openLibraryUnavailable: true, ha az Open Library címfeloldási hibával elérhetetlen
+ * - booklineError: Bookline hibaüzenet, ha volt
+ * - libriError: Libri hibaüzenet, ha volt
+ * - alexandraError: Alexandra hibaüzenet, ha volt
+ * - openLibraryQueries: kipróbált Open Library URL-ek metaadatai
+ *
+ * Függőségek:
+ * - BOOK_LOOKUP_MAX_RESULTS globális konstans
+ * - searchGoogleBooks_()
+ * - searchOpenLibrary_()
+ * - searchBooklineByIsbn_()
+ * - searchLibriByIsbn_()
+ * - searchAlexandraByIsbn_()
+ * - filterPublisherItemsByRequestedIsbn_()
+ * - dedupeLookupCandidates_()
+ * - scoreLookupCandidate_()
+ *
+ * Fontos jelenlegi működés:
+ * - cím+szerző keresésnél ez a fő lookup jelenleg nem hívja meg a
+ *   Bookline / Libri / Alexandra cím+szerző keresőket.
+ * - ezek a webshopos cím+szerző keresések jelenleg a lookupPublisherPages
+ *   route-ban futnak.
+ */
+function lookupBookMetadata_(params) {
+  const queryContext = {
+    isbn: String(params.isbn || "").trim(),
+    title: String(params.title || "").trim(),
+    author: String(params.author || "").trim(),
+    queryType: String(params.isbn || "").trim() ? "isbn" : "title_author"
+  };
+
+  if (!queryContext.isbn && !queryContext.title && !queryContext.author) {
+    return {
+      success: false,
+      error: "Legalább ISBN vagy cím/szerző megadása szükséges."
+    };
+  }
+
+  let googleResults = [];
+  let openLibraryResults = [];
+  let booklineResults = [];
+  let libriResults = [];
+  let alexandraResults = [];
+
+  let googleError = "";
+  let openLibraryError = "";
+  let booklineError = "";
+  let libriError = "";
+  let alexandraError = "";
+
+  try {
+    googleResults = searchGoogleBooks_(queryContext);
+  } catch (err) {
+    googleError = err && err.message ? err.message : String(err);
+    googleResults = [];
+  }
+
+  let openLibraryDebug = [];
+  let openLibraryUnavailable = false;
+
+  try {
+    const openLibraryResponse = searchOpenLibrary_(queryContext);
+    openLibraryResults = openLibraryResponse.items || [];
+    openLibraryDebug = openLibraryResponse.debug || [];
+  } catch (err) {
+    openLibraryError = err && err.message ? err.message : String(err);
+    openLibraryResults = [];
+
+    if (openLibraryError.indexOf("Address unavailable") !== -1) {
+      openLibraryUnavailable = true;
+    }
+  }
+
+  if (queryContext.isbn) {
+    try {
+      booklineResults = filterPublisherItemsByRequestedIsbn_(
+        searchBooklineByIsbn_(queryContext.isbn),
+        queryContext.isbn
+      );
+    } catch (err) {
+      booklineError = err && err.message ? err.message : String(err);
+      booklineResults = [];
+    }
+
+    try {
+      libriResults = filterPublisherItemsByRequestedIsbn_(
+        searchLibriByIsbn_(queryContext.isbn),
+        queryContext.isbn
+      );
+    } catch (err) {
+      libriError = err && err.message ? err.message : String(err);
+      libriResults = [];
+    }
+
+    try {
+      alexandraResults = filterPublisherItemsByRequestedIsbn_(
+        searchAlexandraByIsbn_(queryContext.isbn),
+        queryContext.isbn
+      );
+    } catch (err) {
+      alexandraError = err && err.message ? err.message : String(err);
+      alexandraResults = [];
+    }
+  }
+
+  const merged = dedupeLookupCandidates_(
+    googleResults
+      .concat(openLibraryResults)
+      .concat(booklineResults)
+      .concat(libriResults)
+      .concat(alexandraResults)
+  )
+    .map(item => {
+      item.score = scoreLookupCandidate_(item, queryContext);
+      return item;
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, BOOK_LOOKUP_MAX_RESULTS);
+
+  return {
+    success: true,
+    queryType: queryContext.queryType,
+    items: merged,
+    debug: {
+      queryContext: queryContext,
+
+      googleCount: googleResults.length,
+      openLibraryCount: openLibraryResults.length,
+      booklineCount: booklineResults.length,
+      libriCount: libriResults.length,
+      alexandraCount: alexandraResults.length,
+
+      googleError: googleError,
+      openLibraryError: openLibraryError,
+      openLibraryUnavailable: openLibraryUnavailable,
+      booklineError: booklineError,
+      libriError: libriError,
+      alexandraError: alexandraError,
+
+      openLibraryQueries: openLibraryDebug
+    }
+  };
+}

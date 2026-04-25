@@ -1,0 +1,314 @@
+/***********************************************************
+ * BOOKS CRUD FÜGGVÉNYEK
+ *
+ * Ebben a fájlban a könyvrekordok üzleti CRUD műveletei vannak.
+ *
+ * Ez a réteg a List munkalappal dolgozik:
+ * - duplikáció ellenőrzése
+ * - új könyv beszúrása
+ * - könyvlista lekérése
+ * - meglévő rekord frissítése
+ * - rekord törlése
+ *
+ * A fájlban található függvények:
+ *
+ * 1. isDuplicate_(book)
+ *    - Ellenőrzi, hogy létezik-e már azonos könyvrekord.
+ *
+ * 2. addBookToLista_(book)
+ *    - Új könyvrekordot szúr be a List sheetbe.
+ *
+ * 3. addBookOnly_(book)
+ *    - Egyszerű wrapper az addBookToLista_() körül.
+ *
+ * 4. getLista_()
+ *    - Visszaadja a teljes List sheet tartalmát.
+ *
+ * 5. updateLista_(book)
+ *    - ID alapján frissít egy meglévő könyvrekordot.
+ *
+ * 6. deleteLista_(id)
+ *    - ID alapján töröl egy könyvrekordot.
+ ***********************************************************/
+
+/**
+ * Duplikált könyvrekord keresése a List munkalapon.
+ *
+ * Bemenet:
+ * - book: könyv objektum, amely legalább az összehasonlításhoz használt mezőket tartalmazhatja
+ *
+ * Duplikációs kulcs:
+ * - Author
+ * - Title
+ * - Original_Title
+ * - Year
+ * - For_sale
+ *
+ * Működés:
+ * - beolvassa a teljes List sheetet
+ * - végigmegy a meglévő rekordokon
+ * - kisbetűsített összehasonlítást használ a szöveges mezőknél
+ * - Year mezőnél pontos trimelt string összehasonlítást használ
+ *
+ * Kimenet:
+ * - ha talál duplikációt, visszaadja a meglévő rekord objektumát
+ * - ha nincs duplikáció, null értéket ad vissza
+ *
+ * Függőségek:
+ * - SHEET_LISTA globális konstans
+ * - readSheet_()
+ */
+function isDuplicate_(book) {
+  const lista = readSheet_(SHEET_LISTA);
+
+  for (let item of lista) {
+    const sameAuthor =
+      String(item["Author"] || "").trim().toLowerCase() ===
+      String(book["Author"] || "").trim().toLowerCase();
+
+    const sameTitle =
+      String(item["Title"] || "").trim().toLowerCase() ===
+      String(book["Title"] || "").trim().toLowerCase();
+
+    const sameOrig =
+      String(item["Original_Title"] || "").trim().toLowerCase() ===
+      String(book["Original_Title"] || "").trim().toLowerCase();
+
+    const sameYear =
+      String(item["Year"] || "").trim() ===
+      String(book["Year"] || "").trim();
+
+    const sameForSale =
+      String(item["For_sale"] || "").trim().toLowerCase() ===
+      String(book["For_sale"] || "").trim().toLowerCase();
+
+    if (sameAuthor && sameTitle && sameOrig && sameYear && sameForSale) {
+      return item;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Új könyvrekord beszúrása a List munkalapra.
+ *
+ * Bemenet:
+ * - book: beszúrandó könyv objektum
+ *
+ * Kötelező mezők:
+ * - Author
+ * - Title
+ *
+ * Működés:
+ * - ellenőrzi a kötelező mezőket
+ * - duplikációt keres
+ * - lekéri a List sheet fejléc-mappáját
+ * - új sort készít a sheet oszlopszámával azonos hosszban
+ * - ha van ID oszlop, új UUID-t generál
+ * - a book objektum mezőit a fejlécnév alapján írja be a megfelelő oszlopba
+ * - appendRow() segítségével beszúrja az új sort
+ *
+ * Kimenet:
+ * - { success: true }, ha sikerült a beszúrás
+ * - { success: false, error: "...", duplicate?: {...} }, ha hiba vagy duplikáció van
+ *
+ * Függőségek:
+ * - SHEET_LISTA globális konstans
+ * - isDuplicate_()
+ * - getSheet_()
+ * - getHeaderMap_()
+ * - generateId_()
+ */
+function addBookToLista_(book) {
+  if (!book["Author"] || !book["Title"]) {
+    return {
+      success: false,
+      error: "Author és Title kötelező mezők!"
+    };
+  }
+
+  const duplicate = isDuplicate_(book);
+
+  if (duplicate) {
+    return {
+      success: false,
+      error: "Duplikált rekord",
+      duplicate: duplicate
+    };
+  }
+
+  const sheet = getSheet_(SHEET_LISTA);
+  const map = getHeaderMap_(sheet);
+  const row = new Array(sheet.getLastColumn()).fill("");
+
+  if (map["ID"]) {
+    row[map["ID"] - 1] = generateId_();
+  }
+
+  Object.keys(book).forEach(k => {
+    if (map[k]) {
+      row[map[k] - 1] = book[k];
+    }
+  });
+
+  sheet.appendRow(row);
+
+  return {
+    success: true
+  };
+}
+
+/**
+ * Új könyv felvétele egyszerű wrapperként.
+ *
+ * Bemenet:
+ * - book: beszúrandó könyv objektum
+ *
+ * Működés:
+ * - közvetlenül meghívja az addBookToLista_() függvényt
+ *
+ * Kimenet:
+ * - az addBookToLista_() visszatérési értéke
+ *
+ * Megjegyzés:
+ * - ezt a wrapper nevet a meglévő route / frontend hívások miatt megtartjuk
+ *
+ * Függőségek:
+ * - addBookToLista_()
+ */
+function addBookOnly_(book) {
+  return addBookToLista_(book);
+}
+
+/**
+ * Teljes könyvlista lekérése a List munkalapról.
+ *
+ * Bemenet:
+ * - nincs
+ *
+ * Működés:
+ * - beolvassa a List sheet teljes adattartalmát objektumlistába
+ *
+ * Kimenet:
+ * {
+ *   success: true,
+ *   items: [...]
+ * }
+ *
+ * Függőségek:
+ * - SHEET_LISTA globális konstans
+ * - readSheet_()
+ */
+function getLista_() {
+  return {
+    success: true,
+    items: readSheet_(SHEET_LISTA)
+  };
+}
+
+/**
+ * Meglévő könyvrekord frissítése ID alapján.
+ *
+ * Bemenet:
+ * - book: frissítendő könyv objektum, amelynek tartalmaznia kell az ID mezőt
+ *
+ * Működés:
+ * - lekéri a List sheet teljes adattartalmát
+ * - megkeresi az ID oszlop indexét
+ * - végigmegy az adatsorokon
+ * - ha megtalálja a book.ID-hez tartozó sort, frissíti azokat az oszlopokat,
+ *   amelyekhez a book objektumban van érték
+ * - az ID mezőt nem írja felül
+ *
+ * Kimenet:
+ * - { success: true }, ha sikerült a frissítés
+ * - { success: false, error: "..." }, ha nincs ID oszlop vagy nem található a rekord
+ *
+ * Függőségek:
+ * - SHEET_LISTA globális konstans
+ * - getSheet_()
+ */
+function updateLista_(book) {
+  const sheet = getSheet_(SHEET_LISTA);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const idCol = headers.indexOf("ID");
+
+  if (idCol === -1) {
+    return {
+      success: false,
+      error: "Nincs ID oszlop!"
+    };
+  }
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idCol]) === String(book.ID)) {
+      headers.forEach((h, colIndex) => {
+        if (h !== "ID" && book[h] !== undefined) {
+          sheet.getRange(i + 1, colIndex + 1).setValue(book[h]);
+        }
+      });
+
+      return {
+        success: true
+      };
+    }
+  }
+
+  return {
+    success: false,
+    error: "ID nem található."
+  };
+}
+
+/**
+ * Könyvrekord törlése ID alapján.
+ *
+ * Bemenet:
+ * - id: törlendő rekord ID értéke
+ *
+ * Működés:
+ * - lekéri a List sheet teljes adattartalmát
+ * - megkeresi az ID oszlop indexét
+ * - végigmegy az adatsorokon
+ * - ha megtalálja a megfelelő ID-t, törli a teljes sort
+ *
+ * Kimenet:
+ * - { success: true }, ha sikerült a törlés
+ * - { success: false, error: "..." }, ha nincs ID oszlop vagy nem található a rekord
+ *
+ * Függőségek:
+ * - SHEET_LISTA globális konstans
+ * - getSheet_()
+ */
+function deleteLista_(id) {
+  const sheet = getSheet_(SHEET_LISTA);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const idCol = headers.indexOf("ID");
+
+  if (idCol === -1) {
+    return {
+      success: false,
+      error: "Nincs ID oszlop!"
+    };
+  }
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idCol]) === String(id)) {
+      sheet.deleteRow(i + 1);
+
+      return {
+        success: true
+      };
+    }
+  }
+
+  return {
+    success: false,
+    error: "ID nem található."
+  };
+}

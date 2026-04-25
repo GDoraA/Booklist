@@ -1,0 +1,1139 @@
+/***********************************************************
+ * TESZTFÜGGVÉNYEK
+ *
+ * Ebben a fájlban kizárólag kézzel futtatható Apps Script
+ * teszt- és debugfüggvények vannak.
+ *
+ * Logikai sorrend:
+ *
+ * 1. Auth / Users tesztek
+ *    - testCheckUser()
+ *    - testReadUsers()
+ *
+ * 2. Külső HTTP / jogosultság teszt
+ *    - testExternalRequestAuthorization()
+ *
+ * 3. Fő lookup tesztek
+ *    - testLookupBookMetadata()
+ *
+ * 4. Publisher / webshop összesített route tesztek
+ *    - testLookupPublisherPagesParams()
+ *    - testLookupPublisherPagesJeffersonKod()
+ *    - testLookupPublisherPagesBooklineJeffersonKod()
+ *    - testLookupPublisherPagesAlexandraJeffersonKod()
+ *
+ * 5. Bookline tesztek
+ *    - testSearchBooklineByTitleAuthor()
+ *    - testSearchBooklineJeffersonKod()
+ *    - testSearchBooklineJeffersonKodByIsbn()
+ *    - testParseBooklineJeffersonKodDirect()
+ *
+ * 6. Bookline debug tesztek
+ *    - testBooklineSearchHtmlDebug()
+ *    - testBooklineSearchHtmlDebugJeffersonKod()
+ *    - testBooklinePublisherHtmlAroundJeffersonKod()
+ *    - testBooklinePageCountHtmlAroundJeffersonKod()
+ *
+ * 7. Libri tesztek
+ *    - testSearchLibriByTitleAuthor()
+ *    - testSearchLibriJeffersonKod()
+ *    - testParseLibriJeffersonKodDirect()
+ *
+ * 8. Libri debug tesztek
+ *    - testLibriSearchUrlVariants()
+ *    - testLibriSearchHtmlDebugJeffersonKod()
+ *    - testGoogleLibriFallbackDebugJeffersonKod()
+ *    - testLibriProductTitleSourceDebugJeffersonKod()
+ *    - testLibriPublisherHtmlDebugJeffersonKod()
+ *
+ * 9. Alexandra tesztek
+ *    - testSearchAlexandraByTitleAuthor()
+ *    - testSearchAlexandraJeffersonKod()
+ *    - testSearchAlexandraJeffersonKodByIsbn()
+ ***********************************************************/
+
+
+/***********************************************************
+ * 1. AUTH / USERS TESZTEK
+ ***********************************************************/
+
+/**
+ * Egy konkrét email cím jogosultsági státuszának ellenőrzése.
+ *
+ * Teszteli:
+ * - checkUserStatus_()
+ * - readSheet_("Users")
+ *
+ * Megjegyzés:
+ * - Ha az email nincs a Users sheetben, az nem technikai hiba.
+ * - Ilyenkor expected eredmény lehet: exists:false.
+ */
+function testCheckUser() {
+  const email = "gdoraanna@gmail.com";
+  const result = checkUserStatus_(email);
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+/**
+ * A Users sheet teljes tartalmának beolvasása és logolása.
+ *
+ * Teszteli:
+ * - readSheet_()
+ * - getSheet_()
+ * - Users munkalap elérhetőségét
+ */
+function testReadUsers() {
+  const users = readSheet_("Users");
+
+  Logger.log(JSON.stringify(users, null, 2));
+}
+
+
+/***********************************************************
+ * 2. KÜLSŐ HTTP / JOGOSULTSÁG TESZT
+ ***********************************************************/
+
+/**
+ * Ellenőrzi, hogy az Apps Script tud-e külső URL-t hívni.
+ *
+ * Teszteli:
+ * - UrlFetchApp.fetch()
+ * - külső HTTP jogosultság
+ *
+ * Elvárt eredmény:
+ * - 200-as státuszkód, ha az Open Library elérhető
+ */
+function testExternalRequestAuthorization() {
+  const res = UrlFetchApp.fetch(
+    "https://openlibrary.org/search.json?isbn=9789634472605"
+  );
+
+  Logger.log(res.getResponseCode());
+}
+
+
+/***********************************************************
+ * 3. FŐ LOOKUP TESZTEK
+ ***********************************************************/
+
+/**
+ * A fő könyvmetaadat lookup tesztelése ISBN alapján.
+ *
+ * Teszteli:
+ * - lookupBookMetadata_()
+ * - Google Books ág
+ * - Open Library ág
+ * - ISBN alapú webshop ágak
+ * - deduplikálás
+ * - pontozás
+ *
+ * Megjegyzés:
+ * - Google Books 403 külső API hiba lehet, nem feltétlen refaktor-hiba.
+ */
+function testLookupBookMetadata() {
+  const result = lookupBookMetadata_({
+    isbn: "9789634472605",
+    title: "",
+    author: ""
+  });
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+
+/***********************************************************
+ * 4. PUBLISHER / WEBSHOP ÖSSZESÍTETT ROUTE TESZTEK
+ ***********************************************************/
+
+/**
+ * lookupPublisherPages route teszt Lázár / Nelio Biedermann adattal.
+ *
+ * Teszteli:
+ * - doGet(e)
+ * - lookupPublisherPages action
+ * - Bookline / Libri / Alexandra cím+szerző ágak
+ */
+function testLookupPublisherPagesParams() {
+  const fakeEvent = {
+    parameter: {
+      action: "lookupPublisherPages",
+      isbn: "",
+      title: "Lázár",
+      author: "Nelio Biedermann"
+    }
+  };
+
+  const output = doGet(fakeEvent);
+
+  Logger.log(output.getContent());
+}
+
+/**
+ * lookupPublisherPages route teszt A Jefferson-kód / Steve Berry adattal.
+ *
+ * Teszteli:
+ * - doGet(e)
+ * - lookupPublisherPages action
+ * - mindhárom webshop cím+szerző ágát
+ */
+function testLookupPublisherPagesJeffersonKod() {
+  const fakeEvent = {
+    parameter: {
+      action: "lookupPublisherPages",
+      isbn: "",
+      title: "A Jefferson-kód",
+      author: "Steve Berry"
+    }
+  };
+
+  const output = doGet(fakeEvent);
+
+  Logger.log(output.getContent());
+}
+
+/**
+ * Bookline fókuszú névvel ellátott publisher route teszt.
+ *
+ * Fontos:
+ * - a név Bookline fókuszú, de a route minden webshopot futtat:
+ *   Bookline, Libri, Alexandra.
+ */
+function testLookupPublisherPagesBooklineJeffersonKod() {
+  const fakeEvent = {
+    parameter: {
+      action: "lookupPublisherPages",
+      isbn: "",
+      title: "A Jefferson-kód",
+      author: "Steve Berry"
+    }
+  };
+
+  const output = doGet(fakeEvent);
+
+  Logger.log(output.getContent());
+}
+
+/**
+ * Alexandra fókuszú névvel ellátott publisher route teszt.
+ *
+ * Fontos:
+ * - a név Alexandra fókuszú, de a route minden webshopot futtat:
+ *   Bookline, Libri, Alexandra.
+ */
+function testLookupPublisherPagesAlexandraJeffersonKod() {
+  const fakeEvent = {
+    parameter: {
+      action: "lookupPublisherPages",
+      isbn: "",
+      title: "A Jefferson-kód",
+      author: "Steve Berry"
+    }
+  };
+
+  const output = doGet(fakeEvent);
+
+  Logger.log(output.getContent());
+}
+
+
+/***********************************************************
+ * 5. BOOKLINE TESZTEK
+ ***********************************************************/
+
+/**
+ * Bookline cím+szerző keresés teszt Lázár / Nelio Biedermann adattal.
+ *
+ * Teszteli:
+ * - searchBooklineByTitleAuthor_()
+ */
+function testSearchBooklineByTitleAuthor() {
+  const result = searchBooklineByTitleAuthor_(
+    "Lázár",
+    "Nelio Biedermann"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+/**
+ * Bookline cím+szerző keresés teszt A Jefferson-kód / Steve Berry adattal.
+ *
+ * Teszteli:
+ * - searchBooklineByTitleAuthor_()
+ * - parseBooklineProductPage_()
+ * - relevanciaellenőrzés
+ * - deduplikálás
+ */
+function testSearchBooklineJeffersonKod() {
+  const result = searchBooklineByTitleAuthor_(
+    "A Jefferson-kód",
+    "Steve Berry"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+/**
+ * Bookline ISBN keresés teszt Jefferson-kód ISBN alapján.
+ *
+ * Teszteli:
+ * - searchBooklineByIsbn_()
+ */
+function testSearchBooklineJeffersonKodByIsbn() {
+  const result = searchBooklineByIsbn_(
+    "9789634066903"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+/**
+ * Közvetlen Bookline termékoldal parser teszt.
+ *
+ * Teszteli:
+ * - parseBooklineProductPage_()
+ * - Bookline termékoldal HTML letöltése
+ * - cím, szerző, ISBN, kiadó, év, oldalszám, fordító, borító kinyerése
+ */
+function testParseBooklineJeffersonKodDirect() {
+  const item = parseBooklineProductPage_(
+    "https://bookline.hu/product/home.action?_v=steve_berry_a_jefferson_kod&type=22&id=307717"
+  );
+
+  Logger.log(JSON.stringify([item], null, 2));
+}
+
+
+/***********************************************************
+ * 6. BOOKLINE DEBUG TESZTEK
+ ***********************************************************/
+
+/**
+ * Bookline keresési HTML debug Lázár / Nelio Biedermann adattal.
+ *
+ * Cél:
+ * - ellenőrizni, hogy a Bookline keresési HTML tartalmaz-e termékoldal linkeket
+ * - megmutatni az első releváns HTML-részletet
+ */
+function testBooklineSearchHtmlDebug() {
+  const title = "Lázár";
+  const author = "Nelio Biedermann";
+
+  const query = [title, author]
+    .filter(function(x) {
+      return x;
+    })
+    .join(" ")
+    .trim();
+
+  const searchUrl =
+    "https://bookline.hu/search/search.action?desc=" +
+    encodeURIComponent(query);
+
+  const html = fetchHtml_(searchUrl);
+  const text = String(html || "");
+
+  Logger.log("SEARCH URL:");
+  Logger.log(searchUrl);
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  Logger.log("CONTAINS /product/:");
+  Logger.log(text.indexOf("/product/") !== -1);
+
+  Logger.log("CONTAINS product/home.action:");
+  Logger.log(text.indexOf("product/home.action") !== -1);
+
+  Logger.log("FIRST product/home.action POSITION:");
+  Logger.log(text.indexOf("product/home.action"));
+
+  const firstProductPos = text.indexOf("product");
+
+  const around = text.substring(
+    Math.max(0, firstProductPos - 500),
+    firstProductPos + 1000
+  );
+
+  Logger.log("HTML AROUND FIRST PRODUCT:");
+  Logger.log(around);
+
+  const hrefMatches = text.match(/href="([^"]+)"/ig) || [];
+
+  const booklineProductHrefs = hrefMatches.filter(function(h) {
+    return h.indexOf("product") !== -1 || h.indexOf("konyv") !== -1;
+  });
+
+  Logger.log("PRODUCT-LIKE HREF COUNT:");
+  Logger.log(booklineProductHrefs.length);
+
+  Logger.log("FIRST 20 PRODUCT-LIKE HREFS:");
+  Logger.log(JSON.stringify(booklineProductHrefs.slice(0, 20), null, 2));
+}
+
+/**
+ * Bookline keresési HTML debug A Jefferson-kód / Steve Berry adattal.
+ *
+ * Cél:
+ * - ellenőrizni, hogy a keresési HTML tartalmazza-e a Jefferson / Steve / Berry
+ *   kulcsszavakat és Bookline termékoldal linkeket
+ */
+function testBooklineSearchHtmlDebugJeffersonKod() {
+  const title = "A Jefferson-kód";
+  const author = "Steve Berry";
+
+  const query = [title, author]
+    .filter(function(x) {
+      return x;
+    })
+    .join(" ")
+    .trim();
+
+  const searchUrl =
+    "https://bookline.hu/search/search.action?desc=" +
+    encodeURIComponent(query);
+
+  const html = fetchHtml_(searchUrl);
+  const text = String(html || "");
+
+  Logger.log("SEARCH URL:");
+  Logger.log(searchUrl);
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  Logger.log("CONTAINS /product/:");
+  Logger.log(text.indexOf("/product/") !== -1);
+
+  Logger.log("CONTAINS product/home.action:");
+  Logger.log(text.indexOf("product/home.action") !== -1);
+
+  Logger.log("CONTAINS Jefferson:");
+  Logger.log(text.toLowerCase().indexOf("jefferson") !== -1);
+
+  Logger.log("CONTAINS Steve:");
+  Logger.log(text.toLowerCase().indexOf("steve") !== -1);
+
+  Logger.log("CONTAINS Berry:");
+  Logger.log(text.toLowerCase().indexOf("berry") !== -1);
+
+  const hrefMatches = text.match(/href=["']([^"']+)["']/ig) || [];
+
+  const relevantHrefs = hrefMatches.filter(function(h) {
+    const lower = h.toLowerCase();
+
+    return (
+      lower.indexOf("product/home.action") !== -1 ||
+      lower.indexOf("jefferson") !== -1 ||
+      lower.indexOf("steve") !== -1 ||
+      lower.indexOf("berry") !== -1
+    );
+  });
+
+  Logger.log("RELEVANT HREF COUNT:");
+  Logger.log(relevantHrefs.length);
+
+  Logger.log("FIRST 40 RELEVANT HREFS:");
+  Logger.log(JSON.stringify(relevantHrefs.slice(0, 40), null, 2));
+
+  const pos = Math.max(
+    text.toLowerCase().indexOf("jefferson"),
+    text.toLowerCase().indexOf("steve"),
+    text.toLowerCase().indexOf("berry"),
+    text.toLowerCase().indexOf("product/home.action")
+  );
+
+  Logger.log("FIRST RELEVANT POSITION:");
+  Logger.log(pos);
+
+  if (pos >= 0) {
+    Logger.log("HTML AROUND FIRST RELEVANT POSITION:");
+    Logger.log(text.substring(Math.max(0, pos - 1000), pos + 2500));
+  }
+}
+
+/**
+ * Bookline termékoldal HTML debug a Kiadó mező környezetére.
+ *
+ * Cél:
+ * - megnézni, hogy a Bookline termékoldal HTML-jében hol szerepel a Kiadó adat
+ */
+function testBooklinePublisherHtmlAroundJeffersonKod() {
+  const url =
+    "https://bookline.hu/product/home.action?_v=steve_berry_a_jefferson_kod&type=22&id=307717";
+
+  const html = fetchHtml_(url);
+  const text = String(html || "");
+  const lower = text.toLowerCase();
+  const pos = lower.indexOf("kiadó");
+
+  Logger.log("KIADÓ POSITION:");
+  Logger.log(pos);
+
+  if (pos >= 0) {
+    Logger.log("HTML AROUND KIADÓ:");
+    Logger.log(text.substring(Math.max(0, pos - 1000), pos + 2000));
+  } else {
+    Logger.log("A 'Kiadó' szó nem található a HTML-ben.");
+  }
+}
+
+/**
+ * Bookline termékoldal HTML debug az oldalszám környezetére.
+ *
+ * Cél:
+ * - megnézni, hogy a Bookline termékoldal HTML-jében hol szerepel az oldalszám
+ */
+function testBooklinePageCountHtmlAroundJeffersonKod() {
+  const url =
+    "https://bookline.hu/product/home.action?_v=steve_berry_a_jefferson_kod&type=22&id=307717";
+
+  const html = fetchHtml_(url);
+  const text = String(html || "");
+  const lower = text.toLowerCase();
+
+  const pos = Math.max(
+    lower.indexOf("oldalszám"),
+    lower.indexOf("oldalak száma"),
+    lower.indexOf("oldal")
+  );
+
+  Logger.log("OLDALSZÁM POSITION:");
+  Logger.log(pos);
+
+  if (pos >= 0) {
+    Logger.log("HTML AROUND OLDALSZÁM:");
+    Logger.log(text.substring(Math.max(0, pos - 1000), pos + 2000));
+  } else {
+    Logger.log("Oldalszámra utaló szöveg nem található a HTML-ben.");
+  }
+}
+
+
+/***********************************************************
+ * 7. LIBRI TESZTEK
+ ***********************************************************/
+
+/**
+ * Libri cím+szerző keresés teszt Lázár / Nelio Biedermann adattal.
+ *
+ * Teszteli:
+ * - searchLibriByTitleAuthor_()
+ */
+function testSearchLibriByTitleAuthor() {
+  const result = searchLibriByTitleAuthor_(
+    "Lázár",
+    "Nelio Biedermann"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+/**
+ * Libri cím+szerző keresés teszt A Jefferson-kód / Steve Berry adattal.
+ *
+ * Teszteli:
+ * - searchLibriByTitleAuthor_()
+ */
+function testSearchLibriJeffersonKod() {
+  const result = searchLibriByTitleAuthor_(
+    "A Jefferson-kód",
+    "Steve Berry"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+/**
+ * Közvetlen Libri termékoldal parser teszt.
+ *
+ * Teszteli:
+ * - parseLibriProductPage_()
+ */
+function testParseLibriJeffersonKodDirect() {
+  const item = parseLibriProductPage_(
+    "https://www.libri.hu/konyv/steve_berry.a-jefferson-kod--2.html"
+  );
+
+  Logger.log(JSON.stringify(item, null, 2));
+}
+
+
+/***********************************************************
+ * 8. LIBRI DEBUG TESZTEK – IDEIGLENES / DIAGNOSZTIKAI
+ *
+ * Ezek nem regressziós tesztek, hanem kézi hibakereső eszközök.
+ * Törlésük vagy áthelyezésük külön lépésben történjen.
+ ***********************************************************/
+
+/**
+ * Több Libri keresési URL-változat tesztje.
+ *
+ * Cél:
+ * - megnézni, melyik Libri keresési URL-paraméter variáns ad letölthető HTML-t
+ */
+function testLibriSearchUrlVariants() {
+  const query = "A Jefferson-kód Steve Berry";
+  const encodedQuery = encodeURIComponent(query);
+
+  const urls = [
+    "https://www.libri.hu/kereses?search=" + encodedQuery,
+    "https://www.libri.hu/kereses?text=" + encodedQuery,
+    "https://www.libri.hu/kereses?query=" + encodedQuery,
+    "https://www.libri.hu/kereses/?q=" + encodedQuery
+  ];
+
+  urls.forEach(function(url) {
+    try {
+      const html = fetchPublisherHtml_(url);
+      Logger.log("OK: " + url + " | length=" + String(html || "").length);
+    } catch (err) {
+      Logger.log("ERR: " + url + " | " + (err && err.message ? err.message : String(err)));
+    }
+  });
+}
+
+/**
+ * Libri keresési HTML debug A Jefferson-kód / Steve Berry adattal.
+ *
+ * Cél:
+ * - megnézni, hogy a Libri keresési HTML tartalmaz-e termékoldal linkeket
+ * - ellenőrizni a Jefferson / Steve / Berry kulcsszavak jelenlétét
+ */
+function testLibriSearchHtmlDebugJeffersonKod() {
+  const title = "A Jefferson-kód";
+  const author = "Steve Berry";
+
+  const query = [title, author]
+    .filter(function(x) {
+      return x;
+    })
+    .join(" ")
+    .trim();
+
+  const searchUrl =
+    "https://www.libri.hu/kereses/?q=" +
+    encodeURIComponent(query);
+
+  Logger.log("SEARCH URL:");
+  Logger.log(searchUrl);
+
+  let html = "";
+
+  try {
+    html = fetchPublisherHtml_(searchUrl);
+  } catch (err) {
+    Logger.log("FETCH ERROR:");
+    Logger.log(err && err.message ? err.message : String(err));
+    return;
+  }
+
+  const text = String(html || "");
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  Logger.log("CONTAINS /konyv/:");
+  Logger.log(text.indexOf("/konyv/") !== -1);
+
+  Logger.log("CONTAINS steve_berry:");
+  Logger.log(text.toLowerCase().indexOf("steve_berry") !== -1);
+
+  Logger.log("CONTAINS jefferson:");
+  Logger.log(text.toLowerCase().indexOf("jefferson") !== -1);
+
+  Logger.log("CONTAINS a-jefferson-kod:");
+  Logger.log(text.toLowerCase().indexOf("a-jefferson-kod") !== -1);
+
+  const hrefMatches = text.match(/href=["']([^"']+)["']/ig) || [];
+
+  Logger.log("HREF COUNT:");
+  Logger.log(hrefMatches.length);
+
+  const libriLikeHrefs = hrefMatches.filter(function(h) {
+    const lower = h.toLowerCase();
+
+    return (
+      lower.indexOf("/konyv/") !== -1 ||
+      lower.indexOf("jefferson") !== -1 ||
+      lower.indexOf("steve") !== -1 ||
+      lower.indexOf("berry") !== -1
+    );
+  });
+
+  Logger.log("LIBRI-LIKE HREF COUNT:");
+  Logger.log(libriLikeHrefs.length);
+
+  Logger.log("FIRST 40 LIBRI-LIKE HREFS:");
+  Logger.log(JSON.stringify(libriLikeHrefs.slice(0, 40), null, 2));
+
+  const pos = Math.max(
+    text.toLowerCase().indexOf("jefferson"),
+    text.toLowerCase().indexOf("steve"),
+    text.toLowerCase().indexOf("/konyv/")
+  );
+
+  Logger.log("FIRST RELEVANT POSITION:");
+  Logger.log(pos);
+
+  if (pos >= 0) {
+    Logger.log("HTML AROUND FIRST RELEVANT POSITION:");
+    Logger.log(text.substring(Math.max(0, pos - 1000), pos + 2500));
+  }
+}
+
+/**
+ * Google találati HTML alapú Libri fallback debug.
+ *
+ * Cél:
+ * - megnézni, hogy Google keresési HTML-ből kinyerhetők-e Libri termékoldal URL-ek
+ */
+function testGoogleLibriFallbackDebugJeffersonKod() {
+  const title = "A Jefferson-kód";
+  const author = "Steve Berry";
+
+  const query = [
+    "site:libri.hu/konyv",
+    title,
+    author
+  ]
+    .filter(function(x) {
+      return x;
+    })
+    .join(" ")
+    .trim();
+
+  const url =
+    "https://www.google.com/search?q=" +
+    encodeURIComponent(query);
+
+  Logger.log("GOOGLE SEARCH URL:");
+  Logger.log(url);
+
+  let html = "";
+
+  try {
+    html = fetchPublisherHtml_(url);
+  } catch (err) {
+    Logger.log("FETCH ERROR:");
+    Logger.log(err && err.message ? err.message : String(err));
+    return;
+  }
+
+  const text = String(html || "");
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  Logger.log("CONTAINS libri.hu:");
+  Logger.log(text.indexOf("libri.hu") !== -1);
+
+  Logger.log("CONTAINS /konyv/:");
+  Logger.log(text.indexOf("/konyv/") !== -1);
+
+  Logger.log("CONTAINS jefferson:");
+  Logger.log(text.toLowerCase().indexOf("jefferson") !== -1);
+
+  Logger.log("CONTAINS steve:");
+  Logger.log(text.toLowerCase().indexOf("steve") !== -1);
+
+  const directMatches =
+    text.match(/https:\/\/www\.libri\.hu\/konyv\/[^"' <&]+\.html/ig) || [];
+
+  Logger.log("DIRECT LIBRI URL MATCHES:");
+  Logger.log(JSON.stringify(directMatches.slice(0, 20), null, 2));
+
+  const hrefMatches = text.match(/href=["']([^"']+)["']/ig) || [];
+
+  Logger.log("HREF COUNT:");
+  Logger.log(hrefMatches.length);
+
+  const suspiciousHrefs = hrefMatches.filter(function(h) {
+    const lower = h.toLowerCase();
+
+    return (
+      lower.indexOf("libri") !== -1 ||
+      lower.indexOf("jefferson") !== -1 ||
+      lower.indexOf("steve") !== -1 ||
+      lower.indexOf("berry") !== -1 ||
+      lower.indexOf("/url?") !== -1
+    );
+  });
+
+  Logger.log("SUSPICIOUS HREF COUNT:");
+  Logger.log(suspiciousHrefs.length);
+
+  Logger.log("FIRST 40 SUSPICIOUS HREFS:");
+  Logger.log(JSON.stringify(suspiciousHrefs.slice(0, 40), null, 2));
+
+  const fallbackUrls = searchLibriProductUrlsViaGoogle_(title, author);
+
+  Logger.log("PARSED FALLBACK URLS:");
+  Logger.log(JSON.stringify(fallbackUrls, null, 2));
+}
+/**
+ * Libri termékoldal címforrás debug teszt A Jefferson-kód / Steve Berry adattal.
+ *
+ * Cél:
+ * - kideríteni, hogy a hibás "A Jefferson-k�d" cím már a letöltött HTML-ben szerepel-e így
+ * - vagy csak az extractFirstMatch_() / parser feldolgozás közben sérül
+ *
+ * Mit vizsgál:
+ * - HTML hossz
+ * - tartalmaz-e "�" replacement karaktert
+ * - van-e charset deklaráció a HTML-ben
+ * - mit tartalmaz nyersen az og:title meta mező
+ * - mit ad vissza az extractFirstMatch_() az og:title mezőből
+ * - mit tartalmaz nyersen a h1 tag
+ * - mit ad vissza az extractFirstMatch_() a h1 tagből
+ * - jelenleg melyik címforrást választaná a parser
+ *
+ * Nem módosít adatot, csak Logger.log() kimenetet ad.
+ */
+function testLibriProductTitleSourceDebugJeffersonKod() {
+  // Tesztelt Libri termékoldal
+  const url = "https://www.libri.hu/konyv/steve_berry.a-jefferson-kod--2.html";
+
+  // A jelenlegi éles HTML-letöltő helperrel kérjük le az oldalt,
+  // hogy pontosan ugyanazt lássuk, amit a parser is kap.
+  const html = fetchPublisherHtml_(url);
+
+  // Biztonságosan stringgé alakítjuk a választ.
+  const text = String(html || "");
+  const lower = text.toLowerCase();
+
+  Logger.log("PRODUCT URL:");
+  Logger.log(url);
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  // Ha ez true, akkor a sérült karakter már a letöltött HTML szövegben jelen van.
+  Logger.log("CONTAINS REPLACEMENT CHAR:");
+  Logger.log(text.indexOf("�") !== -1);
+
+  // Charset deklaráció keresése a HTML-ben.
+  // Ez segíthet eldönteni, milyen karakterkódolást hirdet az oldal.
+  const charsetMatch = text.match(/charset=["']?([^"'\s>]+)/i);
+
+  Logger.log("CHARSET MATCH:");
+  Logger.log(charsetMatch ? charsetMatch[0] : "NINCS CHARSET TALÁLAT");
+
+  // Ugyanaz az og:title regex, amit a Libri parser is használ címkinyerésre.
+  const ogTitleRegex = /<meta property="og:title" content="([^"]+)"/i;
+
+  // Nyers regex találat: itt még nincs stripHtml_() / decodeHtmlEntities_().
+  const ogTitleRawMatch = text.match(ogTitleRegex);
+
+  Logger.log("OG TITLE RAW:");
+  Logger.log(ogTitleRawMatch ? ogTitleRawMatch[1] : "NINCS OG TITLE TALÁLAT");
+
+  // extractFirstMatch_() eredménye az og:title mezőre.
+  const ogTitleExtracted = extractFirstMatch_(text, ogTitleRegex);
+
+  Logger.log("OG TITLE EXTRACTED:");
+  Logger.log(ogTitleExtracted || "NINCS OG TITLE EXTRACTED");
+
+  // Az og:title körüli HTML-részlet kiírása,
+  // hogy látható legyen a tényleges forráskörnyezet.
+  const ogTitlePos = lower.indexOf('property="og:title"');
+
+  Logger.log("OG TITLE POSITION:");
+  Logger.log(ogTitlePos);
+
+  if (ogTitlePos >= 0) {
+    Logger.log("HTML AROUND OG TITLE:");
+    Logger.log(text.substring(Math.max(0, ogTitlePos - 300), ogTitlePos + 700));
+  }
+
+  // h1 regex: fallback címforrás, ha nincs og:title találat.
+  const h1Regex = /<h1[^>]*>([\s\S]*?)<\/h1>/i;
+
+  // Nyers h1 találat.
+  const h1RawMatch = text.match(h1Regex);
+
+  Logger.log("H1 RAW:");
+  Logger.log(h1RawMatch ? h1RawMatch[1] : "NINCS H1 TALÁLAT");
+
+  // extractFirstMatch_() eredménye h1-re.
+  const h1Extracted = extractFirstMatch_(text, h1Regex);
+
+  Logger.log("H1 EXTRACTED:");
+  Logger.log(h1Extracted || "NINCS H1 EXTRACTED");
+
+  // A h1 körüli HTML-részlet kiírása.
+  const h1Pos = lower.indexOf("<h1");
+
+  Logger.log("H1 POSITION:");
+  Logger.log(h1Pos);
+
+  if (h1Pos >= 0) {
+    Logger.log("HTML AROUND H1:");
+    Logger.log(text.substring(Math.max(0, h1Pos - 300), h1Pos + 700));
+  }
+
+  // Ez modellezi a jelenlegi parser címválasztását:
+  // először og:title, ha nincs, akkor h1.
+  const parserTitle =
+    extractFirstMatch_(text, ogTitleRegex) ||
+    extractFirstMatch_(text, h1Regex);
+
+  Logger.log("CURRENT PARSER TITLE RESULT:");
+  Logger.log(parserTitle || "NINCS PARSER TITLE");
+}
+/**
+ * Libri termékoldal HTML debug a datas blokk és a termékadat mezők környezetére.
+ *
+ * Cél:
+ * - megkeresni, hogy a Libri HTML-ben pontosan hol szerepel a datas blokk
+ * - ellenőrizni, hogy a fontos mezők milyen néven és milyen szerkezetben vannak jelen
+ * - előkészíteni az extractLibriDatasField_() helper pontosítását
+ *
+ * Vizsgált mezők:
+ * - datas
+ * - kiadó
+ * - Fordító
+ * - kiadás éve
+ * - oldalak száma
+ * - isbn
+ * - nyelv
+ *
+ * Nem módosít adatot, csak Logger.log() kimenetet ad.
+ */
+function testLibriPublisherHtmlDebugJeffersonKod() {
+  const url = "https://www.libri.hu/konyv/steve_berry.a-jefferson-kod--2.html";
+
+  // A Libri-specifikus, helyes karakterkódolású letöltőt használjuk,
+  // hogy ugyanazt a HTML-t lássuk, amit a parser is kap.
+  const html = fetchLibriHtml_(url);
+  const text = String(html || "");
+  const lower = text.toLowerCase();
+
+  Logger.log("PRODUCT URL:");
+  Logger.log(url);
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  /**
+   * Egy adott keresett szöveg első előfordulása körüli HTML-részletet logolja.
+   *
+   * Paraméterek:
+   * - label: emberileg olvasható log címke
+   * - needle: keresett szöveg
+   * - before: hány karaktert írjon ki az előfordulás előtt
+   * - after: hány karaktert írjon ki az előfordulás után
+   */
+  function logAround(label, needle, before, after) {
+    const needleLower = String(needle || "").toLowerCase();
+    const pos = lower.indexOf(needleLower);
+
+    Logger.log("----- " + label + " -----");
+    Logger.log(label + " POSITION:");
+    Logger.log(pos);
+
+    if (pos >= 0) {
+      Logger.log("HTML AROUND " + label + ":");
+      Logger.log(
+        text.substring(
+          Math.max(0, pos - (before || 1000)),
+          Math.min(text.length, pos + (after || 2500))
+        )
+      );
+    } else {
+      Logger.log("NINCS TALÁLAT ERRE: " + needle);
+    }
+  }
+
+  /**
+   * Egy mező összes előfordulásából kilogolja az első néhány pozíciót
+   * és azok környezetét.
+   *
+   * Ez azért kell, mert például a "kiadó" szó szerepelhet meta keywordsben,
+   * datas blokkban vagy más HTML-részben is.
+   */
+  function logAllOccurrences(label, needle, maxCount) {
+    const needleLower = String(needle || "").toLowerCase();
+    let fromIndex = 0;
+    let count = 0;
+
+    Logger.log("===== ALL OCCURRENCES: " + label + " / " + needle + " =====");
+
+    while (count < (maxCount || 5)) {
+      const pos = lower.indexOf(needleLower, fromIndex);
+
+      if (pos === -1) {
+        if (count === 0) {
+          Logger.log("NINCS ELŐFORDULÁS.");
+        }
+        break;
+      }
+
+      Logger.log(label + " OCCURRENCE #" + (count + 1) + " POSITION:");
+      Logger.log(pos);
+
+      Logger.log("HTML AROUND " + label + " OCCURRENCE #" + (count + 1) + ":");
+      Logger.log(
+        text.substring(
+          Math.max(0, pos - 700),
+          Math.min(text.length, pos + 1400)
+        )
+      );
+
+      fromIndex = pos + needleLower.length;
+      count++;
+    }
+  }
+
+  // 1) Datas blokk környezetének keresése.
+  logAround("DATAS", "datas", 1500, 5000);
+
+  // 2) Fontos datas mezőnevek első előfordulásának környezete.
+  logAround("KIADO_LOWER", "kiadó", 1000, 2500);
+  logAround("FORDITO_CAPITAL", "Fordító", 1000, 2500);
+  logAround("KIADAS_EVE", "kiadás éve", 1000, 2500);
+  logAround("OLDALAK_SZAMA", "oldalak száma", 1000, 2500);
+  logAround("ISBN", "isbn", 1000, 2500);
+  logAround("NYELV", "nyelv", 1000, 2500);
+
+  // 3) Az első néhány előfordulás külön is, hogy lássuk,
+  // melyik találat van meta részben és melyik tényleges termékadatban.
+  logAllOccurrences("KIADO_ALL", "kiadó", 5);
+  logAllOccurrences("FORDITO_ALL", "Fordító", 5);
+  logAllOccurrences("KIADAS_EVE_ALL", "kiadás éve", 5);
+  logAllOccurrences("OLDALAK_SZAMA_ALL", "oldalak száma", 5);
+  logAllOccurrences("ISBN_ALL", "isbn", 5);
+  logAllOccurrences("NYELV_ALL", "nyelv", 5);
+
+  // 4) Gyors ellenőrzés: a jelenlegi datas helper mit talál ezekre.
+  Logger.log("===== CURRENT extractLibriDatasField_ RESULTS =====");
+
+  Logger.log("kiadó:");
+  Logger.log(extractLibriDatasField_(text, "kiadó"));
+
+  Logger.log("Fordító:");
+  Logger.log(extractLibriDatasField_(text, "Fordító"));
+
+  Logger.log("kiadás éve:");
+  Logger.log(extractLibriDatasField_(text, "kiadás éve"));
+
+  Logger.log("oldalak száma:");
+  Logger.log(extractLibriDatasField_(text, "oldalak száma"));
+
+  Logger.log("isbn:");
+  Logger.log(extractLibriDatasField_(text, "isbn"));
+
+  Logger.log("nyelv:");
+  Logger.log(extractLibriDatasField_(text, "nyelv"));
+}
+function testSearchLibriJeffersonKodByIsbnManual() {
+  const result = searchLibriByIsbn_("9789634066903");
+  Logger.log(JSON.stringify(result, null, 2));
+}
+/***********************************************************
+ * 9. ALEXANDRA TESZTEK
+ ***********************************************************/
+
+/**
+ * Alexandra cím+szerző keresés teszt Lázár / Nelio Biedermann adattal.
+ *
+ * Teszteli:
+ * - searchAlexandraByTitleAuthor_()
+ */
+function testSearchAlexandraByTitleAuthor() {
+  const result = searchAlexandraByTitleAuthor_(
+    "Lázár",
+    "Nelio Biedermann"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+/**
+ * Alexandra cím+szerző keresés teszt A Jefferson-kód / Steve Berry adattal.
+ *
+ * Teszteli:
+ * - searchAlexandraByTitleAuthor_()
+ */
+function testSearchAlexandraJeffersonKod() {
+  const result = searchAlexandraByTitleAuthor_(
+    "A Jefferson-kód",
+    "Steve Berry"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+/**
+ * Alexandra ISBN keresés teszt Jefferson-kód ISBN alapján.
+ *
+ * Teszteli:
+ * - searchAlexandraByIsbn_()
+ *
+ * Megjegyzés:
+ * - ha az Alexandra másik könyvet ad vissza, az keresési / szűrési probléma,
+ *   nem feltétlen refaktor-hiba.
+ */
+function testSearchAlexandraJeffersonKodByIsbn() {
+  const result = searchAlexandraByIsbn_(
+    "9789634066903"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+function testMapBookFromParams() {
+  const result = mapBookFromParams_(
+    {
+      ID: "abc-123",
+      szerzo: "Steve Berry",
+      cim: "A Jefferson-kód",
+      eredeti_cim: "The Jefferson Key",
+      korabbi_cim: "",
+      sorozat: "",
+      ssz: "",
+      url: "https://example.com/cover.jpg",
+      ev: "2018",
+      helyszin: "",
+      polc: "",
+      oldalszam: "576",
+      isbn: "9789634066903",
+      kiado: "Gabo Kiadó",
+      fordito: "Lantos István",
+      mufaj: "",
+      megv: "x",
+      elado: "",
+      ar: "",
+      megjegy: "teszt"
+    },
+    { includeId: true }
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+function testMapBookFromImportParams() {
+  const result = mapBookFromImportParams_({
+    Author: "CSV Teszt Szerző",
+    Title: "CSV Teszt Cím",
+    Original_Title: "CSV Original",
+    Previous_Title: "",
+    Series: "CSV Sorozat",
+    Number: "1",
+    URL: "https://example.com/csv-cover.jpg",
+    Year: "2026",
+    Location: "Nappali",
+    Shelf: "A1",
+    Page_Count: "123",
+    ISBN: "9780000000000",
+    Publisher: "CSV Kiadó",
+    Translator: "CSV Fordító",
+    Genre: "teszt",
+    Purchased: "x",
+    For_sale: "",
+    Price: "1000",
+    Comment: "3.5 import mapper teszt"
+  });
+
+  Logger.log(JSON.stringify(result, null, 2));
+}

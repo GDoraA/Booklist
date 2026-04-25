@@ -1,0 +1,203 @@
+/***********************************************************
+ * SHEET SEGÉDFÜGGVÉNYEK
+ *
+ * Ebben a fájlban kizárólag a Google Sheets kezeléséhez
+ * szükséges alacsony szintű helper függvények vannak.
+ *
+ * Tartalom:
+ * - getSheet_(name)
+ * - getHeaderMap_(sheet)
+ * - readSheet_(sheetName)
+ * - generateId_()
+ * - updateUniqueList_(sheetName, columnName, value)
+ ***********************************************************/
+
+/**
+ * Lekéri az aktív Google Spreadsheet adott nevű munkalapját.
+ *
+ * Bemenet:
+ * - name: a keresett munkalap neve
+ *
+ * Kimenet:
+ * - Google Apps Script Sheet objektum
+ *
+ * Hibakezelés:
+ * - ha a megadott nevű munkalap nem létezik, hibát dob
+ *
+ * Példa:
+ * - getSheet_("List")
+ * - getSheet_("Users")
+ */
+function getSheet_(name) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(name);
+
+  if (!sheet) {
+    throw new Error("Nem található munkalap: " + name);
+  }
+
+  return sheet;
+}
+
+/**
+ * Az adott munkalap első sorából fejléc-mappát készít.
+ *
+ * Bemenet:
+ * - sheet: Google Apps Script Sheet objektum
+ *
+ * Működés:
+ * - beolvassa az első sort
+ * - minden nem üres fejlécnévhez eltárolja az oszlopszámot
+ * - az oszlopszám 1-alapú, tehát közvetlenül használható getRange()-hez
+ *
+ * Kimenet:
+ * - objektum, ahol:
+ *   {
+ *     "ID": 1,
+ *     "Author": 2,
+ *     "Title": 3
+ *   }
+ *
+ * Megjegyzés:
+ * - ha nincs oszlop a sheetben, üres objektumot ad vissza
+ */
+function getHeaderMap_(sheet) {
+  const lc = sheet.getLastColumn();
+
+  if (lc < 1) {
+    return {};
+  }
+
+  const headers = sheet.getRange(1, 1, 1, lc).getValues()[0];
+  const map = {};
+
+  headers.forEach((h, i) => {
+    if (h) {
+      map[h] = i + 1;
+    }
+  });
+
+  return map;
+}
+
+/**
+ * Beolvassa egy munkalap adatsorait objektumlistába.
+ *
+ * Bemenet:
+ * - sheetName: a beolvasandó munkalap neve
+ *
+ * Működés:
+ * - az első sort fejlécnek tekinti
+ * - a második sortól kezdve olvassa az adatokat
+ * - minden sorból objektumot készít a fejlécnevek alapján
+ * - null / undefined cellaértékeket üres stringgé alakít
+ * - minden más cellaértéket stringgé alakít
+ *
+ * Kimenet:
+ * - objektumlista
+ *
+ * Példa:
+ * [
+ *   {
+ *     "Author": "Steve Berry",
+ *     "Title": "A Jefferson-kód"
+ *   }
+ * ]
+ *
+ * Megjegyzés:
+ * - ha nincs adatsor vagy nincs oszlop, üres listát ad vissza
+ *
+ * Függőségek:
+ * - getSheet_()
+ */
+function readSheet_(sheetName) {
+  const sheet = getSheet_(sheetName);
+  const lr = sheet.getLastRow();
+  const lc = sheet.getLastColumn();
+
+  if (lr < 2 || lc < 1) {
+    return [];
+  }
+
+  const data = sheet.getRange(2, 1, lr - 1, lc).getValues();
+  const headers = sheet.getRange(1, 1, 1, lc).getValues()[0];
+
+  return data.map(row => {
+    const o = {};
+
+    headers.forEach((h, i) => {
+      if (h) {
+        o[h] =
+          row[i] === null || row[i] === undefined
+            ? ""
+            : String(row[i]);
+      }
+    });
+
+    return o;
+  });
+}
+
+/**
+ * Egyedi azonosítót generál új rekordokhoz.
+ *
+ * Bemenet:
+ * - nincs
+ *
+ * Kimenet:
+ * - UUID string
+ *
+ * Felhasználás:
+ * - új könyvrekord beszúrásakor az ID mező értékének előállítására
+ *
+ * Megjegyzés:
+ * - a generálást a Google Apps Script Utilities.getUuid() végzi
+ */
+function generateId_() {
+  return Utilities.getUuid();
+}
+
+/**
+ * Egy értéket hozzáad egy egyedi lista munkalaphoz, ha még nem szerepel benne.
+ *
+ * Bemenet:
+ * - sheetName: az egyedi lista munkalap neve
+ * - columnName: az oszlop neve, amelyben az értéket keresni és tárolni kell
+ * - value: a hozzáadandó érték
+ *
+ * Működés:
+ * - üres érték esetén nem csinál semmit
+ * - beolvassa az adott munkalapot
+ * - kisbetűsített összehasonlítással ellenőrzi, hogy az érték már szerepel-e
+ * - ha még nem szerepel, új sort szúr be
+ * - az értéket a columnName fejléc alatti oszlopba írja
+ *
+ * Felhasználás:
+ * - Authors sheet automatikus bővítése
+ * - SeriesList sheet automatikus bővítése
+ *
+ * Függőségek:
+ * - getSheet_()
+ * - readSheet_()
+ * - getHeaderMap_()
+ */
+function updateUniqueList_(sheetName, columnName, value) {
+  if (!value) {
+    return;
+  }
+
+  const sheet = getSheet_(sheetName);
+  const existing = readSheet_(sheetName);
+
+  const isExists = existing.some(row =>
+    String(row[columnName]).toLowerCase() === String(value).toLowerCase()
+  );
+
+  if (!isExists) {
+    const map = getHeaderMap_(sheet);
+    const row = new Array(sheet.getLastColumn()).fill("");
+
+    row[map[columnName] - 1] = value;
+    sheet.appendRow(row);
+  }
+}

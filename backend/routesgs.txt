@@ -1,0 +1,487 @@
+/***********************************************************
+ * ROUTES / HTTP BELÉPÉSI PONTOK
+ *
+ * Ebben a fájlban a Google Apps Script webapp publikus
+ * HTTP belépési pontjai vannak.
+ *
+ * Ez a réteg nem tartalmaz alacsony szintű üzleti logikát,
+ * hanem az action paraméter alapján meghívja a megfelelő
+ * belső függvényeket.
+ *
+ * A fájlban található függvények:
+ *
+ * 1. createJsonOrJsonpResponse_(obj, callback)
+ *    - JSON vagy JSONP választ készít.
+ *
+ * 2. doGet(e)
+ *    - GET kérések fő belépési pontja.
+ *
+ * 3. doPost(e)
+ *    - POST kérések belépési pontja; jelenleg nem kezel konkrét műveletet.
+ *
+ * Fontos:
+ * - A frontend jelenleg JSONP hívásokat használ, ezért a callback paraméter
+ *   támogatását meg kell tartani.
+ ***********************************************************/
+
+
+/**
+ * JSON vagy JSONP válasz létrehozása.
+ *
+ * Bemenet:
+ * - obj: visszaadandó objektum
+ * - callback: opcionális JSONP callback függvénynév
+ *
+ * Működés:
+ * - ha van callback, JavaScript választ készít:
+ *   callback({...});
+ * - ha nincs callback, sima JSON választ készít
+ *
+ * Kimenet:
+ * - ContentService TextOutput objektum
+ *
+ * Felhasználás:
+ * - minden doGet(e) válasz végén
+ * - importCsvRow duplikációs korai visszatérésénél
+ */
+function createJsonOrJsonpResponse_(obj, callback) {
+  const json = JSON.stringify(obj);
+
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + "(" + json + ");")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+
+  return ContentService
+    .createTextOutput(json)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+
+/**
+ * HTTP GET belépési pont.
+ *
+ * Bemenet:
+ * - e: Google Apps Script event objektum
+ *
+ * Fő bemeneti mezők:
+ * - e.parameter.action: meghívandó művelet neve
+ * - e.parameter.callback: opcionális JSONP callback név
+ *
+ * Működés:
+ * - kiolvassa az action paramétert
+ * - az action alapján összeállítja a szükséges bemeneti objektumot
+ * - meghívja a megfelelő belső függvényt
+ * - JSON vagy JSONP választ ad vissza
+ *
+ * Kezelt action értékek:
+ * - addBookToLista
+ * - addBookOnly
+ * - getLista
+ * - updateLista
+ * - deleteLista
+ * - getUniqueLists
+ * - lookupBookMetadata
+ * - lookupPublisherPages
+ * - checkUser
+ * - setPassword
+ * - login
+ * - importCsvRow
+ *
+ * Hibakezelés:
+ * - minden route közös try/catch blokkban fut
+ * - hiba esetén { success:false, error:"..." } választ ad
+ *
+ * Függőségek:
+ * - createJsonOrJsonpResponse_()
+ * - updateUniqueList_()
+ * - addBookToLista_()
+ * - addBookOnly_()
+ * - getLista_()
+ * - updateLista_()
+ * - deleteLista_()
+ * - readSheet_()
+ * - lookupBookMetadata_()
+ * - searchBooklineByIsbn_()
+ * - searchLibriByIsbn_()
+ * - searchAlexandraByIsbn_()
+ * - searchBooklineByTitleAuthor_()
+ * - searchLibriByTitleAuthor_()
+ * - searchAlexandraByTitleAuthor_()
+ * - filterPublisherItemsByRequestedIsbn_()
+ * - dedupeLookupCandidates_()
+ * - checkUserStatus_()
+ * - setUserPassword_()
+ * - loginUser_()
+ * - isDuplicate_()
+ * - getSheet_()
+ * - getHeaderMap_()
+ * - generateId_()
+ */
+function doGet(e) {
+  const p = e?.parameter || {};
+  const action = p.action;
+  const callback = p.callback;
+  let result;
+
+  try {
+    /***********************************************************
+     * ÚJ KÖNYV FELVÉTELE – addBookToLista
+     *
+     * Frontend paraméterekből book objektumot épít,
+     * frissíti az Authors / SeriesList egyedi listákat,
+     * majd meghívja az addBookToLista_() üzleti függvényt.
+     ***********************************************************/
+    if (action === "addBookToLista") {
+      // TODO 3.1: Ismétlődő book objektum-építés. Később közös mapper helperbe kerül.
+      const book = {
+        "Author": p.szerzo || "",
+        "Title": p.cim || "",
+        "Original_Title": p.eredeti_cim || "",
+        "Previous_Title": p.korabbi_cim || "",
+        "Series": p.sorozat || "",
+        "Number": p.ssz || "",
+        "URL": p.url || "",
+        "Year": p.ev || "",
+        "Location": p.helyszin || "",
+        "Shelf": p.polc || "",
+        "Page_Count": p.oldalszam || "",
+        "ISBN": p.isbn || "",
+        "Publisher": p.kiado || "",
+        "Translator": p.fordito || "",
+        "Genre": p.mufaj || "",
+        "Purchased": p.megv || "",
+        "For_sale": p.elado || "",
+        "Price": p.ar || "",
+        "Comment": p.megjegy || ""
+      };
+
+      updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
+      updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
+
+      result = addBookToLista_(book);
+    }
+
+    /***********************************************************
+     * ÚJ KÖNYV FELVÉTELE – addBookOnly
+     *
+     * A frontend jelenlegi új könyv mentési útvonala ezt hívja.
+     * A működés az addBookToLista_() wrapperén keresztül fut.
+     ***********************************************************/
+    // TODO 3.1: Ismétlődő book objektum-építés. Később közös mapper helperbe kerül.
+    else if (action === "addBookOnly") {
+      const book = mapBookFromParams_(p, { includeId: false });
+
+      updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
+      updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
+
+      result = addBookOnly_(book);
+    }
+
+    /***********************************************************
+     * LISTA LEKÉRÉSE
+     *
+     * Visszaadja a teljes List sheet tartalmát.
+     ***********************************************************/
+    else if (action === "getLista") {
+      result = getLista_();
+    }
+
+    /***********************************************************
+     * REKORD FRISSÍTÉSE
+     *
+     * Frontend paraméterekből book objektumot épít,
+     * majd ID alapján frissíti a meglévő rekordot.
+     ***********************************************************/
+    // TODO 3.1: Ismétlődő book objektum-építés. Később közös mapper helperbe kerül.
+    // Fontos: update esetén az ID mezőt is meg kell tartani.
+    else if (action === "updateLista") {
+      const book = mapBookFromParams_(p, { includeId: true });
+
+      result = updateLista_(book);
+    }
+
+    /***********************************************************
+     * REKORD TÖRLÉSE
+     *
+     * ID alapján töröl egy könyvrekordot a List sheetből.
+     ***********************************************************/
+    else if (action === "deleteLista") {
+      const id = p.ID || "";
+      result = deleteLista_(id);
+    }
+
+    /***********************************************************
+     * EGYEDI LISTÁK LEKÉRÉSE
+     *
+     * A frontend datalist mezőihez visszaadja:
+     * - Authors sheet tartalmát
+     * - SeriesList sheet tartalmát
+     ***********************************************************/
+    else if (action === "getUniqueLists") {
+      result = {
+        success: true,
+        authors: readSheet_(SHEET_AUTHORS),
+        series: readSheet_(SHEET_SERIES)
+      };
+    }
+
+    /***********************************************************
+     * KÖNYV METAADAT KERESÉS
+     *
+     * Meghívja a fő lookup orchestration függvényt:
+     * - Google Books
+     * - Open Library
+     * - ISBN esetén webshop ISBN keresések
+     ***********************************************************/
+    else if (action === "lookupBookMetadata") {
+      result = lookupBookMetadata_({
+        isbn: p.isbn || "",
+        title: p.title || "",
+        author: p.author || ""
+      });
+    }
+
+    /***********************************************************
+     * KIADÓI / WEBSHOP OLDALAK KERESÉSE
+     *
+     * Bookline, Libri és Alexandra kereséseket futtat.
+     *
+     * ISBN esetén:
+     * - ISBN keresés mindhárom webshopon
+     * - találatok visszaszűrése a kért ISBN-re
+     *
+     * Cím/szerző esetén:
+     * - cím+szerző keresés mindhárom webshopon
+     *
+     * Kimenet:
+     * - darabszámok forrásonként
+     * - deduplikált találatlista
+     ***********************************************************/
+    else if (action === "lookupPublisherPages") {
+      const isbn = p.isbn || "";
+      const title = p.title || "";
+      const author = p.author || "";
+
+      let booklineItems = [];
+      let libriItems = [];
+      let alexandraItems = [];
+
+      let booklineTitleAuthorItems = [];
+      let libriTitleAuthorItems = [];
+      let alexandraTitleAuthorItems = [];
+
+      if (isbn) {
+        booklineItems = filterPublisherItemsByRequestedIsbn_(
+          searchBooklineByIsbn_(isbn),
+          isbn
+        );
+
+        libriItems = filterPublisherItemsByRequestedIsbn_(
+          searchLibriByIsbn_(isbn),
+          isbn
+        );
+
+        alexandraItems = filterPublisherItemsByRequestedIsbn_(
+          searchAlexandraByIsbn_(isbn),
+          isbn
+        );
+      }
+
+      if (title || author) {
+        booklineTitleAuthorItems = searchBooklineByTitleAuthor_(title, author);
+        libriTitleAuthorItems = searchLibriByTitleAuthor_(title, author);
+        alexandraTitleAuthorItems = searchAlexandraByTitleAuthor_(title, author);
+      }
+
+      result = {
+        success: true,
+        query: {
+          isbn: isbn,
+          title: title,
+          author: author
+        },
+        counts: {
+          booklineIsbn: booklineItems.length,
+          libriIsbn: libriItems.length,
+          alexandraIsbn: alexandraItems.length,
+          booklineTitleAuthor: booklineTitleAuthorItems.length,
+          libriTitleAuthor: libriTitleAuthorItems.length,
+          alexandraTitleAuthor: alexandraTitleAuthorItems.length
+        },
+        items: dedupeLookupCandidates_(
+          []
+            .concat(booklineItems)
+            .concat(libriItems)
+            .concat(alexandraItems)
+            .concat(booklineTitleAuthorItems)
+            .concat(libriTitleAuthorItems)
+            .concat(alexandraTitleAuthorItems)
+        )
+      };
+    }
+
+    /***********************************************************
+     * LOGIN – FELHASZNÁLÓ ELLENŐRZÉSE
+     *
+     * Megnézi, hogy az email szerepel-e a Users sheetben,
+     * illetve kell-e első jelszó beállítás.
+     ***********************************************************/
+    else if (action === "checkUser") {
+      const email = (p.email || "").trim().toLowerCase();
+      result = checkUserStatus_(email);
+    }
+
+    /***********************************************************
+     * LOGIN – ELSŐ / ÚJ JELSZÓ BEÁLLÍTÁSA
+     *
+     * A megadott jelszót hash-eli és a Users sheet
+     * PasswordHash oszlopába menti.
+     ***********************************************************/
+    else if (action === "setPassword") {
+      const email = (p.email || "").trim().toLowerCase();
+      const pwd = p.password || "";
+
+      result = setUserPassword_(email, pwd);
+    }
+
+    /***********************************************************
+     * LOGIN – EMAIL + JELSZÓ ELLENŐRZÉSE
+     *
+     * A megadott jelszót hash-eli, majd összeveti a Users sheetben
+     * tárolt PasswordHash értékkel.
+     ***********************************************************/
+    else if (action === "login") {
+      const email = (p.email || "").trim().toLowerCase();
+      const pwd = p.password || "";
+
+      result = loginUser_(email, pwd);
+    }
+
+    /***********************************************************
+     * CSV / TSV IMPORT – EGY SOR FELDOLGOZÁSA
+     *
+     * A frontend import logikája soronként hívja ezt az actiont.
+     *
+     * Működés:
+     * - book objektumot épít a bejövő paraméterekből
+     * - duplikációt ellenőriz
+     * - frissíti az Authors / SeriesList segédlistákat
+     * - új ID-t generál
+     * - közvetlenül beszúrja a sort a List sheetbe
+     *
+     * Megjegyzés:
+     * - ez jelenleg route-ba ágyazott importlogika.
+     * - később külön import modulba lehet kiszervezni,
+     *   de most nem módosítjuk.
+     ***********************************************************/
+    else if (action === "importCsvRow") {
+      const book = mapBookFromImportParams_(p);
+
+      const duplicate = isDuplicate_(book);
+
+      if (duplicate) {
+        return createJsonOrJsonpResponse_(
+          {
+            success: false,
+            error: "Duplikált rekord (import): a könyv már szerepel a listában.",
+            duplicate: duplicate
+          },
+          callback
+        );
+      }
+
+      updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
+      updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
+
+      const sheet = getSheet_(SHEET_LISTA);
+      const map = getHeaderMap_(sheet);
+      const row = new Array(sheet.getLastColumn()).fill("");
+
+      row[map["ID"] - 1] = generateId_();
+      row[map["Author"] - 1] = book["Author"];
+      row[map["Title"] - 1] = book["Title"];
+      row[map["Original_Title"] - 1] = book["Original_Title"];
+      row[map["Previous_Title"] - 1] = book["Previous_Title"];
+      row[map["Series"] - 1] = book["Series"];
+      row[map["Number"] - 1] = book["Number"];
+      row[map["URL"] - 1] = book["URL"];
+      row[map["Year"] - 1] = book["Year"];
+      row[map["Location"] - 1] = book["Location"];
+      row[map["Shelf"] - 1] = book["Shelf"];
+      row[map["Page_Count"] - 1] = book["Page_Count"];
+      row[map["ISBN"] - 1] = book["ISBN"];
+      row[map["Publisher"] - 1] = book["Publisher"];
+      row[map["Translator"] - 1] = book["Translator"];
+      row[map["Genre"] - 1] = book["Genre"];
+      row[map["Purchased"] - 1] = book["Purchased"];
+      row[map["For_sale"] - 1] = book["For_sale"];
+      row[map["Price"] - 1] = book["Price"];
+      row[map["Comment"] - 1] = book["Comment"];
+
+      sheet.appendRow(row);
+
+      result = {
+        success: true,
+        inserted: book
+      };
+    }
+
+    /***********************************************************
+     * ISMERETLEN ACTION
+     ***********************************************************/
+    else {
+      result = {
+        success: false,
+        error: "Ismeretlen action: " + action
+      };
+    }
+
+  } catch (err) {
+    result = {
+      success: false,
+      error: err.message || String(err)
+    };
+  }
+
+  return createJsonOrJsonpResponse_(result, callback);
+}
+
+
+/**
+ * HTTP POST belépési pont.
+ *
+ * Bemenet:
+ * - e: Google Apps Script event objektum
+ *
+ * Jelenlegi működés:
+ * - megpróbálja parse-olni a postData tartalmát
+ * - jelenleg nincs támogatott POST action
+ * - minden esetben "Ismeretlen POST action." választ ad
+ *
+ * Megjegyzés:
+ * - korábban képfeltöltéshez lehetett előkészítve,
+ *   de a jelenlegi frontend URL alapú borítókezelést használ.
+ */
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents || "{}");
+    const action = e.parameter.action;
+
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: false,
+        error: "Ismeretlen POST action."
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: false,
+        error: err.message
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
