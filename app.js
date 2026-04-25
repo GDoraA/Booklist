@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbzCE9WBTX9EZhvqwxvLQj39fluAlQpwh-DphKKByOQ4pNLON1FSYiJsD73FRHpf-8NzPA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwoQzfnPHzA4vgN2ge6dX6UjFoEe7h7EgUN2YLVCvi7YIPqWZZVzGsemnxgITULIEntKw/exec";
 const GOOGLE_BOOKS_API_KEY = "AIzaSyA-OgB7xZn15ITtZkzeaLO8k8gvxODyKtM";
 const GOOGLE_BOOKS_MAX_RESULTS = 10;
 /********** LOGIN ÁLLAPOT **********/
@@ -761,6 +761,63 @@ function applyLookupItemToModalEmptyFields(item) {
 
     urlPreviewUpdate();
 }
+function normalizeLookupTextForFrontend(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
+function normalizeLooseLookupTextForFrontend(value) {
+    return normalizeLookupTextForFrontend(value)
+        .replace(/[^a-z0-9]+/g, "");
+}
+
+function isRelevantFrontendLookupItem(item, wanted) {
+    const wantedIsbn = normalizeIsbnForMerge(wanted && wanted.isbn);
+    const wantedTitle = normalizeLookupTextForFrontend(wanted && wanted.title);
+    const wantedAuthor = normalizeLookupTextForFrontend(wanted && wanted.author);
+
+    const itemIsbn = normalizeIsbnForMerge(item && item.isbn);
+    const itemTitle = normalizeLookupTextForFrontend(item && item.title);
+    const itemAuthors = normalizeLookupTextForFrontend(item && item.authors);
+
+    const wantedTitleLoose = normalizeLooseLookupTextForFrontend(wanted && wanted.title);
+    const wantedAuthorLoose = normalizeLooseLookupTextForFrontend(wanted && wanted.author);
+
+    const itemTitleLoose = normalizeLooseLookupTextForFrontend(item && item.title);
+    const itemAuthorsLoose = normalizeLooseLookupTextForFrontend(item && item.authors);
+
+    if (wantedIsbn) {
+        return itemIsbn && itemIsbn === wantedIsbn;
+    }
+
+    let titleMatches = false;
+    let authorMatches = false;
+
+    if (wantedTitle) {
+        titleMatches =
+            itemTitle.includes(wantedTitle) ||
+            wantedTitle.includes(itemTitle) ||
+            itemTitleLoose.includes(wantedTitleLoose) ||
+            wantedTitleLoose.includes(itemTitleLoose);
+    }
+
+    if (wantedAuthor) {
+        authorMatches =
+            itemAuthors.includes(wantedAuthor) ||
+            wantedAuthor.includes(itemAuthors) ||
+            itemAuthorsLoose.includes(wantedAuthorLoose) ||
+            wantedAuthorLoose.includes(itemAuthorsLoose);
+    }
+
+    if (wantedTitle && wantedAuthor) {
+        return titleMatches && authorMatches;
+    }
+
+    return titleMatches || authorMatches;
+}
 async function lookupGoogleBooksFromFrontend({ isbn, title, author }) {
     const q = buildGoogleBooksQuery({ isbn, title, author });
 
@@ -784,8 +841,11 @@ async function lookupGoogleBooksFromFrontend({ isbn, title, author }) {
     }
 
     const json = await response.json();
-    const items = Array.isArray(json.items) ? json.items : [];
-    return items.map(mapGoogleBookToLookupItem);
+const items = Array.isArray(json.items) ? json.items : [];
+
+return items
+    .map(mapGoogleBookToLookupItem)
+    .filter(item => isRelevantFrontendLookupItem(item, { isbn, title, author }));
 }
 async function lookupPublisherPagesFromBackend({ isbn, title, author }) {
     const cleanIsbn = String(isbn || "").trim();
@@ -829,70 +889,7 @@ async function lookupPublisherPagesFromBackend({ isbn, title, author }) {
     });
 }
 
-function normalizeIsbnForMerge(value) {
-    return String(value || "")
-        .replace(/[^0-9Xx]/g, "")
-        .toLowerCase();
-}
 
-function mergeLookupItemFields(base, incoming) {
-    const result = Object.assign({}, base || {});
-    const next = incoming || {};
-
-    function fill(field) {
-        const currentValue = String(result[field] || "").trim();
-        const nextValue = String(next[field] || "").trim();
-
-        if (!currentValue && nextValue) {
-            result[field] = next[field];
-        }
-    }
-
-    [
-        "title",
-        "authors",
-        "originalTitle",
-        "previousTitle",
-        "series",
-        "number",
-        "year",
-        "location",
-        "shelf",
-        "pageCount",
-        "isbn",
-        "publisher",
-        "translator",
-        "genre",
-        "coverUrl",
-        "language"
-    ].forEach(fill);
-
-    const currentSources = String(result.source || "")
-        .split(",")
-        .map(x => x.trim())
-        .filter(Boolean);
-
-    const nextSources = String(next.source || "")
-        .split(",")
-        .map(x => x.trim())
-        .filter(Boolean);
-
-    result.source = Array.from(new Set(currentSources.concat(nextSources))).join(", ");
-
-    const currentSourceIds = String(result.sourceId || "")
-        .split(" | ")
-        .map(x => x.trim())
-        .filter(Boolean);
-
-    const nextSourceIds = String(next.sourceId || "")
-        .split(" | ")
-        .map(x => x.trim())
-        .filter(Boolean);
-
-    result.sourceId = Array.from(new Set(currentSourceIds.concat(nextSourceIds))).join(" | ");
-
-    return result;
-}
 
 function normalizeIsbnForMerge(value) {
     return String(value || "")
@@ -1002,10 +999,24 @@ function mergeLookupResults(googleItems, publisherItems) {
     return merged;
 }
 async function lookupBookMetadataFromModal() {
+    // Új lookup indulásakor minden korábbi találati állapotot törlünk,
+    // hogy régi keresésből származó eredmény ne jelenhessen meg újra.
+    lastLookupResults = [];
+    selectedLookupResultIndex = -1;
+
+    const lookupResultsModal = document.getElementById("lookupResultsModal");
+    if (lookupResultsModal) {
+        lookupResultsModal.style.display = "none";
+    }
+
+    const lookupResultsList = document.getElementById("lookupResultsList");
+    if (lookupResultsList) {
+        lookupResultsList.innerHTML = "";
+    }
+
     const isbn = (document.getElementById("bm_isbn").value || "").trim();
     const title = (document.getElementById("bm_cim").value || "").trim();
     const author = (document.getElementById("bm_szerzo").value || "").trim();
-
     if (!isbn && !title && !author) {
         alert("Adj meg legalább ISBN-t vagy címet/szerzőt a kereséshez.");
         return;
