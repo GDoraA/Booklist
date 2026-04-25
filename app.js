@@ -1,12 +1,16 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbwoQzfnPHzA4vgN2ge6dX6UjFoEe7h7EgUN2YLVCvi7YIPqWZZVzGsemnxgITULIEntKw/exec";
-const GOOGLE_BOOKS_API_KEY = "AIzaSyA-OgB7xZn15ITtZkzeaLO8k8gvxODyKtM";
+const API_URL = "https://script.google.com/macros/s/AKfycbyNFEMRUCeuOR0sPN8jt1yCoZKwr_b65L3Ja8uNWV3IMlXLZY94OaS5A3vukX6qCMbQyA/exec";
+// Frontend oldali Google Books API kulcs.
+// Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
+// HTTP referrer korlátozással kell védeni.
+// Nem azonos a backend Script Properties-ben tárolt kulccsal.
+const FRONTEND_GOOGLE_BOOKS_API_KEY = "AIzaSyA-OgB7xZn15ITtZkzeaLO8k8gvxODyKtM";
 const GOOGLE_BOOKS_MAX_RESULTS = 10;
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2026-04-24 11:00";  // Ezt TE frissíted minden deploykor
+const APP_VERSION = "2026-04-25 23:00";  // Ezt TE frissíted minden deploykor
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 
@@ -831,7 +835,7 @@ async function lookupGoogleBooksFromFrontend({ isbn, title, author }) {
         "&langRestrict=hu" +
         "&printType=books" +
         "&maxResults=" + GOOGLE_BOOKS_MAX_RESULTS +
-        "&key=" + encodeURIComponent(GOOGLE_BOOKS_API_KEY);
+        "&key=" + encodeURIComponent(FRONTEND_GOOGLE_BOOKS_API_KEY);
 
     const response = await fetch(url);
 
