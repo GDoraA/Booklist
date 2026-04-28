@@ -4,7 +4,7 @@ self.addEventListener('install', (event) => {
 });
 
 // Cache verzió
-const CACHE_NAME = "gda-cache-v26";
+const CACHE_NAME = "gda-cache-v27";
 
 // Cache-elendő statikus fájlok
 const ASSETS_TO_CACHE = [
@@ -76,19 +76,4 @@ self.addEventListener("fetch", event => {
     })
   );
 });
-// ---------- SERVICE WORKER VERZIÓ LEKÉRÉSE ----------
-if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.ready.then(reg => {
-        if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage("GET_SW_VERSION");
-        }
-    });
 
-    navigator.serviceWorker.addEventListener("message", event => {
-        if (event.data && event.data.swVersion) {
-            const el = document.getElementById("swVersion");
-            if (el) el.textContent = event.data.swVersion;
-        }
-    });
-}
-// ------------------------------------------------------

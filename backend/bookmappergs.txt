@@ -1,0 +1,103 @@
+/***********************************************************
+ * BOOK MAPPER SEGÉDFÜGGVÉNYEK
+ *
+ * Ebben a fájlban a frontend route-paraméterekből készítünk
+ * egységes backend book objektumot.
+ *
+ * Cél:
+ * - routes.gs ismétlődő book objektum építésének kiváltása
+ * - addBookOnly / addBookToLista / updateLista mezőmapping egységesítése
+ *
+ * Fontos:
+ * - ebben a lépésben a mapper még nincs bekötve route-ba
+ ***********************************************************/
+ /**
+ * Frontend route-paraméterekből backend book objektumot készít.
+ *
+ * Bemenet:
+ * - p: doGet(e).parameter objektum
+ * - options:
+ *   {
+ *     includeId: true/false
+ *   }
+ *
+ * Kimenet:
+ * - backend book objektum a List sheet fejlécneveivel
+ *
+ * Megjegyzés:
+ * - includeId=true esetén az ID mezőt is beteszi az objektumba
+ * - új könyv felvételnél includeId=false
+ * - meglévő rekord frissítésénél includeId=true
+ */
+function mapBookFromParams_(p, options) {
+  p = p || {};
+  options = options || {};
+
+  const book = {
+    "Author": p.szerzo || "",
+    "Title": p.cim || "",
+    "Original_Title": p.eredeti_cim || "",
+    "Previous_Title": p.korabbi_cim || "",
+    "Series": p.sorozat || "",
+    "Number": p.ssz || "",
+    "URL": p.url || "",
+    "Year": p.ev || "",
+    "Location": p.helyszin || "",
+    "Shelf": p.polc || "",
+    "Page_Count": p.oldalszam || "",
+    "ISBN": p.isbn || "",
+    "Publisher": p.kiado || "",
+    "Translator": p.fordito || "",
+    "Genre": p.mufaj || "",
+    "Purchased": p.megv || "",
+    "For_sale": p.elado || "",
+    "Price": p.ar || "",
+    "Comment": p.megjegy || ""
+  };
+
+  if (options.includeId) {
+    book["ID"] = p.ID || "";
+  }
+
+  return book;
+}
+
+/**
+ * CSV / TSV import route-paraméterekből backend book objektumot készít.
+ *
+ * Bemenet:
+ * - p: doGet(e).parameter objektum az importCsvRow actionből
+ *
+ * Fontos:
+ * - az import frontend már backend mezőnevekkel küldi a paramétereket:
+ *   Author, Title, Original_Title, Page_Count, ISBN, stb.
+ * - ezért ez külön mapper, nem a mapBookFromParams_() változata
+ *
+ * Kimenet:
+ * - backend book objektum a List sheet fejlécneveivel
+ */
+function mapBookFromImportParams_(p) {
+  p = p || {};
+
+  return {
+    "Author": p.Author || "",
+    "Title": p.Title || "",
+    "Original_Title": p.Original_Title || "",
+    "Previous_Title": p.Previous_Title || "",
+    "Series": p.Series || "",
+    "Number": p.Number || "",
+    "URL": p.URL || "",
+    "Year": p.Year || "",
+    "Location": p.Location || "",
+    "Shelf": p.Shelf || "",
+    "Page_Count": p.Page_Count || "",
+    "ISBN": p.ISBN || "",
+    "Publisher": p.Publisher || "",
+    "Translator": p.Translator || "",
+    "Genre": p.Genre || "",
+    "Purchased": p.Purchased || "",
+    "For_sale": p.For_sale || "",
+    "Price": p.Price || "",
+    "Comment": p.Comment || ""
+  };
+}

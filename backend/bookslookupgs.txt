@@ -82,10 +82,14 @@
  * - scoreLookupCandidate_()
  *
  * Fontos jelenlegi működés:
- * - cím+szerző keresésnél ez a fő lookup jelenleg nem hívja meg a
+ * - Ez a függvény megmarad backend oldali összesített lookupként.
+ * - Google Books és Open Library keresést mindig innen lehet futtatni.
+ * - ISBN keresésnél a Bookline / Libri / Alexandra ISBN ágak is itt futnak.
+ * - Cím+szerző keresésnél ez a fő lookup jelenleg nem hívja meg a
  *   Bookline / Libri / Alexandra cím+szerző keresőket.
- * - ezek a webshopos cím+szerző keresések jelenleg a lookupPublisherPages
- *   route-ban futnak.
+ * - A frontend orchestration publisher/webshop találatokhoz jelenleg a
+ *   lookupPublisherPages route-ot hívja.
+ * - A Bookline / Libri / Alexandra cím+szerző keresések jelenleg ott futnak.
  */
 function lookupBookMetadata_(params) {
   const queryContext = {

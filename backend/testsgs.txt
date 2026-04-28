@@ -51,7 +51,19 @@
  *    - testSearchAlexandraJeffersonKod()
  *    - testSearchAlexandraJeffersonKodByIsbn()
  ***********************************************************/
+/***********************************************************
+ * TESZT KONSTANSOK
+ ***********************************************************/
 
+const TEST_BOOK_JEFFERSON_TITLE = "A Jefferson-kód";
+const TEST_BOOK_JEFFERSON_AUTHOR = "Steve Berry";
+const TEST_BOOK_JEFFERSON_ISBN = "9789634066903";
+
+const TEST_BOOK_LAZAR_TITLE = "Lázár";
+const TEST_BOOK_LAZAR_AUTHOR = "Nelio Biedermann";
+const TEST_BOOK_LAZAR_ISBN = "9789636851972";
+
+const TEST_BOOK_LOOKUP_ISBN = "9789634472605";
 
 /***********************************************************
  * 1. AUTH / USERS TESZTEK
@@ -106,7 +118,7 @@ function testReadUsers() {
  */
 function testExternalRequestAuthorization() {
   const res = UrlFetchApp.fetch(
-    "https://openlibrary.org/search.json?isbn=9789634472605"
+    "https://openlibrary.org/search.json?isbn=" + encodeURIComponent(TEST_BOOK_LOOKUP_ISBN)
   );
 
   Logger.log(res.getResponseCode());
@@ -133,7 +145,7 @@ function testExternalRequestAuthorization() {
  */
 function testLookupBookMetadata() {
   const result = lookupBookMetadata_({
-    isbn: "9789634472605",
+    isbn: TEST_BOOK_LOOKUP_ISBN,
     title: "",
     author: ""
   });
@@ -159,8 +171,8 @@ function testLookupPublisherPagesParams() {
     parameter: {
       action: "lookupPublisherPages",
       isbn: "",
-      title: "Lázár",
-      author: "Nelio Biedermann"
+      title: TEST_BOOK_LAZAR_TITLE,
+      author: TEST_BOOK_LAZAR_AUTHOR
     }
   };
 
@@ -182,8 +194,8 @@ function testLookupPublisherPagesJeffersonKod() {
     parameter: {
       action: "lookupPublisherPages",
       isbn: "",
-      title: "A Jefferson-kód",
-      author: "Steve Berry"
+      title: TEST_BOOK_JEFFERSON_TITLE,
+      author: TEST_BOOK_JEFFERSON_AUTHOR
     }
   };
 
@@ -204,8 +216,8 @@ function testLookupPublisherPagesBooklineJeffersonKod() {
     parameter: {
       action: "lookupPublisherPages",
       isbn: "",
-      title: "A Jefferson-kód",
-      author: "Steve Berry"
+      title: TEST_BOOK_JEFFERSON_TITLE,
+      author: TEST_BOOK_JEFFERSON_AUTHOR
     }
   };
 
@@ -226,8 +238,8 @@ function testLookupPublisherPagesAlexandraJeffersonKod() {
     parameter: {
       action: "lookupPublisherPages",
       isbn: "",
-      title: "A Jefferson-kód",
-      author: "Steve Berry"
+      title: TEST_BOOK_JEFFERSON_TITLE,
+      author: TEST_BOOK_JEFFERSON_AUTHOR
     }
   };
 
@@ -249,8 +261,8 @@ function testLookupPublisherPagesAlexandraJeffersonKod() {
  */
 function testSearchBooklineByTitleAuthor() {
   const result = searchBooklineByTitleAuthor_(
-    "Lázár",
-    "Nelio Biedermann"
+    TEST_BOOK_LAZAR_TITLE,
+    TEST_BOOK_LAZAR_AUTHOR
   );
 
   Logger.log(JSON.stringify(result, null, 2));
@@ -267,8 +279,8 @@ function testSearchBooklineByTitleAuthor() {
  */
 function testSearchBooklineJeffersonKod() {
   const result = searchBooklineByTitleAuthor_(
-    "A Jefferson-kód",
-    "Steve Berry"
+    TEST_BOOK_JEFFERSON_TITLE,
+    TEST_BOOK_JEFFERSON_AUTHOR
   );
 
   Logger.log(JSON.stringify(result, null, 2));
@@ -282,7 +294,7 @@ function testSearchBooklineJeffersonKod() {
  */
 function testSearchBooklineJeffersonKodByIsbn() {
   const result = searchBooklineByIsbn_(
-    "9789634066903"
+    TEST_BOOK_JEFFERSON_ISBN
   );
 
   Logger.log(JSON.stringify(result, null, 2));
@@ -317,11 +329,11 @@ function testParseBooklineJeffersonKodDirect() {
  * - megmutatni az első releváns HTML-részletet
  */
 function testBooklineSearchHtmlDebug() {
-  const title = "Lázár";
-  const author = "Nelio Biedermann";
+  const title = TEST_BOOK_LAZAR_TITLE;
+  const author = TEST_BOOK_LAZAR_AUTHOR;
 
   const query = [title, author]
-    .filter(function(x) {
+    .filter(function (x) {
       return x;
     })
     .join(" ")
@@ -361,7 +373,7 @@ function testBooklineSearchHtmlDebug() {
 
   const hrefMatches = text.match(/href="([^"]+)"/ig) || [];
 
-  const booklineProductHrefs = hrefMatches.filter(function(h) {
+  const booklineProductHrefs = hrefMatches.filter(function (h) {
     return h.indexOf("product") !== -1 || h.indexOf("konyv") !== -1;
   });
 
@@ -380,11 +392,11 @@ function testBooklineSearchHtmlDebug() {
  *   kulcsszavakat és Bookline termékoldal linkeket
  */
 function testBooklineSearchHtmlDebugJeffersonKod() {
-  const title = "A Jefferson-kód";
-  const author = "Steve Berry";
+  const title = TEST_BOOK_JEFFERSON_TITLE;
+  const author = TEST_BOOK_JEFFERSON_AUTHOR;
 
   const query = [title, author]
-    .filter(function(x) {
+    .filter(function (x) {
       return x;
     })
     .join(" ")
@@ -420,7 +432,7 @@ function testBooklineSearchHtmlDebugJeffersonKod() {
 
   const hrefMatches = text.match(/href=["']([^"']+)["']/ig) || [];
 
-  const relevantHrefs = hrefMatches.filter(function(h) {
+  const relevantHrefs = hrefMatches.filter(function (h) {
     const lower = h.toLowerCase();
 
     return (
@@ -523,8 +535,8 @@ function testBooklinePageCountHtmlAroundJeffersonKod() {
  */
 function testSearchLibriByTitleAuthor() {
   const result = searchLibriByTitleAuthor_(
-    "Lázár",
-    "Nelio Biedermann"
+    TEST_BOOK_LAZAR_TITLE,
+    TEST_BOOK_LAZAR_AUTHOR
   );
 
   Logger.log(JSON.stringify(result, null, 2));
@@ -538,8 +550,8 @@ function testSearchLibriByTitleAuthor() {
  */
 function testSearchLibriJeffersonKod() {
   const result = searchLibriByTitleAuthor_(
-    "A Jefferson-kód",
-    "Steve Berry"
+    TEST_BOOK_JEFFERSON_TITLE,
+    TEST_BOOK_JEFFERSON_AUTHOR
   );
 
   Logger.log(JSON.stringify(result, null, 2));
@@ -574,7 +586,7 @@ function testParseLibriJeffersonKodDirect() {
  * - megnézni, melyik Libri keresési URL-paraméter variáns ad letölthető HTML-t
  */
 function testLibriSearchUrlVariants() {
-  const query = "A Jefferson-kód Steve Berry";
+  const query = TEST_BOOK_JEFFERSON_TITLE + " " + TEST_BOOK_JEFFERSON_AUTHOR;
   const encodedQuery = encodeURIComponent(query);
 
   const urls = [
@@ -584,7 +596,7 @@ function testLibriSearchUrlVariants() {
     "https://www.libri.hu/kereses/?q=" + encodedQuery
   ];
 
-  urls.forEach(function(url) {
+  urls.forEach(function (url) {
     try {
       const html = fetchPublisherHtml_(url);
       Logger.log("OK: " + url + " | length=" + String(html || "").length);
@@ -602,11 +614,11 @@ function testLibriSearchUrlVariants() {
  * - ellenőrizni a Jefferson / Steve / Berry kulcsszavak jelenlétét
  */
 function testLibriSearchHtmlDebugJeffersonKod() {
-  const title = "A Jefferson-kód";
-  const author = "Steve Berry";
+const title = TEST_BOOK_JEFFERSON_TITLE;
+const author = TEST_BOOK_JEFFERSON_AUTHOR;
 
   const query = [title, author]
-    .filter(function(x) {
+    .filter(function (x) {
       return x;
     })
     .join(" ")
@@ -651,7 +663,7 @@ function testLibriSearchHtmlDebugJeffersonKod() {
   Logger.log("HREF COUNT:");
   Logger.log(hrefMatches.length);
 
-  const libriLikeHrefs = hrefMatches.filter(function(h) {
+  const libriLikeHrefs = hrefMatches.filter(function (h) {
     const lower = h.toLowerCase();
 
     return (
@@ -690,15 +702,15 @@ function testLibriSearchHtmlDebugJeffersonKod() {
  * - megnézni, hogy Google keresési HTML-ből kinyerhetők-e Libri termékoldal URL-ek
  */
 function testGoogleLibriFallbackDebugJeffersonKod() {
-  const title = "A Jefferson-kód";
-  const author = "Steve Berry";
+const title = TEST_BOOK_JEFFERSON_TITLE;
+const author = TEST_BOOK_JEFFERSON_AUTHOR;
 
   const query = [
     "site:libri.hu/konyv",
     title,
     author
   ]
-    .filter(function(x) {
+    .filter(function (x) {
       return x;
     })
     .join(" ")
@@ -749,7 +761,7 @@ function testGoogleLibriFallbackDebugJeffersonKod() {
   Logger.log("HREF COUNT:");
   Logger.log(hrefMatches.length);
 
-  const suspiciousHrefs = hrefMatches.filter(function(h) {
+  const suspiciousHrefs = hrefMatches.filter(function (h) {
     const lower = h.toLowerCase();
 
     return (
@@ -1028,7 +1040,7 @@ function testLibriPublisherHtmlDebugJeffersonKod() {
   Logger.log(extractLibriDatasField_(text, "nyelv"));
 }
 function testSearchLibriJeffersonKodByIsbnManual() {
-  const result = searchLibriByIsbn_("9789634066903");
+const result = searchLibriByIsbn_(TEST_BOOK_JEFFERSON_ISBN);
   Logger.log(JSON.stringify(result, null, 2));
 }
 /***********************************************************
@@ -1042,10 +1054,10 @@ function testSearchLibriJeffersonKodByIsbnManual() {
  * - searchAlexandraByTitleAuthor_()
  */
 function testSearchAlexandraByTitleAuthor() {
-  const result = searchAlexandraByTitleAuthor_(
-    "Lázár",
-    "Nelio Biedermann"
-  );
+const result = searchAlexandraByTitleAuthor_(
+  TEST_BOOK_LAZAR_TITLE,
+  TEST_BOOK_LAZAR_AUTHOR
+);
 
   Logger.log(JSON.stringify(result, null, 2));
 }
@@ -1057,10 +1069,10 @@ function testSearchAlexandraByTitleAuthor() {
  * - searchAlexandraByTitleAuthor_()
  */
 function testSearchAlexandraJeffersonKod() {
-  const result = searchAlexandraByTitleAuthor_(
-    "A Jefferson-kód",
-    "Steve Berry"
-  );
+const result = searchAlexandraByTitleAuthor_(
+  TEST_BOOK_LAZAR_TITLE,
+  TEST_BOOK_LAZAR_AUTHOR
+);
 
   Logger.log(JSON.stringify(result, null, 2));
 }
@@ -1076,9 +1088,9 @@ function testSearchAlexandraJeffersonKod() {
  *   nem feltétlen refaktor-hiba.
  */
 function testSearchAlexandraJeffersonKodByIsbn() {
-  const result = searchAlexandraByIsbn_(
-    "9789634066903"
-  );
+const result = searchAlexandraByIsbn_(
+  TEST_BOOK_JEFFERSON_ISBN
+);
 
   Logger.log(JSON.stringify(result, null, 2));
 }
@@ -1087,8 +1099,8 @@ function testMapBookFromParams() {
   const result = mapBookFromParams_(
     {
       ID: "abc-123",
-      szerzo: "Steve Berry",
-      cim: "A Jefferson-kód",
+szerzo: TEST_BOOK_JEFFERSON_AUTHOR,
+cim: TEST_BOOK_JEFFERSON_TITLE,
       eredeti_cim: "The Jefferson Key",
       korabbi_cim: "",
       sorozat: "",
@@ -1098,7 +1110,7 @@ function testMapBookFromParams() {
       helyszin: "",
       polc: "",
       oldalszam: "576",
-      isbn: "9789634066903",
+isbn: TEST_BOOK_JEFFERSON_ISBN,
       kiado: "Gabo Kiadó",
       fordito: "Lantos István",
       mufaj: "",

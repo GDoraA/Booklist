@@ -1,0 +1,126 @@
+/***********************************************************
+ * ANTIKVÁRIUM SEGÉDFÜGGVÉNYEK
+ *
+ * Ebben a fájlban kizárólag az antikvarium.hu-specifikus
+ * keresési és termékoldal-feldolgozási függvények lesznek.
+ *
+ * Első lépésben csak közvetlen termékoldal-parser kerül ide.
+ *
+ * Ezeket később használhatja:
+ * - lookupPublisherPages action a doGet(e) route-on keresztül
+ *
+ * A fájlban található függvények:
+ *
+ * 1. parseAntikvariumProductPage_(productUrl)
+ *    - Egy antikvarium.hu termékoldal HTML-jéből egységes
+ *      belső könyvtalálat objektumot készít.
+ ***********************************************************/
+
+/**
+ * Egy Antikvárium termékoldal feldolgozása egységes belső
+ * könyvtalálat objektummá.
+ *
+ * Bemenet:
+ * - productUrl: antikvarium.hu termékoldal URL
+ *
+ * Működés:
+ * - letölti a termékoldal HTML-jét
+ * - regexekkel kinyeri a fő könyvadatokat
+ * - az adatokat az alkalmazás közös lookup objektumformájára alakítja
+ *
+ * Kinyert mezők:
+ * - cím
+ * - szerző
+ * - kiadó
+ * - év
+ * - oldalszám
+ * - ISBN
+ * - borító URL, ha megtalálható
+ *
+ * Kimenet:
+ * - egységes belső könyvtalálat objektum
+ * - ha nincs cím, null
+ *
+ * Függőségek:
+ * - fetchPublisherHtml_()
+ * - extractFirstMatch_()
+ */
+function parseAntikvariumProductPage_(productUrl) {
+  const productHtml = fetchPublisherHtml_(productUrl);
+
+  const title =
+    extractFirstMatch_(productHtml, /<[^>]+class=["'][^"']*book-data-title-height[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i) ||
+    extractFirstMatch_(productHtml, /<h1[^>]*>([\s\S]*?)<\/h1>/i) ||
+    extractFirstMatch_(productHtml, /<meta property=["']og:title["'] content=["']([^"']+)["']/i) ||
+    "";
+
+  const author =
+    extractFirstMatch_(productHtml, /<[^>]+class=["'][^"']*book-data-author[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i) ||
+    extractFirstMatch_(productHtml, /Szerző[\s\S]{0,300}?<a[^>]*>([\s\S]*?)<\/a>/i) ||
+    extractFirstMatch_(productHtml, /Szerző[\s\S]{0,300}?<[^>]+>([\s\S]*?)<\/[^>]+>/i) ||
+    "";
+
+  const publisher =
+    extractFirstMatch_(productHtml, /<a[^>]+id=["']konyvAdatlapKiadoLink["'][^>]*>([\s\S]*?)<\/a>/i) ||
+    extractFirstMatch_(productHtml, /Kiadó[\s\S]{0,200}?<a[^>]*>([\s\S]*?)<\/a>/i) ||
+    "";
+
+  const yearRaw =
+    extractFirstMatch_(productHtml, /<th[^>]*class=["'][^"']*bookDataTableHeadRows[^"']*["'][^>]*>\s*Kiadás éve:\s*<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/i) ||
+    "";
+
+  const year =
+    String(yearRaw).match(/\b(1[0-9]{3}|20[0-9]{2}|2100)\b/)?.[1] ||
+    extractFirstMatch_(productHtml, /Kiadás éve[\s\S]{0,120}?([12][0-9]{3})/i) ||
+    "";
+
+  const pageCountRaw =
+    extractFirstMatch_(productHtml, /<th[^>]*class=["'][^"']*bookDataTableHeadRows[^"']*["'][^>]*>\s*Oldalszám:\s*<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/i) ||
+    "";
+
+  const pageCount =
+    String(pageCountRaw).match(/[0-9]{1,5}/)?.[0] ||
+    extractFirstMatch_(productHtml, /Oldalszám[\s\S]{0,120}?([0-9]{1,5})\s*oldal/i) ||
+    "";
+
+  const isbnRaw =
+    extractFirstMatch_(productHtml, /<th[^>]*class=["'][^"']*bookDataTableHeadRows[^"']*["'][^>]*>\s*ISBN:\s*<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/i) ||
+    "";
+
+  const foundIsbn =
+    String(isbnRaw).match(/[0-9Xx\-]{10,20}/)?.[0] ||
+    extractFirstMatch_(productHtml, /ISBN[\s\S]{0,120}?([0-9Xx\-]{10,20})/i) ||
+    "";
+
+  const imageUrl =
+    extractFirstMatch_(productHtml, /<a[^>]+id=["']konyvAdatlapFelnottTartalomKepe["'][^>]+href=["']([^"']+)["'][^>]*>/i) ||
+    extractFirstMatch_(productHtml, /<a[^>]+id=["']konyvAdatlapFelnottTartalomKepe["'][\s\S]*?<img[^>]+src=["']([^"']+)["']/i) ||
+    extractFirstMatch_(productHtml, /<meta property=["']og:image["'] content=["']([^"']+)["']/i) ||
+    extractFirstMatch_(productHtml, /<img[^>]+src=["']([^"']+)["'][^>]+alt=["'][^"']*borító[^"']*["']/i) ||
+    "";
+
+  if (!title) {
+    return null;
+  }
+
+  return {
+    source: "antikvarium",
+    sourceId: productUrl,
+    title: title,
+    authors: author,
+    originalTitle: "",
+    previousTitle: "",
+    series: "",
+    number: number,
+    year: year,
+    location: "",
+    shelf: "",
+    pageCount: pageCount,
+    isbn: foundIsbn,
+    publisher: publisher,
+    translator: "",
+    genre: "",
+    coverUrl: imageUrl,
+    language: "hu"
+  };
+}

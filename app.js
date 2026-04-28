@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbyNFEMRUCeuOR0sPN8jt1yCoZKwr_b65L3Ja8uNWV3IMlXLZY94OaS5A3vukX6qCMbQyA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyvtcrN6wu69RQ9t4xbuJmsYCeGgyv6CLlsYRVm8C2pih3Abap-IpKfBMI4FV8vnwyaIA/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -10,7 +10,7 @@ const GOOGLE_BOOKS_MAX_RESULTS = 10;
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2026-04-25 23:00";  // Ezt TE frissíted minden deploykor
+const APP_VERSION = "2026-04-28 18:45";  // Ezt TE frissíted minden deploykor
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 

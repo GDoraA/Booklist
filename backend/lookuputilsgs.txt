@@ -176,19 +176,19 @@ function isRelevantTitleAuthorMatch_(item, wantedTitle, wantedAuthor) {
       itemSourceIdLoose.indexOf(wantedTitleLoose) !== -1;
   }
 
-  if (wantedAuthorNorm) {
-    authorMatches =
-      itemAuthorsNorm.indexOf(wantedAuthorNorm) !== -1 ||
-      itemSourceIdNorm.indexOf(wantedAuthorNorm) !== -1 ||
-      itemAuthorsLoose.indexOf(wantedAuthorLoose) !== -1 ||
-      itemSourceIdLoose.indexOf(wantedAuthorLoose) !== -1;
-  }
+if (wantedAuthorNorm) {
+  authorMatches =
+    itemAuthorsNorm.indexOf(wantedAuthorNorm) !== -1 ||
+    wantedAuthorNorm.indexOf(itemAuthorsNorm) !== -1 ||
+    itemAuthorsLoose.indexOf(wantedAuthorLoose) !== -1 ||
+    wantedAuthorLoose.indexOf(itemAuthorsLoose) !== -1;
+}
 
-  if (wantedTitleNorm && wantedAuthorNorm) {
-    return titleMatches || authorMatches;
-  }
+if (wantedTitleNorm && wantedAuthorNorm) {
+  return titleMatches && authorMatches;
+}
 
-  return titleMatches || authorMatches;
+return titleMatches || authorMatches;
 }
 
 /**

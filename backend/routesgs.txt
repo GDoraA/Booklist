@@ -226,14 +226,22 @@ function doGet(e) {
         series: readSheet_(SHEET_SERIES)
       };
     }
-
     /***********************************************************
      * KÖNYV METAADAT KERESÉS
+     *
+     * Backend oldali lookup endpoint a lookupBookMetadata_()
+     * függvény körül.
      *
      * Meghívja a fő lookup orchestration függvényt:
      * - Google Books
      * - Open Library
      * - ISBN esetén webshop ISBN keresések
+     *
+     * Fontos:
+     * - A frontend jelenlegi autofill folyamata nem ezt használja
+     *   publisher/webshop cím+szerző találatokhoz.
+     * - Publisher/webshop találatokhoz a frontend a
+     *   lookupPublisherPages route-ot hívja.
      ***********************************************************/
     else if (action === "lookupBookMetadata") {
       result = lookupBookMetadata_({
@@ -246,6 +254,9 @@ function doGet(e) {
     /***********************************************************
      * KIADÓI / WEBSHOP OLDALAK KERESÉSE
      *
+     * Ezt a route-ot használja a frontend orchestration
+     * publisher/webshop találatok lekérésére.
+     *
      * Bookline, Libri és Alexandra kereséseket futtat.
      *
      * ISBN esetén:
@@ -256,8 +267,15 @@ function doGet(e) {
      * - cím+szerző keresés mindhárom webshopon
      *
      * Kimenet:
-     * - darabszámok forrásonként
-     * - deduplikált találatlista
+     * - success
+     * - query
+     * - counts
+     * - items
+     *
+     * Fontos:
+     * - A frontend Google Books találatokat külön, böngészőből kéri.
+     * - A frontend ezeket fésüli össze a lookupPublisherPages
+     *   route-ból érkező publisher találatokkal.
      ***********************************************************/
     else if (action === "lookupPublisherPages") {
       const isbn = p.isbn || "";

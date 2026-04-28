@@ -13,8 +13,8 @@ const SHEET_AUTHORS = "Authors";
 const SHEET_SERIES = "SeriesList";
 
 // Google Books API kulcs
-const GOOGLE_BOOKS_API_KEY = "AIzaSyA-OgB7xZn15ITtZkzeaLO8k8gvxODyKtM";
-
+const GOOGLE_BOOKS_API_KEY =
+  PropertiesService.getScriptProperties().getProperty("GOOGLE_BOOKS_API_KEY") || "";
 // Maximum ennyi lookup találatot adunk vissza a frontendnek
 const BOOK_LOOKUP_MAX_RESULTS = 5;
 
