@@ -1,0 +1,67 @@
+
+/***********************************************************
+ * BACKEND FÁJLTÉRKÉP
+ *
+ * config.gs
+ * - Globális konfigurációs konstansok
+ * - Sheet nevek
+ * - Google Books API kulcs Script Properties-ből
+ * - Lookup limitek és Open Library User-Agent
+ *
+ * routes.gs
+ * - HTTP belépési pontok
+ * - doGet(e), doPost(e)
+ * - JSON / JSONP válaszkezelés
+ * - Frontend action paraméterek belső függvényekre irányítása
+ *
+ * book-mapper.gs
+ * - Frontend route-paraméterek egységes backend book objektummá alakítása
+ * - CSV / TSV import paraméterek book objektummá alakítása
+ *
+ * books-crud.gs
+ * - List sheet CRUD műveletek
+ * - Duplikációellenőrzés
+ * - Könyv felvétel, lekérés, módosítás, törlés
+ *
+ * sheet.gs
+ * - Alacsony szintű Google Sheets helper függvények
+ * - Sheet lekérés, fejlécmappa, sheet olvasás, ID generálás
+ * - Authors / SeriesList egyedi listák frissítése
+ *
+ * auth.gs
+ * - Felhasználói jogosultság és belépés
+ * - Jelszó hash-elés
+ * - Első jelszó beállítás
+ *
+ * books-lookup.gs
+ * - Backend könyvmetaadat-keresés fő orchestration rétege
+ * - Google Books, Open Library és ISBN alapú webshop lookup összefogása
+ *
+ * lookup-utils.gs
+ * - Lookup normalizálás, relevancia-ellenőrzés
+ * - ISBN szűrés
+ * - Deduplikálás és pontozás
+ *
+ * googlebooks.gs
+ * - Google Books API keresés és találatnormalizálás
+ *
+ * openlibrary.gs
+ * - Open Library API keresés és találatnormalizálás
+ *
+ * bookline.gs
+ * - Bookline keresés és termékoldal-parser
+ *
+ * libri.gs
+ * - Libri keresés és termékoldal-parser
+ *
+ * alexandra.gs
+ * - Alexandra keresés és termékoldal-parser
+ *
+ * html-utils.gs
+ * - Külső HTML oldalak letöltése
+ * - HTML tisztítás
+ * - Regex-alapú mezőkinyerés
+ *
+ * tests.gs
+ * - Kézzel futtatható Apps Script tesztek és debug függvények
+ ***********************************************************/

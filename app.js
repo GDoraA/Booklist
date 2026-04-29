@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbyvtcrN6wu69RQ9t4xbuJmsYCeGgyv6CLlsYRVm8C2pih3Abap-IpKfBMI4FV8vnwyaIA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbx7Qm8dkbR_qYwC_tAXJ93-4To0M9Be58RWbOaHDiL88mPGEqeNgqjFH5h_FbhwJ8RMIQ/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -10,7 +10,7 @@ const GOOGLE_BOOKS_MAX_RESULTS = 10;
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2026-04-28 18:45";  // Ezt TE frissíted minden deploykor
+const APP_VERSION = "2026-04-29 17:25";  // Ezt TE frissíted minden deploykor
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 
@@ -561,14 +561,14 @@ function openBookModal(mode, id) {
         document.getElementById("bm_ar").value = item["Price"] || "";
         document.getElementById("bm_megjegy").value = item["Comment"] || "";
 
-const img = document.getElementById("bm_preview");
-if (item["URL"]) {
-    img.src = convertDriveUrl(item["URL"]);
-    img.style.display = "block";
-} else {
-    img.style.display = "none";
-    img.src = "";
-}
+        const img = document.getElementById("bm_preview");
+        if (item["URL"]) {
+            img.src = convertDriveUrl(item["URL"]);
+            img.style.display = "block";
+        } else {
+            img.style.display = "none";
+            img.src = "";
+        }
     }
 
     document.getElementById("bookModal").style.display = "flex";
@@ -613,24 +613,24 @@ function openLookupResultsModal(items) {
         const titleText = item.title || "Nincs cím";
         const authorText = item.authors || "Nincs szerző";
         const yearText = item.year ? " (" + item.year + ")" : "";
-const originalTitleText = item.originalTitle ? "<div><strong>Eredeti cím:</strong> " + item.originalTitle + "</div>" : "";
-const previousTitleText = item.previousTitle ? "<div><strong>Korábbi cím:</strong> " + item.previousTitle + "</div>" : "";
-const seriesText = item.series ? "<div><strong>Sorozat:</strong> " + item.series + "</div>" : "";
-const numberText = item.number ? "<div><strong>Sorszám:</strong> " + item.number + "</div>" : "";
-const yearFullText = item.year ? "<div><strong>Év:</strong> " + item.year + "</div>" : "";
-const locationText = item.location ? "<div><strong>Helyszín:</strong> " + item.location + "</div>" : "";
-const shelfText = item.shelf ? "<div><strong>Polc:</strong> " + item.shelf + "</div>" : "";
-const pageCountText = item.pageCount ? "<div><strong>Oldalszám:</strong> " + item.pageCount + "</div>" : "";
-const publisherText = item.publisher ? "<div><strong>Kiadó:</strong> " + item.publisher + "</div>" : "";
-const translatorText = item.translator ? "<div><strong>Fordító:</strong> " + item.translator + "</div>" : "";
-const genreText = item.genre ? "<div><strong>Műfaj:</strong> " + item.genre + "</div>" : "";
-const isbnText = item.isbn ? "<div><strong>ISBN:</strong> " + item.isbn + "</div>" : "";
-const coverUrlText = item.coverUrl ? "<div><strong>Borító URL:</strong> <span style=\"word-break:break-all;\">" + item.coverUrl + "</span></div>" : "";
-const sourceText = item.source ? "<div><strong>Forrás:</strong> " + item.source + "</div>" : "";
-const sourceIdText = item.sourceId ? "<div><strong>Forrás URL / ID:</strong> <span style=\"word-break:break-all;\">" + item.sourceId + "</span></div>" : "";
+        const originalTitleText = item.originalTitle ? "<div><strong>Eredeti cím:</strong> " + item.originalTitle + "</div>" : "";
+        const previousTitleText = item.previousTitle ? "<div><strong>Korábbi cím:</strong> " + item.previousTitle + "</div>" : "";
+        const seriesText = item.series ? "<div><strong>Sorozat:</strong> " + item.series + "</div>" : "";
+        const numberText = item.number ? "<div><strong>Sorszám:</strong> " + item.number + "</div>" : "";
+        const yearFullText = item.year ? "<div><strong>Év:</strong> " + item.year + "</div>" : "";
+        const locationText = item.location ? "<div><strong>Helyszín:</strong> " + item.location + "</div>" : "";
+        const shelfText = item.shelf ? "<div><strong>Polc:</strong> " + item.shelf + "</div>" : "";
+        const pageCountText = item.pageCount ? "<div><strong>Oldalszám:</strong> " + item.pageCount + "</div>" : "";
+        const publisherText = item.publisher ? "<div><strong>Kiadó:</strong> " + item.publisher + "</div>" : "";
+        const translatorText = item.translator ? "<div><strong>Fordító:</strong> " + item.translator + "</div>" : "";
+        const genreText = item.genre ? "<div><strong>Műfaj:</strong> " + item.genre + "</div>" : "";
+        const isbnText = item.isbn ? "<div><strong>ISBN:</strong> " + item.isbn + "</div>" : "";
+        const coverUrlText = item.coverUrl ? "<div><strong>Borító URL:</strong> <span style=\"word-break:break-all;\">" + item.coverUrl + "</span></div>" : "";
+        const sourceText = item.source ? "<div><strong>Forrás:</strong> " + item.source + "</div>" : "";
+        const sourceIdText = item.sourceId ? "<div><strong>Forrás URL / ID:</strong> <span style=\"word-break:break-all;\">" + item.sourceId + "</span></div>" : "";
 
-const coverHtml = item.coverUrl
-    ? `<div style="flex:0 0 72px;">
+        const coverHtml = item.coverUrl
+            ? `<div style="flex:0 0 72px;">
             <img
 src="${normalizeCoverUrl(item.coverUrl)}"
                 alt="Borító"
@@ -638,11 +638,11 @@ src="${normalizeCoverUrl(item.coverUrl)}"
                 onerror="this.style.display='none'; this.parentElement.innerHTML='Nincs borító'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center'; this.parentElement.style.fontSize='12px'; this.parentElement.style.textAlign='center'; this.parentElement.style.padding='6px';"
             >
        </div>`
-    : `<div style="flex:0 0 72px;width:72px;height:108px;border-radius:6px;border:1px solid rgba(0,0,0,0.12);background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:12px;text-align:center;padding:6px;">
+            : `<div style="flex:0 0 72px;width:72px;height:108px;border-radius:6px;border:1px solid rgba(0,0,0,0.12);background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:12px;text-align:center;padding:6px;">
             Nincs borító
        </div>`;
 
-row.innerHTML = `
+        row.innerHTML = `
     <div style="display:flex;gap:12px;align-items:flex-start;">
         ${coverHtml}
         <div style="flex:1 1 auto;">
@@ -716,7 +716,7 @@ function mapGoogleBookToLookupItem(item) {
         publisher: info.publisher || "",
         translator: "",
         genre: Array.isArray(info.categories) ? info.categories.join(", ") : "",
-coverUrl: normalizeCoverUrl((info.imageLinks && (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail)) || ""),        language: (info.language || "").toLowerCase()
+        coverUrl: normalizeCoverUrl((info.imageLinks && (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail)) || ""), language: (info.language || "").toLowerCase()
     };
 }
 function setInputIfEmpty(id, value) {
@@ -755,11 +755,12 @@ function applyLookupItemToModalEmptyFields(item) {
 
     setInputIfEmpty("bm_cim", item.title || "");
     setInputIfEmpty("bm_szerzo", pickGoogleBookBestAuthor(item));
-    setInputIfEmpty("bm_eredeti", pickGoogleBookOriginalTitle(item));
+    setInputIfEmpty("bm_eredeti", item.originalTitle || pickGoogleBookOriginalTitle(item));
     setInputIfEmpty("bm_ev", item.year || "");
     setInputIfEmpty("bm_oldalszam", item.pageCount || "");
     setInputIfEmpty("bm_isbn", item.isbn || "");
     setInputIfEmpty("bm_kiado", item.publisher || "");
+    setInputIfEmpty("bm_fordito", item.translator || "");
     setInputIfEmpty("bm_mufaj", item.genre || "");
     setInputIfEmpty("bm_url", pickGoogleBookBestCover(item));
 
@@ -845,11 +846,11 @@ async function lookupGoogleBooksFromFrontend({ isbn, title, author }) {
     }
 
     const json = await response.json();
-const items = Array.isArray(json.items) ? json.items : [];
+    const items = Array.isArray(json.items) ? json.items : [];
 
-return items
-    .map(mapGoogleBookToLookupItem)
-    .filter(item => isRelevantFrontendLookupItem(item, { isbn, title, author }));
+    return items
+        .map(mapGoogleBookToLookupItem)
+        .filter(item => isRelevantFrontendLookupItem(item, { isbn, title, author }));
 }
 async function lookupPublisherPagesFromBackend({ isbn, title, author }) {
     const cleanIsbn = String(isbn || "").trim();
@@ -863,8 +864,8 @@ async function lookupPublisherPagesFromBackend({ isbn, title, author }) {
     const callbackName = "lookupPublisherPagesCallback_" + Date.now();
 
     return await new Promise((resolve, reject) => {
-        window[callbackName] = function(data) {
-            try { delete window[callbackName]; } catch (e) {}
+        window[callbackName] = function (data) {
+            try { delete window[callbackName]; } catch (e) { }
 
             if (!data || !data.success) {
                 reject(new Error((data && data.error) ? data.error : "Publisher backend hiba"));
@@ -884,8 +885,8 @@ async function lookupPublisherPagesFromBackend({ isbn, title, author }) {
             "&callback=" + callbackName +
             "&_=" + Date.now();
 
-        s.onerror = function() {
-            try { delete window[callbackName]; } catch (e) {}
+        s.onerror = function () {
+            try { delete window[callbackName]; } catch (e) { }
             reject(new Error("Publisher script betöltési hiba"));
         };
 
@@ -1032,35 +1033,29 @@ async function lookupBookMetadataFromModal() {
     try {
         const googleResults = await lookupGoogleBooksFromFrontend({ isbn, title, author });
 
-let publisherResults = [];
-if (isbn || title || author) {
-    try {
-        publisherResults = await lookupPublisherPagesFromBackend({
-            isbn,
-            title,
-            author
-        });
-    } catch (e) {
-        log("Publisher lookup hiba: " + (e && e.message ? e.message : String(e)));
-    }
-}
+        let publisherResults = [];
+        if (isbn || title || author) {
+            try {
+                publisherResults = await lookupPublisherPagesFromBackend({
+                    isbn,
+                    title,
+                    author
+                });
+            } catch (e) {
+                log("Publisher lookup hiba: " + (e && e.message ? e.message : String(e)));
+            }
+        }
 
-lastLookupResults = mergeLookupResults(googleResults, publisherResults);
+        lastLookupResults = mergeLookupResults(googleResults, publisherResults);
         if (!Array.isArray(lastLookupResults) || lastLookupResults.length === 0) {
-alert("Nem érkezett találat sem Google Booksból, sem kiadói/webshop forrásból.");
+            alert("Nem érkezett találat sem Google Booksból, sem kiadói/webshop forrásból.");
             log("Összesített lookup: nincs találat.");
             return;
         }
 
-if (lastLookupResults.length === 1) {
-    applyLookupItemToModalEmptyFields(lastLookupResults[0]);
-    alert("Az egyetlen találat kitöltötte az üres mezőket.");
-    log("Összesített lookup kész. Egy találat automatikusan alkalmazva.");
-    return;
-}
-
-openLookupResultsModal(lastLookupResults);
-log("Összesített lookup kész. Több találat érkezett: " + lastLookupResults.length);    } catch (err) {
+        openLookupResultsModal(lastLookupResults);
+        log("Összesített lookup kész. Találatok száma: " + lastLookupResults.length);
+    } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         alert("Google Books frontend hiba:\n" + msg);
         log("Google Books frontend hiba: " + msg);
@@ -1993,14 +1988,14 @@ function urlPreviewUpdate() {
     previewImg.style.display = "none"; // Először elrejtjük
 
     if (rawUrl) {
-const displayUrl = normalizeCoverUrl(rawUrl);
+        const displayUrl = normalizeCoverUrl(rawUrl);
 
-previewImg.src = displayUrl;
-previewImg.style.display = "block";
-previewImg.onerror = function() {
-    previewImg.style.display = "none";
-    previewImg.src = "";
-};
+        previewImg.src = displayUrl;
+        previewImg.style.display = "block";
+        previewImg.onerror = function () {
+            previewImg.style.display = "none";
+            previewImg.src = "";
+        };
         previewImg.style.display = "block";
     } else {
         previewImg.src = "";
