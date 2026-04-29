@@ -1442,55 +1442,11 @@ function listaMegjelenites() {
                     <span class="value">${item["Author"] || ""}</span>
                 </div>
 
-
                 <div class="card-row">
                     <span class="label">Cím:</span>
                     <span class="value">${item["Title"] || ""}</span>
                 </div>
-
-                <div class="card-row">
-                    <span class="label">Sorozat:</span>
-                    <span class="value">${item["Series"] || ""}</span>
-                </div>
-
-                <div class="card-row">
-                    <span class="label">Év:</span>
-                    <span class="value">${item["Year"] || ""}</span>
-                </div>
-                <div class="card-row">
-    <span class="label">Helyszín:</span>
-    <span class="value">${item["Location"] || ""}</span>
-</div>
-
-<div class="card-row">
-    <span class="label">Polc:</span>
-    <span class="value">${item["Shelf"] || ""}</span>
-</div>
-
-<div class="card-row">
-    <span class="label">Oldalszám:</span>
-    <span class="value">${item["Page_Count"] || ""}</span>
-</div>
-
-<div class="card-row">
-    <span class="label">ISBN:</span>
-    <span class="value">${item["ISBN"] || ""}</span>
-</div>
-
-<div class="card-row">
-    <span class="label">Kiadó:</span>
-    <span class="value">${item["Publisher"] || ""}</span>
-</div>
-
-<div class="card-row">
-    <span class="label">Fordító:</span>
-    <span class="value">${item["Translator"] || ""}</span>
-</div>
-
-<div class="card-row">
-    <span class="label">Műfaj:</span>
-    <span class="value">${item["Genre"] || ""}</span>
-</div>
+            
                 <div class="card-row">
                     <span class="label">Megvásárolva:</span>
                     <span class="value">
