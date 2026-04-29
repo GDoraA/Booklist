@@ -123,6 +123,73 @@ function testExternalRequestAuthorization() {
 
   Logger.log(res.getResponseCode());
 }
+/***********************************************************
+ * SMOKE TESZTEK
+ ***********************************************************/
+
+/**
+ * Gyors regressziós smoke teszt refaktor után.
+ *
+ * Teszteli:
+ * - Users sheet olvasás
+ * - List sheet olvasás
+ * - fő lookup route elérhetőségét
+ * - publisher route elérhetőségét
+ *
+ * Megjegyzés:
+ * - külső webshop quota hiba esetén a publisher route akkor elfogadható,
+ *   ha success:true választ ad és az errors mezőben jelzi a hibát.
+ */
+function testSmokeRefactor() {
+  const users = readSheet_("Users");
+  const list = readSheet_(SHEET_LISTA);
+
+  const lookupResult = lookupBookMetadata_({
+    isbn: TEST_BOOK_LOOKUP_ISBN,
+    title: "",
+    author: ""
+  });
+
+  const publisherOutput = doGet({
+    parameter: {
+      action: "lookupPublisherPages",
+      isbn: "",
+      title: TEST_BOOK_JEFFERSON_TITLE,
+      author: TEST_BOOK_JEFFERSON_AUTHOR
+    }
+  });
+
+  const publisherText = publisherOutput.getContent();
+  const publisherJson = JSON.parse(publisherText);
+
+  const result = {
+    success: true,
+    checks: {
+      usersReadable: Array.isArray(users),
+      listReadable: Array.isArray(list),
+      lookupRouteReturnsObject: !!lookupResult && typeof lookupResult === "object",
+      publisherRouteSuccess: !!publisherJson && publisherJson.success === true,
+      publisherRouteHasCounts: !!publisherJson && !!publisherJson.counts,
+      publisherRouteHasErrors: !!publisherJson && !!publisherJson.errors
+    },
+    lookup: {
+      success: lookupResult && lookupResult.success,
+      queryType: lookupResult && lookupResult.queryType,
+      itemCount: lookupResult && Array.isArray(lookupResult.items)
+        ? lookupResult.items.length
+        : 0
+    },
+    publisher: {
+      counts: publisherJson.counts,
+      errors: publisherJson.errors,
+      itemCount: Array.isArray(publisherJson.items)
+        ? publisherJson.items.length
+        : 0
+    }
+  };
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
 
 
 /***********************************************************
@@ -1042,6 +1109,651 @@ function testLibriPublisherHtmlDebugJeffersonKod() {
 function testSearchLibriJeffersonKodByIsbnManual() {
 const result = searchLibriByIsbn_(TEST_BOOK_JEFFERSON_ISBN);
   Logger.log(JSON.stringify(result, null, 2));
+}
+/***********************************************************
+ * 9. ANTIKVÁRIUM TESZTEK
+ ***********************************************************/
+
+/**
+ * Közvetlen Antikvárium termékoldal parser teszt.
+ *
+ * Teszteli:
+ * - parseAntikvariumProductPage_()
+ * - Antikvárium termékoldal HTML letöltése
+ * - cím, szerző, ISBN, kiadó, év, oldalszám, fordító, borító kinyerése
+ */
+function testParseAntikvariumJeffersonKodDirect() {
+  const item = parseAntikvariumProductPage_(
+    "https://www.antikvarium.hu/konyv/a-jefferson-kod-606221-0"
+  );
+
+  Logger.log(JSON.stringify(item, null, 2));
+}
+
+/**
+ * Antikvárium parser mezőellenőrző teszt Jefferson-kód adattal.
+ *
+ * Teszteli:
+ * - kötelező parser mezők meglétét
+ * - ismert értékek helyességét
+ * - fordító mező kinyerését
+ * - üresen maradó opcionális mezők nem okoznak hibát
+ */
+function testParseAntikvariumJeffersonKodFields() {
+  const item = parseAntikvariumProductPage_(
+    "https://www.antikvarium.hu/konyv/a-jefferson-kod-606221-0"
+  );
+
+  const result = {
+    success: true,
+    checks: {
+      hasItem: !!item,
+      sourceOk: item && item.source === "antikvarium",
+      sourceIdOk: item && item.sourceId === "https://www.antikvarium.hu/konyv/a-jefferson-kod-606221-0",
+      titleOk: item && item.title === "A Jefferson-kód",
+      authorOk: item && item.authors === "Steve Berry",
+      publisherOk: item && item.publisher === "Ulpius-ház Könyvkiadó",
+      yearOk: item && item.year === "2013",
+      pageCountOk: item && item.pageCount === "634",
+      isbnOk: item && item.isbn === "978-963-254-795-4",
+      translatorOk: item && item.translator === "Lantos István",
+      coverUrlOk: item && item.coverUrl === "https://cdn.antikvarium.hu/foto/eredeti/48634663.jpg"
+    },
+    item: item
+  };
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+/**
+ * Antikvárium termékoldal URL-kinyerő helper teszt.
+ *
+ * Teszteli:
+ * - extractAntikvariumProductUrls_()
+ * - relatív /konyv/ URL abszolúttá alakítását
+ * - abszolút Antikvárium termékoldal URL felismerését
+ * - duplikált URL kiszűrését
+ */
+function testExtractAntikvariumProductUrls() {
+  const html = [
+    '<a href="/konyv/a-jefferson-kod-606221-0">A Jefferson-kód</a>',
+    '<a href="https://www.antikvarium.hu/konyv/a-jefferson-kod-606221-0?foo=bar">Duplikált</a>',
+    '<a href="https://www.antikvarium.hu/konyv/masik-konyv-123456-0">Másik könyv</a>',
+    '<a href="/nem-konyv/irrelevans">Nem könyv</a>'
+  ].join("");
+
+  const urls = extractAntikvariumProductUrls_(html);
+
+  const result = {
+    success: true,
+    urls: urls,
+    checks: {
+      countOk: urls.length === 2,
+      firstUrlOk: urls[0] === "https://www.antikvarium.hu/konyv/a-jefferson-kod-606221-0",
+      secondUrlOk: urls[1] === "https://www.antikvarium.hu/konyv/masik-konyv-123456-0"
+    }
+  };
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+/**
+ * Antikvárium cím+szerző keresés teszt Jefferson-kód adattal.
+ *
+ * Teszteli:
+ * - searchAntikvariumByTitleAuthor_()
+ * - Antikvárium keresési HTML letöltése
+ * - termékoldal URL-ek kinyerése
+ * - termékoldal parser meghívása
+ * - relevanciaellenőrzés
+ */
+function testSearchAntikvariumJeffersonKod() {
+  const result = searchAntikvariumByTitleAuthor_(
+    TEST_BOOK_JEFFERSON_TITLE,
+    TEST_BOOK_JEFFERSON_AUTHOR
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+/**
+ * Antikvárium index.php keresési HTML célzott URL-részlet debug.
+ *
+ * Cél:
+ * - ellenőrizni, hogy a keresési HTML tartalmazza-e a konkrét
+ *   Jefferson-kód tesztkönyv azonosítóját: 606221
+ * - ha igen, megmutatni a környező HTML-részletet
+ *
+ * Fontos:
+ * - ez diagnosztikai teszt, nem regressziós teszt
+ */
+function testAntikvariumIndexSearchContainsKnownProductDebug() {
+  const query = TEST_BOOK_JEFFERSON_TITLE + " " + TEST_BOOK_JEFFERSON_AUTHOR;
+
+  const url =
+    "https://www.antikvarium.hu/index.php" +
+    "?type=search" +
+    "&ksz=" + encodeURIComponent(query) +
+    "&oldalcount=1" +
+    "&reszletes=0" +
+    "&newSearch=1" +
+    "&searchstart=ksz" +
+    "&rend=pontossag" +
+    "&oldaldb=60" +
+    "&interfaceid=101";
+
+  const html = fetchPublisherHtml_(url);
+  const text = String(html || "");
+  const lower = text.toLowerCase();
+
+  const markers = [
+    "606221",
+    "a-jefferson-kod",
+    "jefferson",
+    "steve",
+    "berry",
+    "konyv"
+  ];
+
+  const result = markers.map(function(marker) {
+    const pos = lower.indexOf(marker.toLowerCase());
+
+    return {
+      marker: marker,
+      found: pos >= 0,
+      position: pos,
+      snippet: pos >= 0
+        ? text.substring(Math.max(0, pos - 800), pos + 1600)
+        : ""
+    };
+  });
+
+  Logger.log(JSON.stringify({
+    success: true,
+    url: url,
+    htmlLength: text.length,
+    result: result
+  }, null, 2));
+}
+/**
+ * Antikvárium index.php keresési HTML debug Jefferson-kód adattal.
+ *
+ * Cél:
+ * - ellenőrizni, hogy az index.php?type=search végpont HTML-je
+ *   tartalmaz-e Jefferson / Steve / Berry szöveget
+ * - ellenőrizni, milyen href minták szerepelnek a találati oldalon
+ * - megmutatni az első releváns HTML-részletet
+ *
+ * Fontos:
+ * - ez diagnosztikai teszt, nem regressziós teszt
+ */
+function testAntikvariumIndexSearchHtmlDebugJeffersonKod() {
+  const query = TEST_BOOK_JEFFERSON_TITLE + " " + TEST_BOOK_JEFFERSON_AUTHOR;
+
+  const url =
+    "https://www.antikvarium.hu/index.php" +
+    "?type=search" +
+    "&ksz=" + encodeURIComponent(query) +
+    "&oldalcount=1" +
+    "&reszletes=0" +
+    "&newSearch=1" +
+    "&searchstart=ksz" +
+    "&rend=pontossag" +
+    "&oldaldb=60" +
+    "&interfaceid=101";
+
+  const html = fetchPublisherHtml_(url);
+  const text = String(html || "");
+  const lower = text.toLowerCase();
+
+  Logger.log("SEARCH URL:");
+  Logger.log(url);
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  Logger.log("CONTAINS /konyv/:");
+  Logger.log(text.indexOf("/konyv/") !== -1);
+
+  Logger.log("CONTAINS antikvarium.hu/konyv:");
+  Logger.log(lower.indexOf("antikvarium.hu/konyv") !== -1);
+
+  Logger.log("CONTAINS Jefferson:");
+  Logger.log(lower.indexOf("jefferson") !== -1);
+
+  Logger.log("CONTAINS Steve:");
+  Logger.log(lower.indexOf("steve") !== -1);
+
+  Logger.log("CONTAINS Berry:");
+  Logger.log(lower.indexOf("berry") !== -1);
+
+  const hrefMatches = text.match(/href=["'][^"']+["']/ig) || [];
+
+  Logger.log("HREF COUNT:");
+  Logger.log(hrefMatches.length);
+
+  const relevantHrefs = hrefMatches.filter(function(h) {
+    const hLower = h.toLowerCase();
+
+    return (
+      hLower.indexOf("konyv") !== -1 ||
+      hLower.indexOf("jefferson") !== -1 ||
+      hLower.indexOf("steve") !== -1 ||
+      hLower.indexOf("berry") !== -1
+    );
+  });
+
+  Logger.log("RELEVANT HREF COUNT:");
+  Logger.log(relevantHrefs.length);
+
+  Logger.log("FIRST 50 RELEVANT HREFS:");
+  Logger.log(JSON.stringify(relevantHrefs.slice(0, 50), null, 2));
+
+  const pos = Math.max(
+    lower.indexOf("jefferson"),
+    lower.indexOf("steve"),
+    lower.indexOf("berry"),
+    lower.indexOf("/konyv/"),
+    lower.indexOf("antikvarium.hu/konyv")
+  );
+
+  Logger.log("FIRST RELEVANT POSITION:");
+  Logger.log(pos);
+
+  if (pos >= 0) {
+    Logger.log("HTML AROUND FIRST RELEVANT POSITION:");
+    Logger.log(text.substring(Math.max(0, pos - 1500), pos + 3500));
+  }
+}
+/**
+ * Antikvárium kc/sz keresési URL teszt Jefferson-kód adattal.
+ *
+ * Teszteli:
+ * - a rSearchStart() alapján azonosított kc és sz paramétereket
+ * - a keresési HTML letöltését
+ * - termékoldal URL-ek kinyerését
+ */
+function testAntikvariumKcSzSearchUrl() {
+  const url =
+    "https://www.antikvarium.hu/kereses?kc=" +
+    encodeURIComponent(TEST_BOOK_JEFFERSON_TITLE) +
+    "&sz=" +
+    encodeURIComponent(TEST_BOOK_JEFFERSON_AUTHOR);
+
+  const html = fetchPublisherHtml_(url);
+  const urls = extractAntikvariumProductUrls_(html);
+
+  const result = {
+    success: true,
+    url: url,
+    htmlLength: String(html || "").length,
+    productUrlCount: urls.length,
+    firstProductUrl: urls[0] || "",
+    urls: urls.slice(0, 10)
+  };
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+/**
+ * Antikvárium rSearchStart() keresése saját JS fájlokban.
+ *
+ * Cél:
+ * - csak az Antikvárium saját JS fájljait vizsgálni
+ * - megtalálni, melyik tartalmazza a rSearchStart definíciót vagy hívást
+ *
+ * Fontos:
+ * - ez diagnosztikai teszt, nem regressziós teszt
+ */
+function testAntikvariumFindRSearchStartInScripts() {
+  const scripts = [
+    "https://www.antikvarium.hu/dist/assets/js/js/antik-747518cbd6.js",
+    "https://www.antikvarium.hu/dist/assets/js/js/search-ae3593f2c8.js",
+    "https://www.antikvarium.hu/dist/assets/js/js/autocomplete-857d666fd8.js",
+    "https://www.antikvarium.hu/dist/assets/js/themes/theme01/js/antik-gen/antik-misc-6884fdd004.js"
+  ];
+
+  const results = scripts.map(function(url) {
+    try {
+      const js = fetchPublisherHtml_(url);
+      const text = String(js || "");
+      const lower = text.toLowerCase();
+
+      const pos = lower.indexOf("rsearchstart");
+
+      return {
+        url: url,
+        ok: true,
+        length: text.length,
+        containsRSearchStart: pos !== -1,
+        position: pos,
+        snippet: pos >= 0
+          ? text.substring(Math.max(0, pos - 1000), pos + 3000)
+          : ""
+      };
+    } catch (err) {
+      return {
+        url: url,
+        ok: false,
+        error: err && err.message ? err.message : String(err)
+      };
+    }
+  });
+
+  Logger.log(JSON.stringify(results, null, 2));
+}
+
+
+/**
+ * Antikvárium részletes kereső külső JavaScript fájljainak listázása.
+ *
+ * Cél:
+ * - megnézni, milyen script src fájlokat tölt be a /reszletes-kereso oldal
+ * - megtalálni, melyik JS fájlban lehet a rSearchStart() definíció
+ *
+ * Fontos:
+ * - ez diagnosztikai teszt, nem regressziós teszt
+ */
+function testAntikvariumSearchScriptSources() {
+  const url = "https://www.antikvarium.hu/reszletes-kereso";
+  const html = fetchPublisherHtml_(url);
+  const text = String(html || "");
+
+  const scripts = [];
+  const scriptRegex = /<script[^>]+src=["']([^"']+)["'][^>]*>/ig;
+  let match;
+
+  while ((match = scriptRegex.exec(text)) !== null) {
+    let src = String(match[1] || "")
+      .replace(/&amp;/g, "&")
+      .trim();
+
+    if (src.indexOf("//") === 0) {
+      src = "https:" + src;
+    } else if (src.indexOf("/") === 0) {
+      src = "https://www.antikvarium.hu" + src;
+    } else if (src.indexOf("http") !== 0) {
+      src = "https://www.antikvarium.hu/" + src;
+    }
+
+    scripts.push(src);
+  }
+
+  Logger.log(JSON.stringify({
+    success: true,
+    count: scripts.length,
+    scripts: scripts
+  }, null, 2));
+}
+
+/**
+ * Antikvárium rSearchStart() célzott JavaScript debug teszt.
+ *
+ * Cél:
+ * - nem a teljes környezetet logolja
+ * - csak a rSearchStart név első előfordulása utáni 2500 karaktert
+ * - így nem vágódik le a lényegi URL-építő rész
+ *
+ * Fontos:
+ * - ez diagnosztikai teszt, nem regressziós teszt
+ */
+function testAntikvariumRSearchStartDebug() {
+  const url = "https://www.antikvarium.hu/reszletes-kereso";
+  const html = fetchPublisherHtml_(url);
+  const text = String(html || "");
+  const lower = text.toLowerCase();
+
+  const pos = lower.indexOf("rsearchstart");
+
+  Logger.log("RSEARCHSTART POSITION:");
+  Logger.log(pos);
+
+  if (pos < 0) {
+    Logger.log("A rSearchStart szöveg nem található a HTML-ben.");
+    return;
+  }
+
+  Logger.log("RSEARCHSTART TARGETED SNIPPET:");
+  Logger.log(text.substring(pos, pos + 2500));
+}
+/**
+ * Antikvárium részletes kereső form mezőinek debug tesztje.
+ *
+ * Cél:
+ * - a /reszletes-kereso HTML-ből kinyerni a form action / method értékeket
+ * - listázni az input / select / textarea name attribútumokat
+ * - megtalálni a valódi keresési paraméterneveket
+ *
+ * Fontos:
+ * - ez diagnosztikai teszt, nem regressziós teszt
+ */
+function testAntikvariumDetailedSearchFormDebug() {
+  const url = "https://www.antikvarium.hu/reszletes-kereso";
+  const html = fetchPublisherHtml_(url);
+  const text = String(html || "");
+
+  const forms = [];
+  const formRegex = /<form[^>]*>[\s\S]*?<\/form>/ig;
+  let formMatch;
+
+  while ((formMatch = formRegex.exec(text)) !== null) {
+    const formHtml = formMatch[0];
+
+    const action =
+      extractFirstMatch_(formHtml, /<form[^>]*action=["']([^"']+)["']/i) ||
+      "";
+
+    const method =
+      extractFirstMatch_(formHtml, /<form[^>]*method=["']([^"']+)["']/i) ||
+      "";
+
+    const names = [];
+    const nameRegex = /<(input|select|textarea)[^>]*name=["']([^"']+)["'][^>]*>/ig;
+    let nameMatch;
+
+    while ((nameMatch = nameRegex.exec(formHtml)) !== null) {
+      names.push({
+        tag: nameMatch[1],
+        name: nameMatch[2],
+        html: nameMatch[0]
+      });
+    }
+
+    forms.push({
+      action: action,
+      method: method,
+      fieldCount: names.length,
+      fields: names
+    });
+  }
+
+  Logger.log(JSON.stringify({
+    success: true,
+    formCount: forms.length,
+    forms: forms
+  }, null, 2));
+}
+/**
+ * Antikvárium részletes kereső paraméternév teszt külön cím/szerző mezőkkel.
+ *
+ * Cél:
+ * - megtalálni, milyen paraméterrel várja az Antikvárium a címet és a szerzőt
+ * - külön cím és külön szerző kombinációkat próbálni
+ *
+ * Fontos:
+ * - ez diagnosztikai teszt, nem regressziós teszt
+ */
+function testAntikvariumDetailedSearchParamPairs() {
+  const title = TEST_BOOK_JEFFERSON_TITLE;
+  const author = TEST_BOOK_JEFFERSON_AUTHOR;
+
+  const titleParams = ["cim", "konyv-cime", "cime", "title", "konyvcim"];
+  const authorParams = ["szerzo", "szerzo-neve", "nev", "author", "iro"];
+
+  const results = [];
+
+  titleParams.forEach(function(titleParam) {
+    authorParams.forEach(function(authorParam) {
+      const url =
+        "https://www.antikvarium.hu/reszletes-kereso?" +
+        titleParam + "=" + encodeURIComponent(title) +
+        "&" + authorParam + "=" + encodeURIComponent(author);
+
+      try {
+        const html = fetchPublisherHtml_(url);
+        const text = String(html || "");
+        const lower = text.toLowerCase();
+        const productUrls = extractAntikvariumProductUrls_(text);
+
+        results.push({
+          url: url,
+          ok: true,
+          htmlLength: text.length,
+          containsJefferson: lower.indexOf("jefferson") !== -1,
+          containsSteve: lower.indexOf("steve") !== -1,
+          containsBerry: lower.indexOf("berry") !== -1,
+          productUrlCount: productUrls.length,
+          firstProductUrl: productUrls[0] || ""
+        });
+      } catch (err) {
+        results.push({
+          url: url,
+          ok: false,
+          error: err && err.message ? err.message : String(err)
+        });
+      }
+    });
+  });
+
+  Logger.log(JSON.stringify(results, null, 2));
+}
+
+
+/**
+ * Antikvárium keresési HTML debug Jefferson-kód adattal.
+ *
+ * Cél:
+ * - megnézni, hogy a működő /reszletes-kereso oldal HTML-je
+ *   tartalmazza-e a Jefferson / Steve / Berry kulcsszavakat
+ * - ellenőrizni, hogy milyen href minták vannak benne
+ * - megmutatni az első releváns HTML-részletet
+ *
+ * Fontos:
+ * - ez diagnosztikai teszt, nem regressziós teszt
+ */
+function testAntikvariumSearchHtmlDebugJeffersonKod() {
+  const query = TEST_BOOK_JEFFERSON_TITLE + " " + TEST_BOOK_JEFFERSON_AUTHOR;
+
+  const url =
+    "https://www.antikvarium.hu/reszletes-kereso?cim=" +
+    encodeURIComponent(query);
+
+  const html = fetchPublisherHtml_(url);
+  const text = String(html || "");
+  const lower = text.toLowerCase();
+
+  Logger.log("SEARCH URL:");
+  Logger.log(url);
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  Logger.log("CONTAINS /konyv/:");
+  Logger.log(text.indexOf("/konyv/") !== -1);
+
+  Logger.log("CONTAINS antikvarium.hu/konyv:");
+  Logger.log(lower.indexOf("antikvarium.hu/konyv") !== -1);
+
+  Logger.log("CONTAINS Jefferson:");
+  Logger.log(lower.indexOf("jefferson") !== -1);
+
+  Logger.log("CONTAINS Steve:");
+  Logger.log(lower.indexOf("steve") !== -1);
+
+  Logger.log("CONTAINS Berry:");
+  Logger.log(lower.indexOf("berry") !== -1);
+
+  const hrefMatches = text.match(/href=["'][^"']+["']/ig) || [];
+
+  Logger.log("HREF COUNT:");
+  Logger.log(hrefMatches.length);
+
+  const relevantHrefs = hrefMatches.filter(function(h) {
+    const hLower = h.toLowerCase();
+
+    return (
+      hLower.indexOf("konyv") !== -1 ||
+      hLower.indexOf("jefferson") !== -1 ||
+      hLower.indexOf("steve") !== -1 ||
+      hLower.indexOf("berry") !== -1
+    );
+  });
+
+  Logger.log("RELEVANT HREF COUNT:");
+  Logger.log(relevantHrefs.length);
+
+  Logger.log("FIRST 50 RELEVANT HREFS:");
+  Logger.log(JSON.stringify(relevantHrefs.slice(0, 50), null, 2));
+
+  const pos = Math.max(
+    lower.indexOf("jefferson"),
+    lower.indexOf("steve"),
+    lower.indexOf("berry"),
+    lower.indexOf("/konyv/"),
+    lower.indexOf("antikvarium.hu/konyv")
+  );
+
+  Logger.log("FIRST RELEVANT POSITION:");
+  Logger.log(pos);
+
+  if (pos >= 0) {
+    Logger.log("HTML AROUND FIRST RELEVANT POSITION:");
+    Logger.log(text.substring(Math.max(0, pos - 1500), pos + 3500));
+  }
+}
+/**
+ * Antikvárium keresési URL-változatok tesztje.
+ *
+ * Cél:
+ * - megtalálni, melyik Antikvárium keresési URL ad 200-as választ
+ * - ellenőrizni, hogy a válasz HTML tartalmaz-e /konyv/ termékoldal linket
+ *
+ * Fontos:
+ * - ez diagnosztikai teszt, nem regressziós teszt
+ */
+function testAntikvariumSearchUrlVariants() {
+  const query = TEST_BOOK_JEFFERSON_TITLE + " " + TEST_BOOK_JEFFERSON_AUTHOR;
+  const encodedQuery = encodeURIComponent(query);
+
+  const urls = [
+    "https://www.antikvarium.hu/kereses?search=" + encodedQuery,
+    "https://www.antikvarium.hu/kereses?ksz=" + encodedQuery,
+    "https://www.antikvarium.hu/reszletes-kereso?cim=" + encodedQuery,
+    "https://www.antikvarium.hu/reszletes-kereso?konyv-cime=" + encodedQuery,
+    "https://www.antikvarium.hu/reszletes-kereso?kulcsszo=" + encodedQuery,
+    "https://www.antikvarium.hu/reszletes-kereso?nev=" + encodedQuery
+  ];
+
+  const results = urls.map(function(url) {
+    try {
+      const html = fetchPublisherHtml_(url);
+      const productUrls = extractAntikvariumProductUrls_(html);
+
+      return {
+        url: url,
+        ok: true,
+        htmlLength: String(html || "").length,
+        productUrlCount: productUrls.length,
+        firstProductUrl: productUrls[0] || ""
+      };
+    } catch (err) {
+      return {
+        url: url,
+        ok: false,
+        error: err && err.message ? err.message : String(err)
+      };
+    }
+  });
+
+  Logger.log(JSON.stringify(results, null, 2));
 }
 /***********************************************************
  * 9. ALEXANDRA TESZTEK

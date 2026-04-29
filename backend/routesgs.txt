@@ -134,28 +134,7 @@ function doGet(e) {
      * majd meghívja az addBookToLista_() üzleti függvényt.
      ***********************************************************/
     if (action === "addBookToLista") {
-      // TODO 3.1: Ismétlődő book objektum-építés. Később közös mapper helperbe kerül.
-      const book = {
-        "Author": p.szerzo || "",
-        "Title": p.cim || "",
-        "Original_Title": p.eredeti_cim || "",
-        "Previous_Title": p.korabbi_cim || "",
-        "Series": p.sorozat || "",
-        "Number": p.ssz || "",
-        "URL": p.url || "",
-        "Year": p.ev || "",
-        "Location": p.helyszin || "",
-        "Shelf": p.polc || "",
-        "Page_Count": p.oldalszam || "",
-        "ISBN": p.isbn || "",
-        "Publisher": p.kiado || "",
-        "Translator": p.fordito || "",
-        "Genre": p.mufaj || "",
-        "Purchased": p.megv || "",
-        "For_sale": p.elado || "",
-        "Price": p.ar || "",
-        "Comment": p.megjegy || ""
-      };
+      const book = mapBookFromParams_(p, { includeId: false });
 
       updateUniqueList_(SHEET_AUTHORS, "Author", book["Author"]);
       updateUniqueList_(SHEET_SERIES, "Series", book["Series"]);
@@ -285,34 +264,78 @@ function doGet(e) {
       let booklineItems = [];
       let libriItems = [];
       let alexandraItems = [];
+      let antikvariumItems = [];
+
+      let antikvariumError = "";
 
       let booklineTitleAuthorItems = [];
       let libriTitleAuthorItems = [];
       let alexandraTitleAuthorItems = [];
+      let antikvariumTitleAuthorItems = [];
+      let booklineError = "";
+      let libriError = "";
+      let alexandraError = "";
 
       if (isbn) {
-        booklineItems = filterPublisherItemsByRequestedIsbn_(
-          searchBooklineByIsbn_(isbn),
-          isbn
-        );
+        try {
+          booklineItems = filterPublisherItemsByRequestedIsbn_(
+            searchBooklineByIsbn_(isbn),
+            isbn
+          );
+        } catch (err) {
+          booklineError = err && err.message ? err.message : String(err);
+          booklineItems = [];
+        }
 
-        libriItems = filterPublisherItemsByRequestedIsbn_(
-          searchLibriByIsbn_(isbn),
-          isbn
-        );
+        try {
+          libriItems = filterPublisherItemsByRequestedIsbn_(
+            searchLibriByIsbn_(isbn),
+            isbn
+          );
+        } catch (err) {
+          libriError = err && err.message ? err.message : String(err);
+          libriItems = [];
+        }
 
-        alexandraItems = filterPublisherItemsByRequestedIsbn_(
-          searchAlexandraByIsbn_(isbn),
-          isbn
-        );
+        try {
+          alexandraItems = filterPublisherItemsByRequestedIsbn_(
+            searchAlexandraByIsbn_(isbn),
+            isbn
+          );
+        } catch (err) {
+          alexandraError = err && err.message ? err.message : String(err);
+          alexandraItems = [];
+        }
       }
 
       if (title || author) {
-        booklineTitleAuthorItems = searchBooklineByTitleAuthor_(title, author);
-        libriTitleAuthorItems = searchLibriByTitleAuthor_(title, author);
-        alexandraTitleAuthorItems = searchAlexandraByTitleAuthor_(title, author);
-      }
+        try {
+          booklineTitleAuthorItems = searchBooklineByTitleAuthor_(title, author);
+        } catch (err) {
+          booklineError = err && err.message ? err.message : String(err);
+          booklineTitleAuthorItems = [];
+        }
 
+        try {
+          libriTitleAuthorItems = searchLibriByTitleAuthor_(title, author);
+        } catch (err) {
+          libriError = err && err.message ? err.message : String(err);
+          libriTitleAuthorItems = [];
+        }
+
+        try {
+          alexandraTitleAuthorItems = searchAlexandraByTitleAuthor_(title, author);
+        } catch (err) {
+          alexandraError = err && err.message ? err.message : String(err);
+          alexandraTitleAuthorItems = [];
+        }
+      }
+      try {
+        antikvariumTitleAuthorItems = searchAntikvariumByTitleAuthor_(title, author);
+      } catch (err) {
+        antikvariumError = err && err.message ? err.message : String(err);
+        antikvariumTitleAuthorItems = [];
+      }
       result = {
         success: true,
         query: {
@@ -326,7 +349,14 @@ function doGet(e) {
           alexandraIsbn: alexandraItems.length,
           booklineTitleAuthor: booklineTitleAuthorItems.length,
           libriTitleAuthor: libriTitleAuthorItems.length,
-          alexandraTitleAuthor: alexandraTitleAuthorItems.length
+          alexandraTitleAuthor: alexandraTitleAuthorItems.length,
+          antikvariumTitleAuthor: antikvariumTitleAuthorItems.length
+        },
+        errors: {
+          bookline: booklineError,
+          libri: libriError,
+          alexandra: alexandraError,
+          antikvarium: antikvariumError
         },
         items: dedupeLookupCandidates_(
           []
@@ -336,6 +366,7 @@ function doGet(e) {
             .concat(booklineTitleAuthorItems)
             .concat(libriTitleAuthorItems)
             .concat(alexandraTitleAuthorItems)
+            .concat(antikvariumTitleAuthorItems)
         )
       };
     }

@@ -45,6 +45,140 @@
  * - fetchPublisherHtml_()
  * - extractFirstMatch_()
  */
+/**
+ * Antikvárium termékoldal URL-ek kinyerése HTML-ből.
+ *
+ * Bemenet:
+ * - html: Antikvárium keresési vagy HTML oldal tartalma
+ *
+ * Működés:
+ * - href attribútumokból és abszolút URL szövegekből is próbál URL-eket kinyerni
+ * - relatív /konyv/ URL-eket abszolút URL-re alakít
+ * - csak https://www.antikvarium.hu/konyv/ kezdetű URL-eket tart meg
+ * - duplikált URL-eket kiszűr
+ *
+ * Kimenet:
+ * - Antikvárium termékoldal URL-ek listája
+ */
+function extractAntikvariumProductUrls_(html) {
+  const text = String(html || "");
+  const urls = [];
+  const seen = {};
+
+  function addUrl(url) {
+    const clean = String(url || "")
+      .replace(/&amp;/g, "&")
+      .split("#")[0]
+      .split("?")[0]
+      .trim();
+
+    if (!clean) {
+      return;
+    }
+
+    let absolute = clean;
+    if (absolute.indexOf("//www.antikvarium.hu/konyv/") === 0) {
+      absolute = "https:" + absolute;
+    } else if (absolute.indexOf("/konyv/") === 0) {
+      absolute = "https://www.antikvarium.hu" + absolute;
+    } else if (/^konyv\//i.test(absolute)) {
+      absolute = "https://www.antikvarium.hu/" + absolute;
+    }
+
+    if (absolute.indexOf("https://www.antikvarium.hu/konyv/") !== 0) {
+      return;
+    }
+
+    if (!seen[absolute]) {
+      seen[absolute] = true;
+      urls.push(absolute);
+    }
+  }
+
+  let match;
+
+  const hrefRegex = /href=["']([^"']*(?:\/konyv\/|konyv\/)[^"']+)["']/ig;
+  while ((match = hrefRegex.exec(text)) !== null) {
+    addUrl(match[1]);
+  }
+
+  const absoluteRegex = /https:\/\/www\.antikvarium\.hu\/konyv\/[^"' <]+/ig;
+  while ((match = absoluteRegex.exec(text)) !== null) {
+    addUrl(match[0]);
+  }
+
+  return urls;
+}
+/**
+ * Antikvárium keresés cím és szerző alapján.
+ *
+ * Bemenet:
+ * - title: keresett cím
+ * - author: keresett szerző
+ *
+ * Működés:
+ * - cím+szerző keresőkifejezést épít
+ * - Antikvárium keresési URL-t hív
+ * - termékoldal URL-eket gyűjt a keresési HTML-ből
+ * - legfeljebb 5 termékoldalt dolgoz fel
+ * - csak releváns cím/szerző találatokat tart meg
+ * - hibás termékoldal nem állítja le a teljes keresést
+ *
+ * Kimenet:
+ * - Antikvárium találatok listája
+ *
+ * Függőségek:
+ * - fetchPublisherHtml_()
+ * - extractAntikvariumProductUrls_()
+ * - parseAntikvariumProductPage_()
+ * - isRelevantTitleAuthorMatch_()
+ */
+function searchAntikvariumByTitleAuthor_(title, author) {
+  const query = [title, author]
+    .filter(function (x) {
+      return String(x || "").trim();
+    })
+    .join(" ")
+    .trim();
+
+  if (!query) {
+    return [];
+  }
+
+  const searchUrl =
+    "https://www.antikvarium.hu/index.php" +
+    "?type=search" +
+    "&ksz=" + encodeURIComponent(query) +
+    "&oldalcount=1" +
+    "&reszletes=0" +
+    "&newSearch=1" +
+    "&searchstart=ksz" +
+    "&rend=pontossag" +
+    "&oldaldb=60" +
+    "&interfaceid=101";
+
+  const searchHtml = fetchPublisherHtml_(searchUrl);
+  const urls = extractAntikvariumProductUrls_(searchHtml).slice(0, 5);
+  const items = [];
+
+  urls.forEach(function (url) {
+    try {
+      const item = parseAntikvariumProductPage_(url);
+
+      if (
+        item &&
+        isRelevantTitleAuthorMatch_(item, title, author)
+      ) {
+        items.push(item);
+      }
+    } catch (err) {
+      // Egy hibás termékoldal nem állíthatja le a teljes Antikvárium keresést.
+    }
+  });
+
+  return dedupeLookupCandidates_(items);
+}
+
 function parseAntikvariumProductPage_(productUrl) {
   const productHtml = fetchPublisherHtml_(productUrl);
 
@@ -99,6 +233,17 @@ function parseAntikvariumProductPage_(productUrl) {
     extractFirstMatch_(productHtml, /<img[^>]+src=["']([^"']+)["'][^>]+alt=["'][^"']*borító[^"']*["']/i) ||
     "";
 
+  const translator =
+    extractFirstMatch_(productHtml, /<div[^>]*class=["'][^"']*\bauthor\b[^"']*["'][^>]*>\s*Fordító\s*<\/div>[\s\S]{0,1500}?<div[^>]*class=["'][^"']*\bbook-data-author\b[^"']*["'][^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i) ||
+    extractFirstMatch_(productHtml, /<div[^>]*class=["'][^"']*\bauthor\b[^"']*["'][^>]*>\s*Fordító\s*<\/div>[\s\S]{0,1500}?<a[^>]*>([\s\S]*?)<\/a>/i) ||
+    extractFirstMatch_(productHtml, /Fordító[\s\S]{0,1500}?<a[^>]*>([\s\S]*?)<\/a>/i) ||
+    "";
+  const series =
+    extractFirstMatch_(productHtml, /<th[^>]*class=["'][^"']*bookDataTableHeadRows[^"']*["'][^>]*>\s*Sorozatcím:\s*<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/i) ||
+    "";
+  const number =
+    extractFirstMatch_(productHtml, /<th[^>]*class=["'][^"']*bookDataTableHeadRows[^"']*["'][^>]*>\s*Kötetszám:\s*<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/i) ||
+    "";
   if (!title) {
     return null;
   }
@@ -110,7 +255,7 @@ function parseAntikvariumProductPage_(productUrl) {
     authors: author,
     originalTitle: "",
     previousTitle: "",
-    series: "",
+    series: series,
     number: number,
     year: year,
     location: "",
@@ -118,7 +263,7 @@ function parseAntikvariumProductPage_(productUrl) {
     pageCount: pageCount,
     isbn: foundIsbn,
     publisher: publisher,
-    translator: "",
+    translator: translator,
     genre: "",
     coverUrl: imageUrl,
     language: "hu"
