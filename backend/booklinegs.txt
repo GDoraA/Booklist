@@ -61,10 +61,13 @@ function parseBooklineProductPage_(productUrl) {
   const productHtml = fetchHtml_(productUrl);
 
   const title =
+    extractFirstMatch_(productHtml, /<h1[^>]*class=["'][^"']*\bc-product__title\b[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i) ||
     extractFirstMatch_(productHtml, /<meta property="og:title" content="([^"]+)"/i) ||
     extractFirstMatch_(productHtml, /<h1[^>]*>([\s\S]*?)<\/h1>/i);
 
   const author =
+    extractFirstMatch_(productHtml, /<a[^>]*class=["'][^"']*\bc-product__author\b[^"']*["'][\s\S]*?<span[^>]*itemprop=["']name["'][^>]*>([\s\S]*?)<\/span>[\s\S]*?<\/a>/i) ||
+    extractFirstMatch_(productHtml, /<a[^>]*class=["'][^"']*\bc-product__author\b[^"']*["'][^>]*>([\s\S]*?)<\/a>/i) ||
     extractFirstMatch_(productHtml, /setTargeting\(['"]author['"],\s*['"]([^'"]+)['"]\)/i) ||
     extractFirstMatch_(productHtml, /<meta name="author" content="([^"]+)"/i) ||
     extractFirstMatch_(productHtml, /Szerző[\s\S]{0,300}?<a[^>]*>([\s\S]*?)<\/a>/i);
@@ -85,9 +88,11 @@ function parseBooklineProductPage_(productUrl) {
     extractFirstMatch_(productHtml, /Oldalak száma[\s\S]{0,160}?([0-9]+)/i);
 
   const imageUrl =
+    extractFirstMatch_(productHtml, /<img[^>]*class=["'][^"']*\bo-product-figure__product-img\b[^"']*["'][^>]*src=["']([^"']+)["'][^>]*>/i) ||
     extractFirstMatch_(productHtml, /<meta property="og:image" content="([^"]+)"/i);
 
   const foundIsbn =
+    extractFirstMatch_(productHtml, /<span[^>]*itemprop=["']sku["'][^>]*>([\s\S]*?)<\/span>/i) ||
     extractFirstMatch_(productHtml, /ISBN[\s\S]{0,200}?([0-9Xx\-]{10,20})/i);
 
   const originalTitle =
@@ -276,10 +281,16 @@ function searchBooklineByTitleAuthor_(title, author) {
     return [];
   }
 
-  const searchUrl = "https://bookline.hu/search/search.action?desc=" + encodeURIComponent(query);
-  const searchHtml = fetchHtml_(searchUrl);
+  const searchUrl =
+    "https://bookline.hu/search/search.action?page=1&searchfield=" +
+    encodeURIComponent(query).replace(/%20/g, "+");  const searchHtml = fetchHtml_(searchUrl);
 
-  let productMatches = String(searchHtml || "").match(/https:\/\/bookline\.hu\/product\/home\.action\?_v=[^"' ]+/ig);
+  let productMatches = (String(searchHtml || "").match(/(?:https:\/\/bookline\.hu)?\/product\/home\.action\?_v=[^"' <]+/ig) || [])
+    .map(function (url) {
+      return url.indexOf("/product/") === 0
+        ? "https://bookline.hu" + url
+        : url;
+    });
 
   if (!productMatches || productMatches.length === 0) {
     productMatches = buildBooklineCandidateUrls_(cleanTitle, cleanAuthor);

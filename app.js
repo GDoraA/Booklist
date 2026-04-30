@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbxsoXvh3jBNVCbaoMO-HoUjs4MG6zLGs1g3Q7FqVFkwOu_RZXd_RQ-jDzxVoMiIMcx-vw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxHvK2_IRYuj9jK04OIni6i2O78MMZtb_5ra4XhQe4tZLFN4PtE438q3InUvt_xzQYk7Q/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -773,7 +773,32 @@ function normalizeLookupTextForFrontend(value) {
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
 }
+function normalizeAuthorNameForLookupFrontend(author) {
+    const value = String(author || "").trim();
 
+    if (!value) {
+        return "";
+    }
+
+    if (value.indexOf(",") === -1) {
+        return value;
+    }
+
+    const parts = value
+        .split(",")
+        .map(function (part) {
+            return String(part || "").trim();
+        })
+        .filter(function (part) {
+            return part;
+        });
+
+    if (parts.length < 2) {
+        return value;
+    }
+
+    return parts.slice(1).join(" ") + " " + parts[0];
+}
 function normalizeLooseLookupTextForFrontend(value) {
     return normalizeLookupTextForFrontend(value)
         .replace(/[^a-z0-9]+/g, "");
@@ -782,8 +807,9 @@ function normalizeLooseLookupTextForFrontend(value) {
 function isRelevantFrontendLookupItem(item, wanted) {
     const wantedIsbn = normalizeIsbnForMerge(wanted && wanted.isbn);
     const wantedTitle = normalizeLookupTextForFrontend(wanted && wanted.title);
-    const wantedAuthor = normalizeLookupTextForFrontend(wanted && wanted.author);
-
+    const wantedAuthor = normalizeLookupTextForFrontend(
+        normalizeAuthorNameForLookupFrontend(wanted && wanted.author)
+    );
     const itemIsbn = normalizeIsbnForMerge(item && item.isbn);
     const itemTitle = normalizeLookupTextForFrontend(item && item.title);
     const itemAuthors = normalizeLookupTextForFrontend(item && item.authors);

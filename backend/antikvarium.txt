@@ -158,7 +158,7 @@ function searchAntikvariumByTitleAuthor_(title, author) {
     "&interfaceid=101";
 
   const searchHtml = fetchPublisherHtml_(searchUrl);
-  const urls = extractAntikvariumProductUrls_(searchHtml).slice(0, 5);
+  const urls = extractAntikvariumProductUrls_(searchHtml).slice(0, 30);
   const items = [];
 
   urls.forEach(function (url) {
@@ -167,7 +167,8 @@ function searchAntikvariumByTitleAuthor_(title, author) {
 
       if (
         item &&
-        isRelevantTitleAuthorMatch_(item, title, author)
+        isRelevantTitleAuthorMatch_(item, title, author) &&
+        normalizeText_(item.title) === normalizeText_(title)
       ) {
         items.push(item);
       }

@@ -334,7 +334,137 @@ function testSearchBooklineByTitleAuthor() {
 
   Logger.log(JSON.stringify(result, null, 2));
 }
+/**
+ * Bookline cím+szerző keresés teszt:
+ * Louise Kennedy - Vétkek
+ *
+ * Cél:
+ * - ellenőrizni, hogy a Bookline keresés talál-e termékoldalt
+ * - ellenőrizni, hogy a Bookline parser visszaad-e egységes lookup itemet
+ *
+ * Teszteli:
+ * - searchBooklineByTitleAuthor_()
+ * - parseBooklineProductPage_()
+ * - relevanciaszűrés
+ */
+function testSearchBooklineVetkekByTitleAuthor() {
+  const result = searchBooklineByTitleAuthor_(
+    "Vétkek",
+    "Louise Kennedy"
+  );
 
+  Logger.log(JSON.stringify(result, null, 2));
+}
+/**
+ * Közvetlen Bookline termékoldal parser teszt:
+ * Louise Kennedy - Vétkek
+ *
+ * Cél:
+ * - ellenőrizni, hogy a Bookline termékoldal-parser milyen mezőket nyer ki
+ * - különválasztani a parser/mapping hibát a keresési útvonal hibájától
+ *
+ * Teszteli:
+ * - parseBooklineProductPage_()
+ * - cím
+ * - szerző
+ * - kiadó
+ * - év
+ * - oldalszám
+ * - ISBN
+ * - borító
+ */
+function testParseBooklineVetkekDirect() {
+  const item = parseBooklineProductPage_(
+    "https://bookline.hu/product/home.action?_v=Kennedy_Louise_Vetkek&type=22&id=348149"
+  );
+
+  Logger.log(JSON.stringify(item, null, 2));
+}
+/**
+ * Bookline keresési HTML debug:
+ * Louise Kennedy - Vétkek
+ *
+ * Cél:
+ * - ellenőrizni, hogy a Bookline searchfield keresési oldal tartalmazza-e a keresett könyvet
+ * - ellenőrizni, hogy vannak-e termékoldal-linkek a HTML-ben
+ * - előkészíteni a Bookline linkkinyerés javítását
+ *
+ * Teszteli:
+ * - fetchHtml_()
+ * - Bookline searchfield keresési URL működését
+ * - product/home.action linkek jelenlétét
+ */
+function testBooklineSearchHtmlDebugVetkek() {
+  const title = "Vétkek";
+  const author = "Louise Kennedy";
+
+  const query = [title, author]
+    .filter(function (x) {
+      return x;
+    })
+    .join(" ")
+    .trim();
+
+  const searchUrl =
+    "https://bookline.hu/search/search.action?page=1&searchfield=" +
+    encodeURIComponent(query).replace(/%20/g, "+");
+
+  const html = fetchHtml_(searchUrl);
+  const text = String(html || "");
+  const lower = text.toLowerCase();
+
+  Logger.log("SEARCH URL:");
+  Logger.log(searchUrl);
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  Logger.log("CONTAINS vetkek:");
+  Logger.log(lower.indexOf("vetkek") !== -1);
+
+  Logger.log("CONTAINS louise:");
+  Logger.log(lower.indexOf("louise") !== -1);
+
+  Logger.log("CONTAINS kennedy:");
+  Logger.log(lower.indexOf("kennedy") !== -1);
+
+  Logger.log("CONTAINS product/home.action:");
+  Logger.log(lower.indexOf("product/home.action") !== -1);
+
+  const hrefMatches = text.match(/href=["']([^"']+)["']/ig) || [];
+
+  const relevantHrefs = hrefMatches.filter(function (h) {
+    const l = h.toLowerCase();
+
+    return (
+      l.indexOf("product/home.action") !== -1 ||
+      l.indexOf("vetkek") !== -1 ||
+      l.indexOf("louise") !== -1 ||
+      l.indexOf("kennedy") !== -1
+    );
+  });
+
+  Logger.log("RELEVANT HREF COUNT:");
+  Logger.log(relevantHrefs.length);
+
+  Logger.log("FIRST 40 RELEVANT HREFS:");
+  Logger.log(JSON.stringify(relevantHrefs.slice(0, 40), null, 2));
+
+  const pos = Math.max(
+    lower.indexOf("vetkek"),
+    lower.indexOf("louise"),
+    lower.indexOf("kennedy"),
+    lower.indexOf("product/home.action")
+  );
+
+  Logger.log("FIRST RELEVANT POSITION:");
+  Logger.log(pos);
+
+  if (pos >= 0) {
+    Logger.log("HTML AROUND FIRST RELEVANT POSITION:");
+    Logger.log(text.substring(Math.max(0, pos - 1000), pos + 2500));
+  }
+}
 /**
  * Bookline cím+szerző keresés teszt A Jefferson-kód / Steve Berry adattal.
  *
@@ -407,8 +537,8 @@ function testBooklineSearchHtmlDebug() {
     .trim();
 
   const searchUrl =
-    "https://bookline.hu/search/search.action?desc=" +
-    encodeURIComponent(query);
+    "https://bookline.hu/search/search.action?page=1&searchfield=" +
+    encodeURIComponent(query).replace(/%20/g, "+");
 
   const html = fetchHtml_(searchUrl);
   const text = String(html || "");
@@ -1758,6 +1888,93 @@ function testAntikvariumSearchUrlVariants() {
 /***********************************************************
  * 9. ALEXANDRA TESZTEK
  ***********************************************************/
+/**
+ * Közvetlen Alexandra termékoldal parser teszt:
+ * Louise Kennedy - Vétkek
+ *
+ * Teszteli:
+ * - parseAlexandraProductPage_()
+ * - cím
+ * - szerző
+ * - ISBN
+ * - kiadó
+ * - év
+ * - oldalszám
+ * - borító
+ */
+function testParseAlexandraVetkekDirect() {
+  const item = parseAlexandraProductPage_(
+    "https://alexandra.hu/konyv/regeny/szepirodalmi/europa-konyvkiado/louise-kennedy/vetkek"
+  );
+
+  Logger.log(JSON.stringify(item, null, 2));
+}
+
+function testSearchAlexandraVetkekByTitleAuthor() {
+  const result = searchAlexandraByTitleAuthor_(
+    "Vétkek",
+    "Louise Kennedy"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+function testLookupPublisherPagesVetkek() {
+  const fakeEvent = {
+    parameter: {
+      action: "lookupPublisherPages",
+      isbn: "",
+      title: "Vétkek",
+      author: "Louise Kennedy"
+    }
+  };
+
+  const output = doGet(fakeEvent);
+
+  Logger.log(output.getContent());
+}
+function testAlexandraSearchHtmlDebugVetkek() {
+  const query = "Vétkek Louise Kennedy";
+
+  const searchUrl =
+    "https://alexandra.hu/kereses?kereses=" + encodeURIComponent(query);
+
+  const html = fetchPublisherHtml_(searchUrl);
+  const text = String(html || "");
+  const lower = text.toLowerCase();
+
+  Logger.log("SEARCH URL:");
+  Logger.log(searchUrl);
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  Logger.log("CONTAINS vetkek:");
+  Logger.log(lower.indexOf("vetkek") !== -1);
+
+  Logger.log("CONTAINS louise:");
+  Logger.log(lower.indexOf("louise") !== -1);
+
+  Logger.log("CONTAINS kennedy:");
+  Logger.log(lower.indexOf("kennedy") !== -1);
+
+  Logger.log("CONTAINS /konyv/:");
+  Logger.log(lower.indexOf("/konyv/") !== -1);
+
+  const pos = Math.max(
+    lower.indexOf("vetkek"),
+    lower.indexOf("louise"),
+    lower.indexOf("kennedy"),
+    lower.indexOf("/konyv/")
+  );
+
+  Logger.log("FIRST RELEVANT POSITION:");
+  Logger.log(pos);
+
+  if (pos >= 0) {
+    Logger.log("HTML AROUND FIRST RELEVANT POSITION:");
+    Logger.log(text.substring(Math.max(0, pos - 1000), pos + 2500));
+  }
+}
 
 /**
  * Alexandra cím+szerző keresés teszt Lázár / Nelio Biedermann adattal.
@@ -1860,4 +2077,135 @@ function testMapBookFromImportParams() {
   });
 
   Logger.log(JSON.stringify(result, null, 2));
+}
+
+/**
+ * Közvetlen Antikvárium termékoldal parser teszt:
+ * Kisasszonyok
+ *
+ * Cél:
+ * - ellenőrizni, hogy az Antikvárium termékoldal-parser működik-e közvetlen URL-lel
+ * - különválasztani a parser/mapping hibát a keresési útvonal hibájától
+ *
+ * Teszteli:
+ * - parseAntikvariumProductPage_()
+ * - cím
+ * - szerző
+ * - kiadó
+ * - év
+ * - oldalszám
+ * - ISBN
+ * - borító
+ */
+function testParseAntikvariumKisasszonyokDirect() {
+  const item = parseAntikvariumProductPage_(
+    "https://www.antikvarium.hu/konyv/kisasszonyok-305297-0"
+  );
+
+  Logger.log(JSON.stringify(item, null, 2));
+}
+
+/**
+ * Antikvárium cím+szerző keresés teszt:
+ * Louisa May Alcott - Kisasszonyok
+ *
+ * Cél:
+ * - ellenőrizni, hogy az Antikvárium keresés megtalálja-e a könyvet
+ * - különválasztani a keresési útvonal hibáját a termékoldal-parser működésétől
+ *
+ * Teszteli:
+ * - searchAntikvariumByTitleAuthor_()
+ * - extractAntikvariumProductUrls_()
+ * - parseAntikvariumProductPage_()
+ * - relevanciaszűrés
+ */
+function testSearchAntikvariumKisasszonyokByTitleAuthor() {
+  const result = searchAntikvariumByTitleAuthor_(
+    "Kisasszonyok",
+    "Louisa May Alcott"
+  );
+
+  Logger.log(JSON.stringify(result, null, 2));
+}
+/**
+ * Antikvárium alternatív keresési URL debug:
+ * Kisasszonyok
+ *
+ * Cél:
+ * - ellenőrizni, hogy a kc= címmezős keresés tartalmazza-e a konkrét linkelt példányt
+ * - összevetni a korábbi ksz= keresési URL találati sorrendjével
+ *
+ * Teszteli:
+ * - fetchPublisherHtml_()
+ * - extractAntikvariumProductUrls_()
+ * - Antikvárium részletes keresési URL működését
+ */
+function testAntikvariumSearchHtmlDebugKisasszonyokKc() {
+  const searchUrl =
+    "https://www.antikvarium.hu/index.php" +
+    "?type=search" +
+    "&kc=" + encodeURIComponent("kisasszonyok") +
+    "&he=0" +
+    "&jk=0" +
+    "&isfl=0" +
+    "&reszletes=1" +
+    "&oldaldb=60" +
+    "&oldalcount=1" +
+    "&rend=pontossag" +
+    "&newSearch=1" +
+    "&searchstart=ksz" +
+    "&interfaceid=102";
+
+  const searchHtml = fetchPublisherHtml_(searchUrl);
+  const text = String(searchHtml || "");
+  const lower = text.toLowerCase();
+
+  const urls = extractAntikvariumProductUrls_(searchHtml);
+
+  Logger.log("SEARCH URL:");
+  Logger.log(searchUrl);
+
+  Logger.log("HTML LENGTH:");
+  Logger.log(text.length);
+
+  Logger.log("CONTAINS kisasszonyok-305297-0:");
+  Logger.log(lower.indexOf("kisasszonyok-305297-0") !== -1);
+
+  Logger.log("EXTRACTED URL COUNT:");
+  Logger.log(urls.length);
+
+  Logger.log("FIRST 30 URLS:");
+  Logger.log(JSON.stringify(urls.slice(0, 30), null, 2));
+
+  Logger.log("INDEX OF TARGET URL:");
+  Logger.log(urls.indexOf("https://www.antikvarium.hu/konyv/kisasszonyok-305297-0"));
+}
+
+/**
+ * Teljes publisher lookup route teszt:
+ * Louisa May Alcott - Kisasszonyok
+ *
+ * Cél:
+ * - ellenőrizni, hogy az app által használt lookupPublisherPages route
+ *   visszaadja-e az Antikvárium találatokat
+ * - különválasztani a backend route hibát a frontend / deploy / cache hibától
+ *
+ * Teszteli:
+ * - doGet(e)
+ * - lookupPublisherPages action
+ * - Antikvárium cím+szerző keresés route-on keresztül
+ */
+function testLookupPublisherPagesKisasszonyok() {
+  const fakeEvent = {
+    parameter: {
+      action: "lookupPublisherPages",
+      isbn: "",
+      title: "Kisasszonyok",
+      author: "Louisa May Alcott"
+    }
+  };
+
+  const output = doGet(fakeEvent);
+
+  Logger.log(output.getContent());
 }

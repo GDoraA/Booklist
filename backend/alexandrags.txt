@@ -53,11 +53,14 @@ function parseAlexandraProductPage_(productUrl) {
   const productHtml = fetchPublisherHtml_(productUrl);
 
 const rawTitle =
+  extractFirstMatch_(productHtml, /<span[^>]*class=["'][^"']*\balexwebdatainfogrid_name\b[^"']*["'][^>]*>([\s\S]*?)<\/span>/i) ||
   extractFirstMatch_(productHtml, /<meta property="og:title" content="([^"]+)"/i) ||
   extractFirstMatch_(productHtml, /<h1[^>]*>([\s\S]*?)<\/h1>/i);
 
 let title = rawTitle;
 let author =
+  extractFirstMatch_(productHtml, /<a[^>]*href=["']\/szerzo\/[^"']+["'][^>]*title=["']([^"']+)["'][^>]*>/i) ||
+  extractFirstMatch_(productHtml, /<a[^>]*href=["']\/szerzo\/[^"']+["'][^>]*>([\s\S]*?)<\/a>/i) ||
   extractFirstMatch_(productHtml, /Szerző[\s\S]{0,200}?<[^>]+>([\s\S]*?)<\/[^>]+>/i);
 
 const alexandraTitleMatch = String(rawTitle || "").match(
@@ -72,19 +75,36 @@ if (alexandraTitleMatch) {
   title = alexandraTitleMatch[2].trim();
 }
 
-  const publisher =
+  const publisherRaw =
+    extractFirstMatch_(productHtml, /<a[^>]*href=["'][^"']*\/kiado\/[^"']+["'][^>]*title=["']([^"']+)["'][^>]*>/i) ||
+    extractFirstMatch_(productHtml, /<a[^>]*href=["'][^"']*\/kiado\/[^"']+["'][^>]*>([\s\S]*?)<\/a>/i) ||
     extractFirstMatch_(productHtml, /Kiadó[\s\S]{0,200}?<[^>]+>([\s\S]*?)<\/[^>]+>/i);
 
+  const publisher = String(publisherRaw || "")
+    .replace(/,\s*[12][0-9]{3}\.?\s*$/, "")
+    .trim();
+
   const year =
+    extractYear_(
+      extractFirstMatch_(productHtml, /<div[^>]*class=["'][^"']*\balexwebdatainfogrid_issuedate\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i)
+    ) ||
     extractFirstMatch_(productHtml, /Kiadás éve[\s\S]{0,120}?([12][0-9]{3})/i);
 
   const pageCount =
+    extractFirstMatch_(productHtml, /<div[^>]*class=["'][^"']*\balexwebdatainfogrid_pagenumber\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) ||
     extractFirstMatch_(productHtml, /Oldalszám[\s\S]{0,120}?([0-9]+)/i);
 
-  const imageUrl =
+  const imageUrlRaw =
+    extractFirstMatch_(productHtml, /<img[^>]*class=["'][^"']*\balexwebdatainfogrid_thumbnail_url_img\b[^"']*["'][^>]*src=["']([^"']+)["'][^>]*>/i) ||
     extractFirstMatch_(productHtml, /<meta property="og:image" content="([^"]+)"/i);
 
+  const imageUrl =
+    String(imageUrlRaw || "").indexOf("/") === 0
+      ? "https://alexandra.hu" + imageUrlRaw
+      : imageUrlRaw;
+
   const foundIsbn =
+    extractFirstMatch_(productHtml, /<div[^>]*class=["'][^"']*\balexwebdatainfogrid_isbn\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) ||
     extractFirstMatch_(productHtml, /ISBN[\s\S]{0,120}?([0-9Xx\-]{10,20})/i);
 
   if (!title) {
@@ -222,11 +242,11 @@ function searchAlexandraByTitleAuthor_(title, author) {
   }
 
   const searchUrl =
-    "https://alexandra.hu/kereses?kereses=" + encodeURIComponent(query);
+    "https://alexandra.hu/talalati-lista?kulcsszo=" + encodeURIComponent(query);
 
   const searchHtml = fetchPublisherHtml_(searchUrl);
 
-  const matches = String(searchHtml || "").match(/https:\/\/alexandra\.hu\/konyv\/[^"' ]+/ig);
+  const matches = String(searchHtml || "").match(/(?:https:\/\/alexandra\.hu)?\/konyv\/[^"' ]+/ig);
 
   if (!matches || matches.length === 0) {
     return [];
@@ -236,9 +256,14 @@ function searchAlexandraByTitleAuthor_(title, author) {
   const seen = {};
 
   matches.forEach(function (url) {
-    const cleanUrl = String(url || "")
+    const rawUrl = String(url || "")
       .split("#")[0]
       .split("?")[0];
+
+    const cleanUrl =
+      rawUrl.indexOf("/konyv/") === 0
+        ? "https://alexandra.hu" + rawUrl
+        : rawUrl;
 
     if (!seen[cleanUrl]) {
       seen[cleanUrl] = true;
