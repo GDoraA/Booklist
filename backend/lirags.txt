@@ -1,0 +1,39 @@
+/***********************************************************
+ * LÍRA SEGÉDFÜGGVÉNYEK
+ * Közvetlen Líra termékoldal feldolgozása.
+ ***********************************************************/
+
+function extractLiraOnlinePrice_(html) {
+  const text = decodeHtmlEntities_(stripHtml_(html))
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ");
+  const match = text.match(/online\s*ár\s*:[\s\S]{0,900}?([0-9]{3,})\s*Ft/i);
+  return match ? match[1] : "";
+}
+
+function parseLiraProductPage_(productUrl) {
+  const productHtml = fetchPublisherHtml_(productUrl);
+  const plainText = decodeHtmlEntities_(stripHtml_(productHtml))
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ");
+  const title =
+    extractFirstMatch_(productHtml, /<h1[^>]*>([\s\S]*?)<\/h1>/i) ||
+    extractFirstMatch_(productHtml, /<meta property=["']og:title["'] content=["']([^"']+)/i);
+  const author =
+    extractFirstMatch_(productHtml, /<h2[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i) ||
+    extractFirstMatch_(productHtml, /Szerző:\s*[\s\S]{0,120}?<a[^>]*>([\s\S]*?)<\/a>/i);
+  const publisher = extractFirstMatch_(productHtml, /Kiadó:\s*[\s\S]{0,120}?<a[^>]*>([\s\S]*?)<\/a>/i);
+  const foundIsbn = (plainText.match(/ISBN:\s*([0-9Xx-]{10,20})/i) || [])[1] || "";
+  const price = extractLiraOnlinePrice_(productHtml);
+  const shipping = (plainText.match(/Szállítás:\s*([0-9]+\s*-\s*[0-9]+\s*munkanap)/i) || [])[1] || "";
+  const imageUrl = extractFirstMatch_(productHtml, /<meta property=["']og:image["'] content=["']([^"']+)/i);
+
+  if (!title) return null;
+  return {
+    source: "lira", sourceId: productUrl, title: title, authors: author,
+    isbn: foundIsbn, publisher: publisher, coverUrl: imageUrl, language: "hu",
+    price: price, availability: price ? "Rendelhető" : "Nincs adat",
+    shipping: shipping, productUrl: productUrl
+  };
+}
+

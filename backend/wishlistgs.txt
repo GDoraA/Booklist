@@ -1,0 +1,322 @@
+/***********************************************************
+ * KÍVÁNSÁGLISTA
+ *
+ * A Wishlist munkalap CRUD műveletei, valamint a külön
+ * WishlistOffers és Discounts lapok összekapcsolása.
+ ***********************************************************/
+
+const WISHLIST_HEADERS = [
+  "ID", "Author", "Title", "Original_Title", "ISBN", "Publisher",
+  "Publication_Date", "Genre", "URL", "Priority", "Note",
+  "Added_Date", "Desired_Format", "Purchase_Link", "Bookline_URL",
+  "Libri_URL", "Lira_URL", "Alexandra_URL"
+];
+
+const WISHLIST_OFFER_HEADERS = [
+  "ID", "Wishlist_ID", "Retailer", "Availability", "Price", "Shipping",
+  "Product_URL", "Checked_At"
+];
+
+const DISCOUNT_HEADERS = [
+  "ID", "Retailer", "Publisher", "Discount_Type", "Discount_Value",
+  "Price_Base", "Stackable", "Min_Order", "Valid_From", "Valid_To",
+  "Note", "Active"
+];
+
+function readOptionalSheet_(sheetName) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  return sheet ? readSheet_(sheetName) : [];
+}
+
+function mapWishlistFromParams_(p, includeId) {
+  const item = {
+    "Author": p.Author || p.author || "",
+    "Title": p.Title || p.title || "",
+    "Original_Title": p.Original_Title || "",
+    "ISBN": p.ISBN || p.isbn || "",
+    "Publisher": p.Publisher || "",
+    "Publication_Date": p.Publication_Date || "",
+    "Genre": p.Genre || "",
+    "URL": p.URL || "",
+    "Priority": p.Priority || "Közepes",
+    "Note": p.Note || "",
+    "Added_Date": p.Added_Date || "",
+    "Desired_Format": p.Desired_Format || "",
+    "Purchase_Link": p.Purchase_Link || "",
+    "Bookline_URL": p.Bookline_URL || "",
+    "Libri_URL": p.Libri_URL || "",
+    "Lira_URL": p.Lira_URL || "",
+    "Alexandra_URL": p.Alexandra_URL || ""
+  };
+
+  if (includeId) item.ID = p.ID || "";
+  return item;
+}
+
+function getWishlistData_(refreshOffers, forceRefresh) {
+  const items = readSheet_(SHEET_WISHLIST);
+  const storedOffers = readOptionalSheet_(SHEET_WISHLIST_OFFERS);
+  const refreshResult = refreshOffers ? refreshWishlistOffers_(items, forceRefresh) : { offers: [], errors: [] };
+
+  return {
+    success: true,
+    items: items,
+    offers: mergeWishlistOffers_(storedOffers, refreshResult.offers),
+    discounts: readOptionalSheet_(SHEET_DISCOUNTS),
+    offerErrors: refreshResult.errors
+  };
+}
+
+function getWishlistItemOffers_(wishlistId, forceRefresh) {
+  const item = readSheet_(SHEET_WISHLIST).find(function(row) {
+    return String(row.ID) === String(wishlistId);
+  });
+  if (!item) {
+    return { success: false, error: "A kívánságlista-elem nem található." };
+  }
+
+  const result = refreshWishlistOffers_([item], forceRefresh);
+  return {
+    success: true,
+    Wishlist_ID: item.ID,
+    offers: result.offers,
+    offerErrors: result.errors
+  };
+}
+
+function mergeWishlistOffers_(storedOffers, liveOffers) {
+  const merged = {};
+  (storedOffers || []).forEach(function(offer) {
+    const key = String(offer.Wishlist_ID) + "|" + String(offer.Retailer || "").toLowerCase();
+    merged[key] = offer;
+  });
+  (liveOffers || []).forEach(function(offer) {
+    const key = String(offer.Wishlist_ID) + "|" + String(offer.Retailer || "").toLowerCase();
+    merged[key] = offer;
+  });
+  return Object.keys(merged).map(function(key) { return merged[key]; });
+}
+
+function wishlistRetailerSearch_(retailer, item) {
+  const isbn = String(item.ISBN || "").trim();
+  let candidates = [];
+  const retailerUrls = {
+    Bookline: item.Bookline_URL, Libri: item.Libri_URL,
+    "Líra": item.Lira_URL, Alexandra: item.Alexandra_URL
+  };
+  const directUrl = String(retailerUrls[retailer] || item.Purchase_Link || "").trim();
+
+  // A közvetlen vásárlási link pontosabb, mint a webshop keresőoldala.
+  if (retailer === "Bookline" && /^https?:\/\/(?:www\.)?bookline\.hu\/product\/home\.action/i.test(directUrl)) {
+    const directBooklineItem = parseBooklineProductPage_(directUrl);
+    if (directBooklineItem && directBooklineItem.price) candidates = [directBooklineItem];
+  } else if (retailer === "Libri" && /^https?:\/\/(?:www\.)?libri\.hu\/konyv\//i.test(directUrl)) {
+    const directLibriItem = parseLibriProductPage_(directUrl);
+    if (directLibriItem && directLibriItem.price) candidates = [directLibriItem];
+  } else if (retailer === "Alexandra" && /^https?:\/\/(?:www\.)?alexandra\.hu\/konyv\//i.test(directUrl)) {
+    const directAlexandraItem = parseAlexandraProductPage_(directUrl);
+    if (directAlexandraItem && directAlexandraItem.price) candidates = [directAlexandraItem];
+  } else if (retailer === "Líra" && /^https?:\/\/(?:www\.)?lira\.hu\/hu\/konyv\//i.test(directUrl)) {
+    const directLiraItem = parseLiraProductPage_(directUrl);
+    if (directLiraItem && directLiraItem.price) candidates = [directLiraItem];
+  }
+
+  if (!candidates.length && retailer === "Bookline") {
+    candidates = isbn ? filterPublisherItemsByRequestedIsbn_(searchBooklineByIsbn_(isbn), isbn) : [];
+    if (!candidates.length) candidates = searchBooklineByTitleAuthor_(item.Title, item.Author);
+  } else if (!candidates.length && retailer === "Libri") {
+    candidates = isbn ? filterPublisherItemsByRequestedIsbn_(searchLibriByIsbn_(isbn), isbn) : [];
+    if (!candidates.length) candidates = searchLibriByTitleAuthor_(item.Title, item.Author);
+  } else if (!candidates.length && retailer === "Alexandra") {
+    candidates = isbn ? filterPublisherItemsByRequestedIsbn_(searchAlexandraByIsbn_(isbn), isbn) : [];
+    if (!candidates.length) candidates = searchAlexandraByTitleAuthor_(item.Title, item.Author);
+  }
+
+  const candidate = (candidates || []).filter(function(row) { return row && row.price; })[0];
+  if (!candidate) return null;
+
+  return {
+    ID: "live-" + item.ID + "-" + retailer.toLowerCase(),
+    Wishlist_ID: item.ID,
+    Retailer: retailer,
+    Availability: candidate.availability || "Ár elérhető",
+    Price: candidate.price,
+    Shipping: candidate.shipping || "",
+    Product_URL: candidate.productUrl || candidate.sourceId || "",
+    Checked_At: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm")
+  };
+}
+
+function wishlistOfferCacheKey_(item) {
+  const identity = [item.ID, item.ISBN, item.Title, item.Author, item.Bookline_URL,
+    item.Libri_URL, item.Lira_URL, item.Alexandra_URL].join("|").toLowerCase();
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, identity);
+  return "wishlist-offers-" + Utilities.base64EncodeWebSafe(digest).replace(/=+$/, "");
+}
+
+function refreshWishlistOffers_(items, forceRefresh) {
+  const offers = [];
+  const errors = [];
+  const retailers = ["Bookline", "Libri", "Líra", "Alexandra"];
+  const cache = CacheService.getScriptCache();
+
+  (items || []).forEach(function(item) {
+    const cacheKey = wishlistOfferCacheKey_(item);
+    const cached = forceRefresh ? null : cache.get(cacheKey);
+    if (cached !== null) {
+      try {
+        JSON.parse(cached).forEach(function(offer) { offers.push(offer); });
+        return;
+      } catch (err) {
+        // Sérült cache esetén az élő keresés folytatódik.
+      }
+    }
+
+    const itemOffers = [];
+    retailers.forEach(function(retailer) {
+      try {
+        const offer = wishlistRetailerSearch_(retailer, item);
+        if (offer) {
+          offers.push(offer);
+          itemOffers.push(offer);
+        } else {
+          errors.push({
+            Wishlist_ID: item.ID,
+            Retailer: retailer,
+            Error: "Nem található ár vagy megfelelő termékoldal."
+          });
+        }
+      } catch (err) {
+        errors.push({
+          Wishlist_ID: item.ID,
+          Retailer: retailer,
+          Error: err && err.message ? err.message : String(err)
+        });
+      }
+    });
+    cache.put(cacheKey, JSON.stringify(itemOffers), 600);
+  });
+
+  return { offers: offers, errors: errors };
+}
+
+function isWishlistDuplicate_(item, ignoreId) {
+  const isbn = String(item.ISBN || "").replace(/[^0-9X]/gi, "").toLowerCase();
+  const author = String(item.Author || "").trim().toLowerCase();
+  const title = String(item.Title || "").trim().toLowerCase();
+
+  return readSheet_(SHEET_WISHLIST).find(function(existing) {
+    if (ignoreId && String(existing.ID) === String(ignoreId)) return false;
+    const existingIsbn = String(existing.ISBN || "").replace(/[^0-9X]/gi, "").toLowerCase();
+    if (isbn && existingIsbn) return isbn === existingIsbn;
+    return author === String(existing.Author || "").trim().toLowerCase() &&
+      title === String(existing.Title || "").trim().toLowerCase();
+  }) || null;
+}
+
+function addWishlistItem_(item) {
+  if (!item.Author || !item.Title) {
+    return { success: false, error: "A szerző és a cím kötelező." };
+  }
+
+  const sheet = getSheet_(SHEET_WISHLIST);
+  const map = ensureHeaderColumns_(sheet, WISHLIST_HEADERS);
+  const duplicate = isWishlistDuplicate_(item, "");
+  if (duplicate) {
+    return { success: false, error: "Ez a könyv már szerepel a kívánságlistán.", duplicate: duplicate };
+  }
+
+  item.ID = generateId_();
+  item.Added_Date = item.Added_Date || Utilities.formatDate(
+    new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"
+  );
+
+  const row = new Array(sheet.getLastColumn()).fill("");
+  Object.keys(item).forEach(function(key) {
+    if (map[key]) row[map[key] - 1] = item[key];
+  });
+  sheet.appendRow(row);
+  return { success: true, item: item };
+}
+
+function updateWishlistItem_(item) {
+  if (!item.ID) return { success: false, error: "Hiányzó kívánságlista ID." };
+  if (!item.Author || !item.Title) {
+    return { success: false, error: "A szerző és a cím kötelező." };
+  }
+
+  const duplicate = isWishlistDuplicate_(item, item.ID);
+  if (duplicate) {
+    return { success: false, error: "Ez a könyv már szerepel a kívánságlistán.", duplicate: duplicate };
+  }
+
+  const sheet = getSheet_(SHEET_WISHLIST);
+  const map = ensureHeaderColumns_(sheet, WISHLIST_HEADERS);
+  const data = sheet.getDataRange().getValues();
+  const idCol = map.ID;
+  if (!idCol) return { success: false, error: "A Wishlist lapon nincs ID oszlop." };
+
+  for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+    if (String(data[rowIndex][idCol - 1]) === String(item.ID)) {
+      WISHLIST_HEADERS.forEach(function(header) {
+        if (header !== "ID" && item[header] !== undefined) {
+          sheet.getRange(rowIndex + 1, map[header]).setValue(item[header]);
+        }
+      });
+      return { success: true };
+    }
+  }
+  return { success: false, error: "A kívánságlista-elem nem található." };
+}
+
+function deleteWishlistItem_(id) {
+  const sheet = getSheet_(SHEET_WISHLIST);
+  const map = ensureHeaderColumns_(sheet, WISHLIST_HEADERS);
+  const data = sheet.getDataRange().getValues();
+  if (!map.ID) return { success: false, error: "A Wishlist lapon nincs ID oszlop." };
+
+  for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+    if (String(data[rowIndex][map.ID - 1]) === String(id)) {
+      sheet.deleteRow(rowIndex + 1);
+      deleteWishlistOffers_(id);
+      return { success: true };
+    }
+  }
+  return { success: false, error: "A kívánságlista-elem nem található." };
+}
+
+function deleteWishlistOffers_(wishlistId) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_WISHLIST_OFFERS);
+  if (!sheet || sheet.getLastRow() < 2) return;
+  const map = getHeaderMap_(sheet);
+  if (!map.Wishlist_ID) return;
+  const values = sheet.getRange(2, map.Wishlist_ID, sheet.getLastRow() - 1, 1).getValues();
+  for (let i = values.length - 1; i >= 0; i--) {
+    if (String(values[i][0]) === String(wishlistId)) sheet.deleteRow(i + 2);
+  }
+}
+
+function purchaseWishlistItem_(id) {
+  const wishlistItem = readSheet_(SHEET_WISHLIST).find(function(item) {
+    return String(item.ID) === String(id);
+  });
+  if (!wishlistItem) return { success: false, error: "A kívánságlista-elem nem található." };
+
+  const result = addBookToLista_({
+    "Author": wishlistItem.Author || "",
+    "Title": wishlistItem.Title || "",
+    "Original_Title": wishlistItem.Original_Title || "",
+    "URL": wishlistItem.URL || "",
+    "ISBN": wishlistItem.ISBN || "",
+    "Publisher": wishlistItem.Publisher || "",
+    "Publication_Date": wishlistItem.Publication_Date || "",
+    "Genre": wishlistItem.Genre || "",
+    "Purchased": "x",
+    "Comment": wishlistItem.Note || ""
+  });
+
+  if (!result.success) return result;
+  updateUniqueList_(SHEET_AUTHORS, "Author", wishlistItem.Author || "");
+  deleteWishlistItem_(id);
+  return { success: true };
+}

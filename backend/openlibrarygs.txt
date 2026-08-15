@@ -175,6 +175,9 @@ function mapOpenLibraryDoc_(doc, queryContext) {
     year: doc && doc.first_publish_year
       ? String(doc.first_publish_year)
       : "",
+    publicationDate: Array.isArray(doc && doc.publish_date)
+      ? doc.publish_date.map(normalizePublicationDate_).find(Boolean) || ""
+      : "",
     location: "",
     shelf: "",
     pageCount: "",
@@ -274,6 +277,7 @@ function searchOpenLibrary_(queryContext) {
       "title",
       "author_name",
       "first_publish_year",
+      "publish_date",
       "publisher",
       "isbn",
       "language",
