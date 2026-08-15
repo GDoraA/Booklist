@@ -240,6 +240,7 @@ function stripHtml_(html) {
  */
 function decodeHtmlEntities_(text) {
   return String(text || "")
+    .replace(/&nbsp;|&#160;|&#xA0;/gi, " ")
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, "\"")
     .replace(/&#39;/g, "'")
@@ -274,4 +275,63 @@ function decodeHtmlEntities_(text) {
 function extractFirstMatch_(html, regex) {
   const m = String(html || "").match(regex);
   return m ? decodeHtmlEntities_(stripHtml_(m[1])) : "";
+}
+
+/**
+ * Ár és készletállapot kinyerése egy webshop termékoldalából.
+ * Elsősorban a schema.org/JSON-LD Offer mezőket használja, majd a
+ * gyakori HTML itemprop jelölésekre esik vissza.
+ */
+function extractCommerceOffer_(html) {
+  const source = String(html || "");
+  const price =
+    extractFirstMatch_(source, /["']price["']\s*:\s*["']?([0-9][0-9\s.,]*)/i) ||
+    extractFirstMatch_(source, /itemprop=["']price["'][^>]*(?:content|value)=["']([^"']+)/i) ||
+    extractFirstMatch_(source, /(?:content|value)=["']([^"']+)["'][^>]*itemprop=["']price["']/i) ||
+    extractLabeledCommercePrice_(source);
+
+  const rawAvailability =
+    extractFirstMatch_(source, /["']availability["']\s*:\s*["'](?:https?:\/\/schema\.org\/)?([^"']+)/i) ||
+    extractFirstMatch_(source, /itemprop=["']availability["'][^>]*(?:content|href)=["']([^"']+)/i);
+
+  const availabilityKey = String(rawAvailability || "")
+    .replace(/^https?:\/\/schema\.org\//i, "")
+    .toLowerCase();
+  const availabilityMap = {
+    instock: "Raktáron",
+    limitedavailability: "Korlátozottan elérhető",
+    preorder: "Előrendelhető",
+    presale: "Előrendelhető",
+    backorder: "Rendelhető",
+    onlineonly: "Online elérhető",
+    outofstock: "Elfogyott",
+    soldout: "Elfogyott",
+    discontinued: "Nem elérhető"
+  };
+
+  return {
+    price: price,
+    availability: availabilityMap[availabilityKey] || (price ? "Ár elérhető" : "Nincs adat")
+  };
+}
+
+/**
+ * A vizuálisan megjelenő magyar árak kinyerése. A webshopok gyakran HTML
+ * tagekkel vagy &nbsp; entitással választják el a címkét és a számjegyeket,
+ * ezért előbb egyszerű szöveggé alakítjuk az oldalt.
+ */
+function extractLabeledCommercePrice_(html) {
+  const text = decodeHtmlEntities_(stripHtml_(html))
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ");
+
+  const labeled = text.match(
+    /(?:online\s*ár|webshop\s*ár|akciós\s*ár|bevezető\s*ár|kedvezményes\s*ár|kötött\s*ár|borító\s*ár|kiadói\s*ár|fogyasztói\s*ár|rendelhető)\s*:?\s*([0-9]{1,3}(?:[ .][0-9]{3})+|[0-9]{3,})\s*(?:Ft|HUF)/i
+  );
+  if (labeled) return labeled[1].replace(/[ .]/g, "");
+
+  const anyForintPrice = text.match(
+    /\b([0-9]{1,3}(?:[ .][0-9]{3})+|[0-9]{3,})\s*(?:Ft|HUF)\b/i
+  );
+  return anyForintPrice ? anyForintPrice[1].replace(/[ .]/g, "") : "";
 }
