@@ -1,5 +1,6 @@
 
 /********** API URL **********/
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 const API_URL = "https://script.google.com/macros/s/AKfycbwCcZ92080d5odA5G0k6Kdae1YB80pwrXK7nL7d0VQ7vph2E8dZC3LH6gMUyJsV9EfI7w/exec";
 =======
@@ -9,6 +10,9 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwCcZ92080d5odA5G0k6Kda
 const API_URL = "https://script.google.com/macros/s/AKfycbzEmLf-Pd8WTxF6IOW-U-jNzQP1G7Conk9SJc0iQPIcPn5eKhkqlMBlPZA3ollOzH_ing/exec";
 >>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 >>>>>>> Stashed changes
+=======
+const API_URL = "https://script.google.com/macros/s/AKfycbzEmLf-Pd8WTxF6IOW-U-jNzQP1G7Conk9SJc0iQPIcPn5eKhkqlMBlPZA3ollOzH_ing/exec";
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -18,6 +22,7 @@ const GOOGLE_BOOKS_MAX_RESULTS = 10;
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 let wishlistData = { items: [], offers: [], discounts: [] };
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 const WISHLIST_PREFERRED_RETAILERS = ["Libri", "Bookline", "Líra", "Alexandra"];
 =======
@@ -26,6 +31,8 @@ const WISHLIST_PREFERRED_RETAILERS = ["Libri", "Bookline", "Líra", "Alexandra"]
 =======
 >>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 >>>>>>> Stashed changes
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 // ---------- VERZIÓ INFORMÁCIÓK ----------
 const APP_VERSION = "2026-08-15 12:00";  // Deploykor frissítendő
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
@@ -2391,6 +2398,7 @@ function togglePurchaseFilter() {
 }
 
 /********** KÍVÁNSÁGLISTA **********/
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
 <<<<<<< HEAD
@@ -2407,10 +2415,16 @@ function wishlistApiCall(action, params, onSuccess) {
     const script = document.createElement("script");
 >>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 >>>>>>> Stashed changes
+=======
+function wishlistApiCall(action, params, onSuccess) {
+    const callbackName = "wishlistCallback_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+    const script = document.createElement("script");
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
     const query = Object.keys(params || {}).map(key =>
         encodeURIComponent(key) + "=" + encodeURIComponent(params[key] == null ? "" : params[key])
     ).join("&");
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
 <<<<<<< HEAD
@@ -2453,6 +2467,8 @@ function loadWishlist(forceRefresh) {
 <<<<<<< Updated upstream
 =======
 =======
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
     window[callbackName] = function (data) {
         delete window[callbackName];
         script.remove();
@@ -2472,8 +2488,11 @@ function loadWishlist() {
     const notice = document.getElementById("wishlistNotice");
     if (notice) notice.hidden = true;
     wishlistApiCall("getWishlistData", {}, function (data) {
+<<<<<<< HEAD
 >>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 >>>>>>> Stashed changes
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
         if (!data.success) {
             showWishlistNotice(data.error || "A kívánságlista nem tölthető be.", true);
             return;
@@ -2484,6 +2503,7 @@ function loadWishlist() {
             discounts: Array.isArray(data.discounts) ? data.discounts : []
         };
         renderWishlist();
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
 <<<<<<< HEAD
@@ -2568,6 +2588,9 @@ function refreshWishlistPrices(forceRefresh) {
     });
 >>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 >>>>>>> Stashed changes
+=======
+    });
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 }
 
 function showWishlistNotice(message, isError) {
@@ -2589,6 +2612,7 @@ function wishlistSafeUrl(value) {
 
 function wishlistPriceNumber(value) {
     if (typeof value === "number") return value;
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
 <<<<<<< HEAD
@@ -2609,6 +2633,9 @@ function wishlistPriceNumber(value) {
     const clean = String(value || "").replace(/\s/g, "").replace(/[^0-9,.-]/g, "").replace(",", ".");
 >>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 >>>>>>> Stashed changes
+=======
+    const clean = String(value || "").replace(/\s/g, "").replace(/[^0-9,.-]/g, "").replace(",", ".");
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
     const parsed = Number(clean);
     return Number.isFinite(parsed) ? parsed : null;
 }
@@ -2633,6 +2660,7 @@ function wishlistOfferAvailable(offer) {
         value.includes("rendelhető") || value === "igen" || value === "x";
 }
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
 <<<<<<< HEAD
@@ -2661,28 +2689,39 @@ function wishlistDiscountedPrice(item, offer) {
 <<<<<<< Updated upstream
 =======
 =======
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 function wishlistDiscountedPrice(item, offer) {
     const basePrice = wishlistPriceNumber(offer.Price);
     if (basePrice == null) return null;
     const today = new Date().toISOString().slice(0, 10);
+<<<<<<< HEAD
 >>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 >>>>>>> Stashed changes
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
     const retailer = wishlistNormalized(offer.Retailer);
     const publisher = wishlistNormalized(item.Publisher);
 
     const matches = wishlistData.discounts.filter(discount => {
+<<<<<<< HEAD
 <<<<<<< Updated upstream
         if (!wishlistDiscountIsActive(discount)) return false;
 =======
 <<<<<<< HEAD
         if (!wishlistDiscountIsActive(discount)) return false;
 =======
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
         const activeValue = wishlistNormalized(discount.Active);
         if (activeValue && !wishlistIsTruthy(activeValue)) return false;
         if (discount.Valid_From && String(discount.Valid_From).slice(0, 10) > today) return false;
         if (discount.Valid_To && String(discount.Valid_To).slice(0, 10) < today) return false;
+<<<<<<< HEAD
 >>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 >>>>>>> Stashed changes
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
         if (discount.Retailer && wishlistNormalized(discount.Retailer) !== retailer) return false;
         if (discount.Publisher && wishlistNormalized(discount.Publisher) !== publisher) return false;
         const minimum = wishlistPriceNumber(discount.Min_Order);
