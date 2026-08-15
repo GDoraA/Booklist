@@ -259,6 +259,7 @@ function parseAntikvariumProductPage_(productUrl) {
     series: series,
     number: number,
     year: year,
+    publicationDate: "",
     location: "",
     shelf: "",
     pageCount: pageCount,
