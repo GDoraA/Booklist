@@ -9,15 +9,19 @@ function extractLiraOnlinePrice_(html) {
     /<div[^>]*class=["'][^"']*\bonline-price\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i
   );
   if (priceElement) {
-    const elementMatch = String(priceElement).match(/([0-9]{3,})/);
-    if (elementMatch) return elementMatch[1];
+    const elementMatch = String(priceElement).match(
+      /([0-9]{1,3}(?:[ .][0-9]{3})+|[0-9]{3,})/
+    );
+    if (elementMatch) return elementMatch[1].replace(/[ .]/g, "");
   }
 
   const text = decodeHtmlEntities_(stripHtml_(html))
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ");
-  const match = text.match(/online\s*ár\s*:[\s\S]{0,900}?([0-9]{3,})\s*Ft/i);
-  return match ? match[1] : "";
+  const match = text.match(
+    /online\s*ár\s*:[\s\S]{0,900}?([0-9]{1,3}(?:[ .][0-9]{3})+|[0-9]{3,})\s*Ft/i
+  );
+  return match ? match[1].replace(/[ .]/g, "") : "";
 }
 
 function parseLiraProductPage_(productUrl) {
@@ -44,4 +48,66 @@ function parseLiraProductPage_(productUrl) {
     price: price, availability: price ? "Rendelhető" : "Nincs adat",
     shipping: shipping, productUrl: productUrl
   };
+}
+
+/**
+ * Líra keresési találati oldalból könyv-termékoldal URL-eket gyűjt.
+ */
+function extractLiraProductUrls_(html) {
+  const matches = String(html || "").match(
+    /(?:https:\/\/(?:www\.)?lira\.hu)?\/hu\/konyv\/[^"' <#?]+/ig
+  ) || [];
+  const seen = {};
+
+  return matches.map(function(url) {
+    const decodedUrl = decodeHtmlEntities_(url);
+    return decodedUrl.indexOf("/hu/konyv/") === 0
+      ? "https://www.lira.hu" + decodedUrl
+      : decodedUrl;
+  }).filter(function(url) {
+    if (seen[url]) return false;
+    seen[url] = true;
+    return true;
+  });
+}
+
+function buildLiraSearchUrl_(query) {
+  return "https://www.lira.hu/hu/reszletes_kereso" +
+    "?listorder=release_date&listdirection=desc" +
+    "&listpagenumber=50&listcurrentpage=0&quick_search_txt=" +
+    encodeURIComponent(String(query || "").trim());
+}
+
+function searchLira_(query, title, author) {
+  if (!String(query || "").trim()) return [];
+
+  const searchHtml = fetchPublisherHtml_(buildLiraSearchUrl_(query));
+  const productUrls = extractLiraProductUrls_(searchHtml);
+  const results = [];
+
+  productUrls.slice(0, 8).forEach(function(productUrl) {
+    try {
+      const item = parseLiraProductPage_(productUrl);
+      if (item && (!title || isRelevantTitleAuthorMatch_(item, title, author))) {
+        results.push(item);
+      }
+    } catch (err) {
+      // Egy hibás termékoldal ne állítsa le a többi találat feldolgozását.
+    }
+  });
+
+  return dedupeItemsByIsbnOrSourceId_(results);
+}
+
+function searchLiraByIsbn_(isbn) {
+  const cleanIsbn = String(isbn || "").replace(/[^0-9Xx]/g, "");
+  if (!cleanIsbn) return [];
+  return searchLira_(cleanIsbn, "", "");
+}
+
+function searchLiraByTitleAuthor_(title, author) {
+  const cleanTitle = String(title || "").trim();
+  const cleanAuthor = String(author || "").trim();
+  const query = [cleanTitle, cleanAuthor].filter(function(value) { return value; }).join(" ");
+  return searchLira_(query, cleanTitle, cleanAuthor);
 }

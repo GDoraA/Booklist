@@ -132,6 +132,9 @@ function wishlistRetailerSearch_(retailer, item) {
   } else if (!candidates.length && retailer === "Alexandra") {
     candidates = isbn ? filterPublisherItemsByRequestedIsbn_(searchAlexandraByIsbn_(isbn), isbn) : [];
     if (!candidates.length) candidates = searchAlexandraByTitleAuthor_(item.Title, item.Author);
+  } else if (!candidates.length && retailer === "Líra") {
+    candidates = isbn ? filterPublisherItemsByRequestedIsbn_(searchLiraByIsbn_(isbn), isbn) : [];
+    if (!candidates.length) candidates = searchLiraByTitleAuthor_(item.Title, item.Author);
   }
 
   const candidate = (candidates || []).filter(function(row) { return row && row.price; })[0];

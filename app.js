@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbxcRKoJorBN008-rVnGe9qhsdcI-uC4C_y92Ii6Nb_lkuZUkLiiuYB3Ptzt2hFqnOCMKg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwy2xu9hP9AXxbn4war308G5yBU41O9ENx-yNY0nmPIn593609uXKAl4CbULM-d09idEQ/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -2525,6 +2525,9 @@ function wishlistSafeUrl(value) {
 function wishlistPriceNumber(value) {
     if (typeof value === "number") return value;
     let clean = String(value || "").trim().replace(/[^0-9,.-]/g, "");
+    if (!clean || !/\d/.test(clean)) return null;
+    // Régi cache-ből is érkezhet JSON-mezőt lezáró vesszővel mentett ár.
+    clean = clean.replace(/[^0-9]+$/, "");
     if (/^-?\d{1,3}(?:[.\s]\d{3})+$/.test(clean)) {
         clean = clean.replace(/[.\s]/g, "");
     } else if (clean.includes(",") && clean.includes(".")) {

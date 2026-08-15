@@ -285,7 +285,10 @@ function extractFirstMatch_(html, regex) {
 function extractCommerceOffer_(html) {
   const source = String(html || "");
   const price =
-    extractFirstMatch_(source, /["']price["']\s*:\s*["']?([0-9][0-9\s.,]*)/i) ||
+    // A JSON objektum mezőit lezáró vessző nem lehet az ár része.
+    // A korábbi mohó minta például a `4950.0,` értéket adta vissza,
+    // amit a frontend 49 500-ként értelmezett.
+    extractFirstMatch_(source, /["']price["']\s*:\s*["']?([0-9]+(?:[.,][0-9]{1,2})?)/i) ||
     extractFirstMatch_(source, /itemprop=["']price["'][^>]*(?:content|value)=["']([^"']+)/i) ||
     extractFirstMatch_(source, /(?:content|value)=["']([^"']+)["'][^>]*itemprop=["']price["']/i) ||
     extractLabeledCommercePrice_(source);
