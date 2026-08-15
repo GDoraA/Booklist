@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbw_56zBhuLKHmGzLvbgCc657DVZ2EslXkaRab7rEdEdA6rGW9n3e2p-6f5KRrAo0Gvy7w/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxN6GsDFU2iVZ6rj6cFbv0mNV6Cn-POXOjsCsjQDe87JragbgQpnzrUdbIcaaHWCyMFVA/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -2586,19 +2586,28 @@ function wishlistDiscountIsActive(discount) {
 }
 
 function wishlistDiscountedPrice(item, offer) {
-    const basePrice = wishlistPriceNumber(offer.Price);
-    if (basePrice == null) return null;
+    const currentPrice = wishlistPriceNumber(offer.Price || offer.Online_Price);
+    const onlinePrice = wishlistPriceNumber(offer.Online_Price || offer.Price);
+    if (currentPrice == null) return null;
     const retailer = wishlistNormalized(offer.Retailer);
     const publisher = wishlistNormalized(item.Publisher);
+
+    function discountBasePrice(discount) {
+        return wishlistNormalized(discount.Price_Base).includes("full")
+            ? wishlistPriceNumber(offer.Full_Price)
+            : onlinePrice;
+    }
 
     const matches = wishlistData.discounts.filter(discount => {
         if (!wishlistDiscountIsActive(discount)) return false;
         if (discount.Retailer && wishlistNormalized(discount.Retailer) !== retailer) return false;
         if (discount.Publisher && wishlistNormalized(discount.Publisher) !== publisher) return false;
+        const basePrice = discountBasePrice(discount);
+        if (basePrice == null) return false;
         const minimum = wishlistPriceNumber(discount.Min_Order);
         return minimum == null || basePrice >= minimum;
     });
-    if (!matches.length) return { price: basePrice, applied: [] };
+    if (!matches.length) return { price: currentPrice, basePrice: currentPrice, applied: [] };
 
     function applyOne(price, discount) {
         const value = wishlistPriceNumber(discount.Discount_Value) || 0;
@@ -2608,14 +2617,22 @@ function wishlistDiscountedPrice(item, offer) {
             : Math.max(0, price - value);
     }
 
-    if (matches.length > 1 && matches.every(discount => wishlistIsTruthy(discount.Stackable))) {
-        return { price: matches.reduce(applyOne, basePrice), applied: matches };
+    const sameBase = matches.every(discount =>
+        (discount.Price_Base || "Online_Price") === (matches[0].Price_Base || "Online_Price")
+    );
+    if (matches.length > 1 && sameBase && matches.every(discount => wishlistIsTruthy(discount.Stackable))) {
+        const stackBasePrice = discountBasePrice(matches[0]);
+        const stackedPrice = matches.reduce(applyOne, stackBasePrice);
+        if (stackedPrice < currentPrice) {
+            return { price: stackedPrice, basePrice: stackBasePrice, applied: matches };
+        }
     }
 
-    let best = { price: basePrice, applied: [] };
+    let best = { price: currentPrice, basePrice: currentPrice, applied: [] };
     matches.forEach(discount => {
-        const calculated = applyOne(basePrice, discount);
-        if (calculated < best.price) best = { price: calculated, applied: [discount] };
+        const discountBase = discountBasePrice(discount);
+        const calculated = applyOne(discountBase, discount);
+        if (calculated < best.price) best = { price: calculated, basePrice: discountBase, applied: [discount] };
     });
     return best;
 }
@@ -2661,10 +2678,11 @@ function renderWishlistDiscountSummary() {
         const amount = type.includes("%") || type.includes("százal") || type.includes("percent")
             ? value + "%"
             : wishlistFormatPrice(value);
+        const baseLabel = wishlistNormalized(discount.Price_Base).includes("full") ? "teljes árból" : "online árból";
         const active = wishlistDiscountIsActive(discount);
         const validity = [discount.Valid_From, discount.Valid_To].filter(Boolean).map(value => wishlistText(wishlistDateInputValue(value))).join(" – ");
         return `<div class="wishlist-discount-chip${active ? "" : " is-inactive"}">
-            <span><strong>${target}: −${wishlistText(amount)}</strong>${validity ? `<small>${validity}</small>` : ""}</span>
+            <span><strong>${target}: −${wishlistText(amount)}</strong><small>${baseLabel}${validity ? ` · ${validity}` : ""}</small></span>
             <span class="wishlist-discount-status">${active ? "Aktív" : "Inaktív"}</span>
             <button type="button" title="Szerkesztés" aria-label="Kedvezmény szerkesztése" onclick="openDiscountModal('edit', '${wishlistText(discount.ID)}')">✎</button>
             <button type="button" title="Törlés" aria-label="Kedvezmény törlése" onclick="deleteDiscount('${wishlistText(discount.ID)}')">×</button>
@@ -2783,13 +2801,20 @@ function renderWishlistCard(item) {
         const offer = entry.offer;
         const calculation = entry.calculation;
         const hasDiscount = calculation && calculation.applied.length > 0;
+        const currentPrice = wishlistPriceNumber(offer.Price || offer.Online_Price);
+        const onlinePrice = wishlistPriceNumber(offer.Online_Price || offer.Price);
+        const fullPrice = wishlistPriceNumber(offer.Full_Price);
+        const hasRetailerReduction = fullPrice != null && currentPrice != null && fullPrice > currentPrice;
+        const discountUsesFullPrice = hasDiscount && calculation.basePrice === fullPrice;
         const productUrl = wishlistSafeUrl(offer.Product_URL);
         const retailer = wishlistText(offer.Retailer || "Kereskedő");
         const isBest = wishlistOfferAvailable(offer) && calculation?.price === bestPrice;
         return `<div class="wishlist-offer${isBest ? " is-best" : ""}">
             <div><strong>${retailer}</strong><span class="availability ${wishlistOfferAvailable(offer) ? "available" : "unavailable"}">${wishlistText(offer.Availability || "Nincs adat")}</span></div>
             <div class="wishlist-offer-price">
-                ${hasDiscount ? `<s>${wishlistFormatPrice(offer.Price)}</s><strong>${wishlistFormatPrice(calculation.price)}</strong><small>saját ár</small>` : `<strong>${wishlistFormatPrice(offer.Price)}</strong>`}
+                ${hasDiscount
+                    ? `<s>${wishlistFormatPrice(calculation.basePrice)}</s><strong>${wishlistFormatPrice(calculation.price)}</strong><small>${discountUsesFullPrice ? "teljes árból számolt saját ár" : "online árból számolt saját ár"}</small>${discountUsesFullPrice && onlinePrice != null ? `<small>online ár: ${wishlistFormatPrice(onlinePrice)}</small>` : ""}`
+                    : `${hasRetailerReduction ? `<s>${wishlistFormatPrice(fullPrice)}</s>` : ""}<strong>${wishlistFormatPrice(currentPrice)}</strong>${hasRetailerReduction ? `<small>${currentPrice < onlinePrice ? "akciós ár" : "online ár"}</small>` : ""}`}
                 ${offer.Shipping ? `<small>Szállítás: ${wishlistText(offer.Shipping)}</small>` : ""}
             </div>
             ${productUrl ? `<a class="text-action" href="${wishlistText(productUrl)}" target="_blank" rel="noopener">Megnézem ↗</a>` : ""}

@@ -14,8 +14,8 @@ const WISHLIST_HEADERS = [
 ];
 
 const WISHLIST_OFFER_HEADERS = [
-  "ID", "Wishlist_ID", "Retailer", "Availability", "Price", "Shipping",
-  "Product_URL", "Checked_At"
+  "ID", "Wishlist_ID", "Retailer", "Availability", "Price", "Online_Price",
+  "Full_Price", "Shipping", "Product_URL", "Checked_At"
 ];
 
 const DISCOUNT_HEADERS = [
@@ -241,6 +241,8 @@ function wishlistRetailerSearch_(retailer, item) {
     Retailer: retailer,
     Availability: candidate.availability || "Ár elérhető",
     Price: candidate.price,
+    Online_Price: candidate.onlinePrice || candidate.price,
+    Full_Price: candidate.fullPrice || "",
     Shipping: candidate.shipping || "",
     Product_URL: candidate.productUrl || candidate.sourceId || "",
     Checked_At: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm")
@@ -323,7 +325,7 @@ function enrichWishlistItemFromOffers_(item, offers) {
 }
 
 function wishlistOfferCacheKey_(item) {
-  const identity = [item.ID, item.ISBN, item.Title, item.Author, item.Bookline_URL,
+  const identity = ["price-bases-v2", item.ID, item.ISBN, item.Title, item.Author, item.Bookline_URL,
     item.Libri_URL, item.Lira_URL, item.Alexandra_URL].join("|").toLowerCase();
   const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, identity);
   return "wishlist-offers-" + Utilities.base64EncodeWebSafe(digest).replace(/=+$/, "");

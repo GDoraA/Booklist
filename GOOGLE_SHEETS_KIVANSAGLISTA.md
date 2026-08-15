@@ -14,14 +14,16 @@ A négy kereskedői URL mező opcionális, de közvetlen terméklinkkel pontosab
 Az elérhetőség és az árak megjelenítéséhez hozz létre egy `WishlistOffers` nevű munkalapot ezzel a fejlécsorral:
 
 ```text
-ID	Wishlist_ID	Retailer	Availability	Price	Shipping	Product_URL	Checked_At
+ID	Wishlist_ID	Retailer	Availability	Price	Online_Price	Full_Price	Shipping	Product_URL	Checked_At
 ```
 
 - `ID`: az ajánlat egyedi azonosítója; kézi rögzítésnél tetszőleges egyedi érték.
 - `Wishlist_ID`: a kapcsolódó könyv `Wishlist` lapon szereplő `ID` értéke.
 - `Retailer`: például `Libri`, `Bookline`, `Líra`, `Alexandra`, `Kiadói webshop`, `Antikvárium.hu`.
 - `Availability`: például `Raktáron`, `Rendelhető`, `Előrendelhető`, `Elfogyott`.
-- `Price`: csak szám, például `4990`.
+- `Price`: kompatibilitási ármező; az automatikus találatoknál az online árral egyezik meg.
+- `Online_Price`: az internetes/akciós ár, csak szám, például `4490`.
+- `Full_Price`: a kedvezmény előtti teljes/listaár, csak szám, például `4990`.
 - `Shipping`: szöveg vagy összeg, például `1490 Ft`.
 - `Product_URL`: közvetlen termékoldal.
 - `Checked_At`: az ellenőrzés időpontja, például `2026-08-15 10:30`.
@@ -40,7 +42,7 @@ ID	Retailer	Publisher	Discount_Type	Discount_Value	Price_Base	Stackable	Min_Orde
 - `Publisher`: kiadói kedvezménynél töltsd ki; egyébként maradhat üres.
 - `Discount_Type`: `%` vagy `Fix`.
 - `Discount_Value`: például `20` húsz százalékhoz, vagy `1000` ezer forint levonásához.
-- `Price_Base`: tájékoztató mező, javasolt értéke `Online_Price`.
+- `Price_Base`: `Online_Price`, ha az online árból, vagy `Full_Price`, ha a teljes/listaárból jár a kedvezmény.
 - `Stackable`: `x`, ha más illeszkedő kedvezménnyel összevonható.
 - `Min_Order`: minimális könyvár; ha nincs ilyen feltétel, maradjon üres.
 - `Valid_From`, `Valid_To`: `ÉÉÉÉ-HH-NN` formátum; üresen időkorlát nélkül érvényes.

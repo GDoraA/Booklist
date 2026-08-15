@@ -135,7 +135,9 @@ if (alexandraTitleMatch) {
     genre: "",
     coverUrl: imageUrl,
     language: "hu",
-    price: commerceOffer.price,
+    price: extractPromotionalCommercePrice_(productHtml) || extractOnlineCommercePrice_(productHtml) || commerceOffer.price,
+    onlinePrice: extractOnlineCommercePrice_(productHtml) || commerceOffer.price,
+    fullPrice: extractFullCommercePrice_(productHtml),
     availability: commerceOffer.availability,
     productUrl: productUrl
   };

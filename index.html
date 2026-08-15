@@ -511,9 +511,13 @@
                 </select>
                 <input id="dm_value" type="number" min="0.01" step="0.01" placeholder="Kedvezmény értéke *">
                 <input id="dm_min_order" type="number" min="0" step="1" placeholder="Minimum rendelés (Ft)">
-                <select id="dm_price_base" aria-label="Kedvezmény alapja">
-                    <option value="Online_Price">Online ár</option>
-                </select>
+                <label class="modal-date-field" for="dm_price_base">
+                    <span>A kedvezmény alapja</span>
+                    <select id="dm_price_base">
+                        <option value="Online_Price">Online ár</option>
+                        <option value="Full_Price">Teljes ár (eredeti/listaár)</option>
+                    </select>
+                </label>
                 <label class="modal-date-field" for="dm_valid_from">
                     <span>Érvényes ettől</span>
                     <input id="dm_valid_from" type="date">

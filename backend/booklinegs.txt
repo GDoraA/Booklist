@@ -60,7 +60,9 @@
 function parseBooklineProductPage_(productUrl) {
   const productHtml = fetchHtml_(productUrl);
   const commerceOffer = extractCommerceOffer_(productHtml);
-  const displayedPrice = extractLabeledCommercePrice_(productHtml);
+  const onlinePrice = extractOnlineCommercePrice_(productHtml);
+  const displayedPrice = extractPromotionalCommercePrice_(productHtml) || onlinePrice || extractLabeledCommercePrice_(productHtml);
+  const fullPrice = extractFullCommercePrice_(productHtml);
 
   const title =
     extractFirstMatch_(productHtml, /<h1[^>]*class=["'][^"']*\bc-product__title\b[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i) ||
@@ -140,6 +142,8 @@ function parseBooklineProductPage_(productUrl) {
     coverUrl: imageUrl,
     language: "hu",
     price: displayedPrice || commerceOffer.price,
+    onlinePrice: onlinePrice || commerceOffer.price,
+    fullPrice: fullPrice,
     availability: commerceOffer.availability,
     productUrl: productUrl
   };

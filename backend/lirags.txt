@@ -68,6 +68,16 @@ function extractLiraOnlinePrice_(html) {
   return match ? match[1].replace(/[ .]/g, "") : "";
 }
 
+function extractLiraFullPrice_(html) {
+  const text = decodeHtmlEntities_(stripHtml_(html))
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ");
+  const match = text.match(
+    /ár\s*a\s*könyvön\s*:[\s\S]{0,500}?([0-9]{1,3}(?:[ .][0-9]{3})+|[0-9]{3,})\s*Ft/i
+  );
+  return match ? match[1].replace(/[ .]/g, "") : extractFullCommercePrice_(html);
+}
+
 function parseLiraProductPage_(productUrl) {
   const canonicalProductUrl = canonicalizeLiraProductUrl_(productUrl);
   const productHtml = fetchLiraHtml_(canonicalProductUrl);
@@ -83,6 +93,7 @@ function parseLiraProductPage_(productUrl) {
   const publisher = extractFirstMatch_(productHtml, /Kiadó:\s*[\s\S]{0,120}?<a[^>]*>([\s\S]*?)<\/a>/i);
   const foundIsbn = (plainText.match(/ISBN:\s*([0-9Xx-]{10,20})/i) || [])[1] || "";
   const price = extractLiraOnlinePrice_(productHtml);
+  const fullPrice = extractLiraFullPrice_(productHtml);
   const shipping = (plainText.match(/Szállítás:\s*([0-9]+\s*-\s*[0-9]+\s*munkanap)/i) || [])[1] || "";
   const imageUrl = extractFirstMatch_(productHtml, /<meta property=["']og:image["'] content=["']([^"']+)/i);
 
@@ -90,7 +101,8 @@ function parseLiraProductPage_(productUrl) {
   return {
     source: "lira", sourceId: canonicalProductUrl, title: title, authors: author,
     isbn: foundIsbn, publisher: publisher, coverUrl: imageUrl, language: "hu",
-    price: price, availability: price ? "Rendelhető" : "Nincs adat",
+    price: price, onlinePrice: price, fullPrice: fullPrice,
+    availability: price ? "Rendelhető" : "Nincs adat",
     shipping: shipping, productUrl: canonicalProductUrl
   };
 }

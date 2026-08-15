@@ -338,3 +338,36 @@ function extractLabeledCommercePrice_(html) {
   );
   return anyForintPrice ? anyForintPrice[1].replace(/[ .]/g, "") : "";
 }
+
+/** A webshopoldalon megjelenő online/akciós ár célzott kinyerése. */
+function extractOnlineCommercePrice_(html) {
+  const text = decodeHtmlEntities_(stripHtml_(html))
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ");
+  const match = text.match(
+    /(?:online\s*ár|webshop\s*ár)\s*:?\s*([0-9]{1,3}(?:[ .][0-9]{3})+|[0-9]{3,})\s*(?:Ft|HUF)/i
+  );
+  return match ? match[1].replace(/[ .]/g, "") : "";
+}
+
+/** Az online árnál is alacsonyabb, időszakos webshop-akciós ár. */
+function extractPromotionalCommercePrice_(html) {
+  const text = decodeHtmlEntities_(stripHtml_(html))
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ");
+  const match = text.match(
+    /(?:akciós\s*ár|bevezető\s*ár|kedvezményes\s*ár)\s*:?\s*([0-9]{1,3}(?:[ .][0-9]{3})+|[0-9]{3,})\s*(?:Ft|HUF)/i
+  );
+  return match ? match[1].replace(/[ .]/g, "") : "";
+}
+
+/** A kedvezmények alapjául szolgáló teljes/listaár célzott kinyerése. */
+function extractFullCommercePrice_(html) {
+  const text = decodeHtmlEntities_(stripHtml_(html))
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ");
+  const match = text.match(
+    /(?:teljes\s*ár|listaár|lista\s*ár|eredeti\s*ár|normál\s*ár|bolti\s*ár|borító\s*ár|kiadói\s*ár|fogyasztói\s*ár|ár\s*a\s*könyvön)\s*:?\s*([0-9]{1,3}(?:[ .][0-9]{3})+|[0-9]{3,})\s*(?:Ft|HUF)/i
+  );
+  return match ? match[1].replace(/[ .]/g, "") : "";
+}
