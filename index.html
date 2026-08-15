@@ -144,22 +144,17 @@
                 </div>
 
                 <div class="dashboard-stats">
-                    <article class="dashboard-stat"><span>Összes könyv</span><strong id="dash_total">0</strong><small>teljes gyűjtemény</small></article>
+                    <article class="dashboard-stat"><span>Összes könyv</span><strong id="dash_total">0</strong><small>könyveim + kívánságlista</small></article>
                     <article class="dashboard-stat"><span>Megvásárolva</span><strong id="dash_purchased">0</strong><small id="dash_purchased_note">0% a listából</small></article>
+                    <article class="dashboard-stat"><span>Kívánságlista</span><strong id="dash_wishlist">0</strong><small>tervezett könyv</small></article>
                     <article class="dashboard-stat"><span>Kölcsönadva</span><strong id="dash_loaned">0</strong><small id="dash_overdue_note">nincs lejárt határidő</small></article>
                     <article class="dashboard-stat"><span>Eladó</span><strong id="dash_for_sale">0</strong><small>megjelölt könyv</small></article>
                 </div>
 
                 <div class="dashboard-grid">
-                    <section class="dashboard-panel dashboard-panel-wide">
-                        <div class="dashboard-panel-head"><h2>Leggyakoribb műfajok</h2><button class="text-action" onclick="mutat('lista')">Összes könyv</button></div>
-                        <div id="dashboardGenres" class="dashboard-bars"></div>
-                    </section>
-                    <section class="dashboard-panel">
-                        <div class="dashboard-panel-head"><h2>Gyűjtemény állapota</h2></div>
-                        <div class="collection-progress-wrap">
-                            <div id="dashboardProgressRing" class="collection-progress-ring"><div><strong id="dashboardProgressValue">0%</strong><span>megvásárolva</span></div></div>
-                        </div>
+                    <section class="dashboard-panel dashboard-panel-full">
+                        <div class="dashboard-panel-head"><h2>Kívánságlistán lévő könyvek</h2><button class="text-action" onclick="mutat('kivansaglista')">Kívánságlista</button></div>
+                        <div id="dashboardWishlist" class="dashboard-wishlist"></div>
                     </section>
                     <section class="dashboard-panel dashboard-panel-wide">
                         <div class="dashboard-panel-head"><h2>Legutóbbi könyvek</h2><button class="text-action" onclick="mutat('lista')">Könyveim</button></div>

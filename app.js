@@ -34,6 +34,7 @@ function mutat(id) {
         } else {
             betoltesLista();
         }
+        loadDashboardWishlist();
     }
     if (id === "kolcson") {
         if (lista.length > 0) {
@@ -1419,7 +1420,8 @@ function dashboardMegjelenites() {
     const totalEl = document.getElementById("dash_total");
     if (!totalEl) return;
 
-    const total = lista.length;
+    const wishlistItems = Array.isArray(wishlistData.items) ? wishlistData.items : [];
+    const total = lista.length + wishlistItems.length;
     const purchased = lista.filter(item => item["Purchased"] === "x").length;
     const loaned = lista.filter(item => String(item["Loaned_To"] || "").trim()).length;
     const forSale = lista.filter(item => item["For_sale"] === "x").length;
@@ -1433,43 +1435,24 @@ function dashboardMegjelenites() {
 
     totalEl.textContent = total;
     document.getElementById("dash_purchased").textContent = purchased;
+    document.getElementById("dash_wishlist").textContent = wishlistItems.length;
     document.getElementById("dash_loaned").textContent = loaned;
     document.getElementById("dash_for_sale").textContent = forSale;
-    document.getElementById("dash_purchased_note").textContent = purchasedPercent + "% a listából";
+    document.getElementById("dash_purchased_note").textContent = purchasedPercent + "% az összesből";
     document.getElementById("dash_overdue_note").textContent = overdue
         ? overdue + " lejárt határidő"
         : "nincs lejárt határidő";
 
-    const progressRing = document.getElementById("dashboardProgressRing");
-    document.getElementById("dashboardProgressValue").textContent = purchasedPercent + "%";
-    progressRing.style.background =
-        "conic-gradient(var(--forest) 0 " + purchasedPercent + "%, var(--paper-soft) " + purchasedPercent + "% 100%)";
-
-    const genreCounts = new Map();
-    lista.forEach(item => {
-        String(item["Genre"] || "")
-            .split(/[,;]/)
-            .map(genre => genre.trim())
-            .filter(Boolean)
-            .forEach(genre => genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1));
-    });
-
-    const topGenres = Array.from(genreCounts.entries())
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "hu"))
-        .slice(0, 4);
-    const genreMax = topGenres.length ? topGenres[0][1] : 1;
-    const genreContainer = document.getElementById("dashboardGenres");
-
-    genreContainer.innerHTML = topGenres.length
-        ? topGenres.map(([genre, count]) =>
-            '<div class="dashboard-bar">' +
-                '<span>' + escapeLookupHtml(genre) + '</span>' +
-                '<div class="dashboard-bar-track"><div class="dashboard-bar-fill" style="width:' +
-                    Math.round((count / genreMax) * 100) + '%"></div></div>' +
-                '<span class="dashboard-bar-value">' + count + '</span>' +
+    const wishlistContainer = document.getElementById("dashboardWishlist");
+    wishlistContainer.innerHTML = wishlistItems.length
+        ? wishlistItems.map(item =>
+            '<div class="dashboard-list-row">' +
+                '<div><strong>' + escapeLookupHtml(item.Title || "Nincs cím") + '</strong>' +
+                '<span>' + escapeLookupHtml(item.Author || "Nincs szerző") + '</span></div>' +
+                '<span class="dashboard-tag">' + escapeLookupHtml(item.Priority || "Közepes") + '</span>' +
             '</div>'
         ).join("")
-        : '<p class="dashboard-empty">Még nincs megadott műfaj.</p>';
+        : '<p class="dashboard-empty">A kívánságlista még üres.</p>';
 
     const recentContainer = document.getElementById("dashboardRecent");
     const recentBooks = lista.slice(-3).reverse();
@@ -1494,6 +1477,21 @@ function dashboardMegjelenites() {
             '</div>'
         ).join("")
         : '<p class="dashboard-empty">Jelenleg nincs kölcsönadott könyv.</p>';
+}
+
+function loadDashboardWishlist() {
+    wishlistApiCall("getWishlistData", { refresh: "0" }, function (data) {
+        if (!data || !data.success) {
+            log("A dashboard kívánságlistája nem tölthető be:", data);
+            return;
+        }
+        wishlistData = {
+            items: Array.isArray(data.items) ? data.items : [],
+            offers: Array.isArray(data.offers) ? data.offers : [],
+            discounts: Array.isArray(data.discounts) ? data.discounts : []
+        };
+        dashboardMegjelenites();
+    }, 30000);
 }
 
 function formatLoanDate(value) {
@@ -2428,6 +2426,7 @@ function loadWishlist(forceRefresh) {
             offers: Array.isArray(data.offers) ? data.offers : [],
             discounts: Array.isArray(data.discounts) ? data.discounts : []
         };
+        dashboardMegjelenites();
         renderWishlist();
         refreshWishlistPrices(Boolean(forceRefresh));
     }, 30000);
