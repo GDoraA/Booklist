@@ -84,11 +84,14 @@ if (alexandraTitleMatch) {
     .replace(/,\s*[12][0-9]{3}\.?\s*$/, "")
     .trim();
 
+  const issueDateRaw =
+    extractFirstMatch_(productHtml, /<div[^>]*class=["'][^"']*\balexwebdatainfogrid_issuedate\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+
   const year =
-    extractYear_(
-      extractFirstMatch_(productHtml, /<div[^>]*class=["'][^"']*\balexwebdatainfogrid_issuedate\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i)
-    ) ||
+    extractYear_(issueDateRaw) ||
     extractFirstMatch_(productHtml, /Kiadás éve[\s\S]{0,120}?([12][0-9]{3})/i);
+
+  const publicationDate = normalizePublicationDate_(issueDateRaw);
 
   const pageCount =
     extractFirstMatch_(productHtml, /<div[^>]*class=["'][^"']*\balexwebdatainfogrid_pagenumber\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) ||
@@ -121,6 +124,7 @@ if (alexandraTitleMatch) {
     series: "",
     number: "",
     year: year,
+    publicationDate: publicationDate,
     location: "",
     shelf: "",
     pageCount: pageCount,

@@ -12,6 +12,11 @@ const SHEET_LISTA = "List";
 const SHEET_AUTHORS = "Authors";
 const SHEET_SERIES = "SeriesList";
 
+// Kívánságlista és a hozzá kapcsolódó kereskedői adatok
+const SHEET_WISHLIST = "Wishlist";
+const SHEET_WISHLIST_OFFERS = "WishlistOffers";
+const SHEET_DISCOUNTS = "Discounts";
+
 // Google Books API kulcs
 const GOOGLE_BOOKS_API_KEY =
   PropertiesService.getScriptProperties().getProperty("GOOGLE_BOOKS_API_KEY") || "";

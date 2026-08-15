@@ -12,8 +12,9 @@
         crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="theme.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#a7c7ff">
+    <meta name="theme-color" content="#365c49">
     <!-- JAVÍTÁS: favicon beállítása, hogy ne 404 legyen a favicon.ico -->
     <link rel="icon" type="image/png" href="assets/books_256.png">
 
@@ -87,33 +88,81 @@
     </div>
     <div id="appContent" style="display:none;">
 
-        <!-- FEJLÉC -->
-        <div class="header">
-            <div class="header-title">
-                📖 GDA könyvei
+        <aside class="app-sidebar">
+            <div class="header">
+                <div class="brand-mark" aria-hidden="true">K</div>
+                <div>
+                    <div class="header-title">Könyvtáram</div>
+                    <div class="header-subtitle">Személyes gyűjtemény</div>
+                </div>
             </div>
-        </div>
 
-
-
-        <div class="container">
-
-
-            <nav>
-                <button id="tab_lista" class="active" onclick="mutat('lista')">
-                    📝 Kártyák
+            <nav aria-label="Fő navigáció">
+                <button id="tab_attekintes" class="active" onclick="mutat('attekintes')">
+                    <span aria-hidden="true">⌂</span> Áttekintés
+                </button>
+                <button id="tab_lista" onclick="mutat('lista')">
+                    <span aria-hidden="true">▤</span> Könyveim
+                </button>
+                <button id="tab_kivansaglista" onclick="mutat('kivansaglista')">
+                    <span aria-hidden="true">♡</span> Kívánságlista
                 </button>
                 <button id="tab_tabla" onclick="mutat('tabla')">
-                    📊 Táblázat
+                    <span aria-hidden="true">▦</span> Táblázat
                 </button>
-
+                <button id="tab_kolcson" onclick="mutat('kolcson')">
+                    <span aria-hidden="true">↗</span> Kölcsönadva
+                </button>
                 <button id="tab_import" onclick="mutat('import')">
-                    📥 Import
+                    <span aria-hidden="true">⇩</span> Import
                 </button>
-                <button id="tab_logout" onclick="logout()" style="margin-left:auto;color:#eb8f98;">
-                    🚪 Kilépés
+                <button id="tab_logout" class="sidebar-logout" onclick="logout()">
+                    <span aria-hidden="true">↪</span> Kilépés
                 </button>
             </nav>
+        </aside>
+
+        <main class="app-main">
+        <div class="container">
+
+            <!-- ÁTTEKINTÉS -->
+            <div class="page" id="attekintes">
+                <div class="dashboard-header">
+                    <div>
+                        <h1>Gyűjtemény áttekintése</h1>
+                        <p>A könyvtárad legfontosabb adatai egy helyen.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openBookModal('new')">＋ Új könyv</button>
+                </div>
+
+                <div class="dashboard-stats">
+                    <article class="dashboard-stat"><span>Összes könyv</span><strong id="dash_total">0</strong><small>teljes gyűjtemény</small></article>
+                    <article class="dashboard-stat"><span>Megvásárolva</span><strong id="dash_purchased">0</strong><small id="dash_purchased_note">0% a listából</small></article>
+                    <article class="dashboard-stat"><span>Kölcsönadva</span><strong id="dash_loaned">0</strong><small id="dash_overdue_note">nincs lejárt határidő</small></article>
+                    <article class="dashboard-stat"><span>Eladó</span><strong id="dash_for_sale">0</strong><small>megjelölt könyv</small></article>
+                </div>
+
+                <div class="dashboard-grid">
+                    <section class="dashboard-panel dashboard-panel-wide">
+                        <div class="dashboard-panel-head"><h2>Leggyakoribb műfajok</h2><button class="text-action" onclick="mutat('lista')">Összes könyv</button></div>
+                        <div id="dashboardGenres" class="dashboard-bars"></div>
+                    </section>
+                    <section class="dashboard-panel">
+                        <div class="dashboard-panel-head"><h2>Gyűjtemény állapota</h2></div>
+                        <div class="collection-progress-wrap">
+                            <div id="dashboardProgressRing" class="collection-progress-ring"><div><strong id="dashboardProgressValue">0%</strong><span>megvásárolva</span></div></div>
+                        </div>
+                    </section>
+                    <section class="dashboard-panel dashboard-panel-wide">
+                        <div class="dashboard-panel-head"><h2>Legutóbbi könyvek</h2><button class="text-action" onclick="mutat('lista')">Könyveim</button></div>
+                        <div id="dashboardRecent" class="dashboard-recent"></div>
+                    </section>
+                    <section class="dashboard-panel">
+                        <div class="dashboard-panel-head"><h2>Kölcsönadva</h2><button class="text-action" onclick="mutat('kolcson')">Részletek</button></div>
+                        <div id="dashboardLoans" class="dashboard-loans"></div>
+                    </section>
+                </div>
+            </div>
 
 
 
@@ -221,6 +270,39 @@
 
             </div>
 
+            <!-- KÍVÁNSÁGLISTA -->
+            <div class="page" id="kivansaglista">
+                <div class="dashboard-header">
+                    <div>
+                        <h1>Kívánságlista</h1>
+                        <p>Könyvek, elérhetőség és a kedvezményekkel számolt személyes árak.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openWishlistModal('new')">＋ Új kívánság</button>
+                </div>
+
+                <div class="dashboard-stats wishlist-stats">
+                    <article class="dashboard-stat"><span>Összes kívánság</span><strong id="wish_stat_total">0</strong><small>könyv a listán</small></article>
+                    <article class="dashboard-stat"><span>Elérhető</span><strong id="wish_stat_available">0</strong><small>legalább egy helyen</small></article>
+                    <article class="dashboard-stat"><span>Kiemelt</span><strong id="wish_stat_high">0</strong><small>magas prioritás</small></article>
+                    <article class="dashboard-stat"><span>Ajánlatok</span><strong id="wish_stat_offers">0</strong><small>kereskedői találat</small></article>
+                </div>
+
+                <div class="wishlist-toolbar">
+                    <input id="wishSearch" type="search" placeholder="Keresés cím, szerző, ISBN vagy kiadó alapján…" oninput="renderWishlist()">
+                    <select id="wishPriorityFilter" onchange="renderWishlist()" aria-label="Prioritás szűrése">
+                        <option value="">Minden prioritás</option>
+                        <option value="Magas">Magas</option>
+                        <option value="Közepes">Közepes</option>
+                        <option value="Alacsony">Alacsony</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="loadWishlist()">↻ Frissítés</button>
+                </div>
+
+                <div id="wishlistNotice" class="wishlist-notice" hidden></div>
+                <div id="wishlistEmptyState" class="loan-empty-state">A kívánságlista még üres.</div>
+                <div id="wishlistContainer" class="wishlist-container"></div>
+            </div>
+
             <!-- TÁBLÁZATOS LISTA -->
             <div class="page" id="tabla">
                 <h1>Táblázatos lista</h1>
@@ -281,6 +363,7 @@
                                     <th class="sortable" onclick="setSort('Title')">Cím</th>
                                     <th class="sortable" onclick="setSort('Series')">Sorozat</th>
                                     <th class="sortable" onclick="setSort('Year')">Év</th>
+                                    <th class="sortable" onclick="setSort('Publication_Date')">Megjelenés dátuma</th>
                                     <th class="sortable" onclick="setSort('Location')">Helyszín</th>
                                     <th class="sortable" onclick="setSort('Shelf')">Polc</th>
                                     <th class="sortable" onclick="setSort('Page_Count')">Oldalszám</th>
@@ -301,12 +384,34 @@
 
             </div>
 
+            <!-- KÖLCSÖNADOTT KÖNYVEK -->
+            <div class="page" id="kolcson">
+                <div class="title-and-fontsize">
+                    <h1>Kölcsönadott könyvek</h1>
+                    <button class="btn btn-secondary" onclick="betoltesLista()">🔄 Frissítés</button>
+                </div>
+
+                <div class="stats-bar">
+                    <div class="stat-card stat-all">
+                        Kölcsönadva: <span id="loan_stat_total">0</span>
+                    </div>
+                    <div class="stat-card stat-missing">
+                        Lejárt határidő: <span id="loan_stat_overdue">0</span>
+                    </div>
+                </div>
+
+                <div id="loanEmptyState" class="loan-empty-state">
+                    Jelenleg nincs kölcsönadott könyv.
+                </div>
+                <div id="loanCardContainer" class="loan-card-container"></div>
+            </div>
+
             <!-- IMPORT -->
             <div class="page" id="import">
                 <h1>CSV / TSV importálása</h1>
 
                 <p>Elvárt struktúra (List fül fejléc sorrendje):</p>
-                <pre>ID,Author,Title,Original_Title,Previous_Title,Series,Number,URL,Year,Location,Shelf,Page_Count,ISBN,Publisher,Translator,Genre,Purchased,For_sale,Price,Comment</pre>
+                <pre>ID,Author,Title,Original_Title,Previous_Title,Series,Number,URL,Year,Location,Shelf,Page_Count,ISBN,Publisher,Translator,Genre,Purchased,For_sale,Price,Comment,Publication_Date,Loaned_To,Loaned_Date,Loan_Due_Date</pre>
                 <p>A fájl lehet vesszővel, pontosvesszővel vagy TAB-bal tagolt.</p>
 
                 <input type="file" id="csvFile" accept=".csv,.tsv,.txt"><br><br>
@@ -316,14 +421,50 @@
                 <div id="importResult"></div>
             </div>
 
-            <h3 style="margin-top:22px;">Log</h3>
-            <div id="log"></div>
+            <details class="app-log">
+                <summary>Napló</summary>
+                <div id="log"></div>
+            </details>
 
         </div> <!-- /container -->
-
-
-
+        </main>
     </div> <!-- /appContent -->
+    <!-- MODAL: kívánságlista elem -->
+    <div id="wishlistModal" class="modal-overlay">
+        <div class="modal wishlist-modal">
+            <div class="modal-header">
+                <h2 id="wishlistModalTitle">Új kívánság</h2>
+                <button class="modal-close-btn" type="button" onclick="closeWishlistModal()">&times;</button>
+            </div>
+            <input type="hidden" id="wm_id">
+            <input type="hidden" id="wm_added_date">
+            <div class="modal-grid">
+                <input id="wm_author" placeholder="Szerző *">
+                <input id="wm_title" placeholder="Cím *">
+                <input id="wm_original_title" placeholder="Eredeti cím">
+                <input id="wm_isbn" placeholder="ISBN">
+                <input id="wm_publisher" placeholder="Kiadó">
+                <label class="modal-date-field" for="wm_publication_date">
+                    <span>Megjelenés dátuma</span>
+                    <input id="wm_publication_date" type="date">
+                </label>
+                <input id="wm_genre" placeholder="Műfaj">
+                <select id="wm_priority" aria-label="Prioritás">
+                    <option value="Magas">Magas prioritás</option>
+                    <option value="Közepes" selected>Közepes prioritás</option>
+                    <option value="Alacsony">Alacsony prioritás</option>
+                </select>
+                <input id="wm_format" placeholder="Kívánt formátum (pl. keménytáblás)">
+                <input id="wm_url" placeholder="Borítókép URL">
+                <input id="wm_purchase_link" placeholder="Közvetlen vásárlási link">
+                <textarea id="wm_note" rows="3" placeholder="Megjegyzés"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeWishlistModal()">Mégse</button>
+                <button class="btn btn-primary" type="button" onclick="saveWishlistItem()">Mentés</button>
+            </div>
+        </div>
+    </div>
     <!-- MODAL: Új könyv / Szerkesztés – közös űrlap -->
     <div id="bookModal" class="modal-overlay">
         <div class="modal">
@@ -352,6 +493,26 @@
 
                 <input id="bm_ev" type="number" min="1" max="9999" step="1" placeholder="Év"
                     oninput="validateYearFilter(this)">
+
+                <label class="modal-date-field" for="bm_megjelenes">
+                    <span>Megjelenés dátuma</span>
+                    <input id="bm_megjelenes" type="date">
+                </label>
+
+                <label class="modal-date-field" for="bm_kolcsonvevo">
+                    <span>Kölcsönadva neki</span>
+                    <input id="bm_kolcsonvevo" placeholder="Név">
+                </label>
+
+                <label class="modal-date-field" for="bm_kolcson_datum">
+                    <span>Kölcsönadás dátuma</span>
+                    <input id="bm_kolcson_datum" type="date">
+                </label>
+
+                <label class="modal-date-field" for="bm_kolcson_hatarido">
+                    <span>Visszahozási határidő</span>
+                    <input id="bm_kolcson_hatarido" type="date">
+                </label>
 
                 <input id="bm_helyszin" placeholder="Helyszín">
                 <input id="bm_polc" placeholder="Polc">

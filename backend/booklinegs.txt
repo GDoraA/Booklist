@@ -82,6 +82,10 @@ function parseBooklineProductPage_(productUrl) {
   const year =
     String(publisherRaw || "").match(/\b(1[0-9]{3}|20[0-9]{2}|2100)\b/)?.[1] || "";
 
+  const publicationDate = normalizePublicationDate_(
+    extractFirstMatch_(productHtml, /Megjelenés(?:i idő)?[\s\S]{0,160}?([12][0-9]{3}[.\/-][^<]{2,30})/i)
+  );
+
   const pageCount =
     extractFirstMatch_(productHtml, /([0-9]{1,5})\s*oldal\s*･\s*[^･<]*ISBN/i) ||
     extractFirstMatch_(productHtml, /<li>\s*([0-9]{1,5})\s*oldal\s*<\/li>/i) ||
@@ -123,6 +127,7 @@ function parseBooklineProductPage_(productUrl) {
     series: "",
     number: "",
     year: year,
+    publicationDate: publicationDate,
     location: "",
     shelf: "",
     pageCount: pageCount,
