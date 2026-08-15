@@ -8,8 +8,31 @@
 const WISHLIST_HEADERS = [
   "ID", "Author", "Title", "Original_Title", "ISBN", "Publisher",
   "Publication_Date", "Genre", "URL", "Priority", "Note",
+<<<<<<< HEAD
   "Added_Date", "Desired_Format", "Purchase_Link", "Bookline_URL",
   "Libri_URL", "Lira_URL", "Alexandra_URL"
+=======
+<<<<<<< HEAD
+  "Added_Date", "Desired_Format", "Purchase_Link", "Bookline_URL",
+  "Libri_URL", "Lira_URL", "Alexandra_URL"
+=======
+<<<<<<< HEAD
+<<<<<<< Updated upstream
+  "Added_Date", "Desired_Format", "Purchase_Link", "Bookline_URL",
+  "Libri_URL", "Lira_URL", "Alexandra_URL"
+=======
+<<<<<<< HEAD
+  "Added_Date", "Desired_Format", "Purchase_Link", "Bookline_URL",
+  "Libri_URL", "Lira_URL", "Alexandra_URL"
+=======
+  "Added_Date", "Desired_Format", "Purchase_Link"
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
+=======
+  "Added_Date", "Desired_Format", "Purchase_Link"
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
+>>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
 ];
 
 const WISHLIST_OFFER_HEADERS = [
@@ -42,17 +65,54 @@ function mapWishlistFromParams_(p, includeId) {
     "Note": p.Note || "",
     "Added_Date": p.Added_Date || "",
     "Desired_Format": p.Desired_Format || "",
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
+>>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
+>>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
     "Purchase_Link": p.Purchase_Link || "",
     "Bookline_URL": p.Bookline_URL || "",
     "Libri_URL": p.Libri_URL || "",
     "Lira_URL": p.Lira_URL || "",
     "Alexandra_URL": p.Alexandra_URL || ""
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+=======
+=======
+    "Purchase_Link": p.Purchase_Link || ""
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
+=======
+    "Purchase_Link": p.Purchase_Link || ""
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
+>>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
   };
 
   if (includeId) item.ID = p.ID || "";
   return item;
 }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
+>>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
+>>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
 function getWishlistData_(refreshOffers, forceRefresh) {
   const items = readSheet_(SHEET_WISHLIST);
   const storedOffers = readOptionalSheet_(SHEET_WISHLIST_OFFERS);
@@ -200,6 +260,31 @@ function refreshWishlistOffers_(items, forceRefresh) {
   return { offers: offers, errors: errors };
 }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+=======
+=======
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+function getWishlistData_() {
+  return {
+    success: true,
+    items: readSheet_(SHEET_WISHLIST),
+    offers: readOptionalSheet_(SHEET_WISHLIST_OFFERS),
+    discounts: readOptionalSheet_(SHEET_DISCOUNTS)
+  };
+}
+
+<<<<<<< HEAD
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
+>>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
 function isWishlistDuplicate_(item, ignoreId) {
   const isbn = String(item.ISBN || "").replace(/[^0-9X]/gi, "").toLowerCase();
   const author = String(item.Author || "").trim().toLowerCase();
