@@ -23,11 +23,6 @@
  * - Duplikációellenőrzés
  * - Könyv felvétel, lekérés, módosítás, törlés
  *
- * wishlist.gs
- * - Wishlist munkalap CRUD műveletek
- * - WishlistOffers és Discounts adatok összekapcsolása
- * - Megvásárolt kívánság áthelyezése a List munkalapra
- *
  * sheet.gs
  * - Alacsony szintű Google Sheets helper függvények
  * - Sheet lekérés, fejlécmappa, sheet olvasás, ID generálás
@@ -58,9 +53,6 @@
  *
  * libri.gs
  * - Libri keresés és termékoldal-parser
- *
- * lira.gs
- * - Líra közvetlen termékoldal-parser
  *
  * alexandra.gs
  * - Alexandra keresés és termékoldal-parser

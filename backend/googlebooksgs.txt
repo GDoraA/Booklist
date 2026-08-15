@@ -148,7 +148,6 @@ function mapGoogleBookItem_(item, queryContext) {
     series: "",
     number: "",
     year: extractYear_(info.publishedDate),
-    publicationDate: normalizePublicationDate_(info.publishedDate),
     location: "",
     shelf: "",
     pageCount: info.pageCount ? String(info.pageCount) : "",

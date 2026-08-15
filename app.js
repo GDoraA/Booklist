@@ -1,26 +1,6 @@
 
 /********** API URL **********/
-<<<<<<< HEAD
-const API_URL = "https://script.google.com/macros/s/AKfycbwCcZ92080d5odA5G0k6Kdae1YB80pwrXK7nL7d0VQ7vph2E8dZC3LH6gMUyJsV9EfI7w/exec";
-=======
-<<<<<<< HEAD
-const API_URL = "https://script.google.com/macros/s/AKfycbwCcZ92080d5odA5G0k6Kdae1YB80pwrXK7nL7d0VQ7vph2E8dZC3LH6gMUyJsV9EfI7w/exec";
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-const API_URL = "https://script.google.com/macros/s/AKfycbwCcZ92080d5odA5G0k6Kdae1YB80pwrXK7nL7d0VQ7vph2E8dZC3LH6gMUyJsV9EfI7w/exec";
-=======
-<<<<<<< HEAD
-const API_URL = "https://script.google.com/macros/s/AKfycbwCcZ92080d5odA5G0k6Kdae1YB80pwrXK7nL7d0VQ7vph2E8dZC3LH6gMUyJsV9EfI7w/exec";
-=======
-const API_URL = "https://script.google.com/macros/s/AKfycbzEmLf-Pd8WTxF6IOW-U-jNzQP1G7Conk9SJc0iQPIcPn5eKhkqlMBlPZA3ollOzH_ing/exec";
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
-const API_URL = "https://script.google.com/macros/s/AKfycbzEmLf-Pd8WTxF6IOW-U-jNzQP1G7Conk9SJc0iQPIcPn5eKhkqlMBlPZA3ollOzH_ing/exec";
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
+const API_URL = "https://script.google.com/macros/s/AKfycbxHvK2_IRYuj9jK04OIni6i2O78MMZtb_5ra4XhQe4tZLFN4PtE438q3InUvt_xzQYk7Q/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -29,28 +9,8 @@ const FRONTEND_GOOGLE_BOOKS_API_KEY = "AIzaSyA-OgB7xZn15ITtZkzeaLO8k8gvxODyKtM";
 const GOOGLE_BOOKS_MAX_RESULTS = 10;
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
-let wishlistData = { items: [], offers: [], discounts: [] };
-<<<<<<< HEAD
-const WISHLIST_PREFERRED_RETAILERS = ["Libri", "Bookline", "Líra", "Alexandra"];
-=======
-<<<<<<< HEAD
-const WISHLIST_PREFERRED_RETAILERS = ["Libri", "Bookline", "Líra", "Alexandra"];
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-const WISHLIST_PREFERRED_RETAILERS = ["Libri", "Bookline", "Líra", "Alexandra"];
-=======
-<<<<<<< HEAD
-const WISHLIST_PREFERRED_RETAILERS = ["Libri", "Bookline", "Líra", "Alexandra"];
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2026-08-15 12:00";  // Deploykor frissítendő
+const APP_VERSION = "2026-04-29 17:40";  // Ezt TE frissíted minden deploykor
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 
@@ -64,22 +24,7 @@ function mutat(id) {
     if (tabBtn) tabBtn.classList.add("active");
 
     if (id === "lista") betoltesLista();
-    if (id === "kivansaglista") loadWishlist();
     if (id === "tabla") tablaMegjelenites();   // ← ÚJ SOR
-    if (id === "attekintes") {
-        if (lista.length > 0) {
-            dashboardMegjelenites();
-        } else {
-            betoltesLista();
-        }
-    }
-    if (id === "kolcson") {
-        if (lista.length > 0) {
-            kolcsonMegjelenites();
-        } else {
-            betoltesLista();
-        }
-    }
 }
 /********** LOGIN – SEGÉDFÜGGVÉNYEK **********/
 
@@ -119,7 +64,7 @@ function onLoginSuccess() {
 
     if (loginDiv) loginDiv.style.display = "none";
     if (pwDiv) pwDiv.style.display = "none";
-    if (appDiv) appDiv.style.display = "grid";
+    if (appDiv) appDiv.style.display = "block";
     // Szűrőmezők datalist-jének betöltése oldalbetöltéskor
     loadDropdownLists();
     // Scroll-shadow figyelés a táblázathoz
@@ -147,7 +92,7 @@ function onLoginSuccess() {
     });
 
     // Az eredeti alkalmazás indulása
-    mutat("attekintes");
+    mutat("lista");
     // Session mentése
     localStorage.setItem("loggedInUserEmail", currentUserEmail);
 
@@ -569,10 +514,6 @@ function openBookModal(mode, id) {
         document.getElementById("bm_sorozat").value = "";
         document.getElementById("bm_ssz").value = "";
         document.getElementById("bm_ev").value = "";
-        document.getElementById("bm_megjelenes").value = "";
-        document.getElementById("bm_kolcsonvevo").value = "";
-        document.getElementById("bm_kolcson_datum").value = "";
-        document.getElementById("bm_kolcson_hatarido").value = "";
         document.getElementById("bm_helyszin").value = "";
         document.getElementById("bm_polc").value = "";
         document.getElementById("bm_oldalszam").value = "";
@@ -607,10 +548,6 @@ function openBookModal(mode, id) {
         document.getElementById("bm_sorozat").value = item["Series"] || "";
         document.getElementById("bm_ssz").value = item["Number"] || "";
         document.getElementById("bm_ev").value = item["Year"] || "";
-        document.getElementById("bm_megjelenes").value = item["Publication_Date"] || "";
-        document.getElementById("bm_kolcsonvevo").value = item["Loaned_To"] || "";
-        document.getElementById("bm_kolcson_datum").value = item["Loaned_Date"] || "";
-        document.getElementById("bm_kolcson_hatarido").value = item["Loan_Due_Date"] || "";
         document.getElementById("bm_helyszin").value = item["Location"] || "";
         document.getElementById("bm_polc").value = item["Shelf"] || "";
         document.getElementById("bm_oldalszam").value = item["Page_Count"] || "";
@@ -663,15 +600,6 @@ function applyLookupResultByIndex(index) {
     log("Lookup találat kiválasztva. Index: " + index);
 }
 
-function escapeLookupHtml(value) {
-    return String(value || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-}
-
 function openLookupResultsModal(items) {
     const listEl = document.getElementById("lookupResultsList");
     listEl.innerHTML = "";
@@ -682,30 +610,29 @@ function openLookupResultsModal(items) {
         row.style.borderRadius = "10px";
         row.style.padding = "12px";
 
-        const titleText = escapeLookupHtml(item.title || "Nincs cím");
-        const authorText = escapeLookupHtml(item.authors || "Nincs szerző");
-        const yearText = item.year ? " (" + escapeLookupHtml(item.year) + ")" : "";
-        const originalTitleText = item.originalTitle ? "<div><strong>Eredeti cím:</strong> " + escapeLookupHtml(item.originalTitle) + "</div>" : "";
-        const previousTitleText = item.previousTitle ? "<div><strong>Korábbi cím:</strong> " + escapeLookupHtml(item.previousTitle) + "</div>" : "";
-        const seriesText = item.series ? "<div><strong>Sorozat:</strong> " + escapeLookupHtml(item.series) + "</div>" : "";
-        const numberText = item.number ? "<div><strong>Sorszám:</strong> " + escapeLookupHtml(item.number) + "</div>" : "";
-        const yearFullText = item.year ? "<div><strong>Év:</strong> " + escapeLookupHtml(item.year) + "</div>" : "";
-        const publicationDateText = item.publicationDate ? "<div><strong>Megjelenés dátuma:</strong> " + escapeLookupHtml(item.publicationDate) + "</div>" : "";
-        const locationText = item.location ? "<div><strong>Helyszín:</strong> " + escapeLookupHtml(item.location) + "</div>" : "";
-        const shelfText = item.shelf ? "<div><strong>Polc:</strong> " + escapeLookupHtml(item.shelf) + "</div>" : "";
-        const pageCountText = item.pageCount ? "<div><strong>Oldalszám:</strong> " + escapeLookupHtml(item.pageCount) + "</div>" : "";
-        const publisherText = item.publisher ? "<div><strong>Kiadó:</strong> " + escapeLookupHtml(item.publisher) + "</div>" : "";
-        const translatorText = item.translator ? "<div><strong>Fordító:</strong> " + escapeLookupHtml(item.translator) + "</div>" : "";
-        const genreText = item.genre ? "<div><strong>Műfaj:</strong> " + escapeLookupHtml(item.genre) + "</div>" : "";
-        const isbnText = item.isbn ? "<div><strong>ISBN:</strong> " + escapeLookupHtml(item.isbn) + "</div>" : "";
-        const coverUrlText = item.coverUrl ? "<div><strong>Borító URL:</strong> <span style=\"word-break:break-all;\">" + escapeLookupHtml(item.coverUrl) + "</span></div>" : "";
-        const sourceText = item.source ? "<div><strong>Forrás:</strong> " + escapeLookupHtml(item.source) + "</div>" : "";
-        const sourceIdText = item.sourceId ? "<div><strong>Forrás URL / ID:</strong> <span style=\"word-break:break-all;\">" + escapeLookupHtml(item.sourceId) + "</span></div>" : "";
+        const titleText = item.title || "Nincs cím";
+        const authorText = item.authors || "Nincs szerző";
+        const yearText = item.year ? " (" + item.year + ")" : "";
+        const originalTitleText = item.originalTitle ? "<div><strong>Eredeti cím:</strong> " + item.originalTitle + "</div>" : "";
+        const previousTitleText = item.previousTitle ? "<div><strong>Korábbi cím:</strong> " + item.previousTitle + "</div>" : "";
+        const seriesText = item.series ? "<div><strong>Sorozat:</strong> " + item.series + "</div>" : "";
+        const numberText = item.number ? "<div><strong>Sorszám:</strong> " + item.number + "</div>" : "";
+        const yearFullText = item.year ? "<div><strong>Év:</strong> " + item.year + "</div>" : "";
+        const locationText = item.location ? "<div><strong>Helyszín:</strong> " + item.location + "</div>" : "";
+        const shelfText = item.shelf ? "<div><strong>Polc:</strong> " + item.shelf + "</div>" : "";
+        const pageCountText = item.pageCount ? "<div><strong>Oldalszám:</strong> " + item.pageCount + "</div>" : "";
+        const publisherText = item.publisher ? "<div><strong>Kiadó:</strong> " + item.publisher + "</div>" : "";
+        const translatorText = item.translator ? "<div><strong>Fordító:</strong> " + item.translator + "</div>" : "";
+        const genreText = item.genre ? "<div><strong>Műfaj:</strong> " + item.genre + "</div>" : "";
+        const isbnText = item.isbn ? "<div><strong>ISBN:</strong> " + item.isbn + "</div>" : "";
+        const coverUrlText = item.coverUrl ? "<div><strong>Borító URL:</strong> <span style=\"word-break:break-all;\">" + item.coverUrl + "</span></div>" : "";
+        const sourceText = item.source ? "<div><strong>Forrás:</strong> " + item.source + "</div>" : "";
+        const sourceIdText = item.sourceId ? "<div><strong>Forrás URL / ID:</strong> <span style=\"word-break:break-all;\">" + item.sourceId + "</span></div>" : "";
 
         const coverHtml = item.coverUrl
             ? `<div style="flex:0 0 72px;">
             <img
-src="${escapeLookupHtml(normalizeCoverUrl(item.coverUrl))}"
+src="${normalizeCoverUrl(item.coverUrl)}"
                 alt="Borító"
                 style="width:72px;height:108px;object-fit:cover;border-radius:6px;border:1px solid rgba(0,0,0,0.12);background:#f5f5f5;"
                 onerror="this.style.display='none'; this.parentElement.innerHTML='Nincs borító'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center'; this.parentElement.style.fontSize='12px'; this.parentElement.style.textAlign='center'; this.parentElement.style.padding='6px';"
@@ -727,7 +654,6 @@ ${previousTitleText}
 ${seriesText}
 ${numberText}
 ${yearFullText}
-${publicationDateText}
 ${locationText}
 ${shelfText}
 ${pageCountText}
@@ -783,7 +709,6 @@ function mapGoogleBookToLookupItem(item) {
         series: "",
         number: "",
         year: (info.publishedDate || "").match(/\b(1[0-9]{3}|20[0-9]{2}|2100)\b/)?.[1] || "",
-        publicationDate: /^\d{4}-\d{2}-\d{2}$/.test(info.publishedDate || "") ? info.publishedDate : "",
         location: "",
         shelf: "",
         pageCount: info.pageCount ? String(info.pageCount) : "",
@@ -832,7 +757,6 @@ function applyLookupItemToModalEmptyFields(item) {
     setInputIfEmpty("bm_szerzo", pickGoogleBookBestAuthor(item));
     setInputIfEmpty("bm_eredeti", item.originalTitle || pickGoogleBookOriginalTitle(item));
     setInputIfEmpty("bm_ev", item.year || "");
-    setInputIfEmpty("bm_megjelenes", item.publicationDate || "");
     setInputIfEmpty("bm_oldalszam", item.pageCount || "");
     setInputIfEmpty("bm_isbn", item.isbn || "");
     setInputIfEmpty("bm_kiado", item.publisher || "");
@@ -966,17 +890,8 @@ async function lookupPublisherPagesFromBackend({ isbn, title, author }) {
     const callbackName = "lookupPublisherPagesCallback_" + Date.now();
 
     return await new Promise((resolve, reject) => {
-        const s = document.createElement("script");
-
-        function cleanup() {
-            try { delete window[callbackName]; } catch (e) { }
-            if (s.parentNode) {
-                s.parentNode.removeChild(s);
-            }
-        }
-
         window[callbackName] = function (data) {
-            cleanup();
+            try { delete window[callbackName]; } catch (e) { }
 
             if (!data || !data.success) {
                 reject(new Error((data && data.error) ? data.error : "Publisher backend hiba"));
@@ -986,6 +901,7 @@ async function lookupPublisherPagesFromBackend({ isbn, title, author }) {
             resolve(Array.isArray(data.items) ? data.items : []);
         };
 
+        const s = document.createElement("script");
         s.src =
             API_URL +
             "?action=lookupPublisherPages" +
@@ -996,7 +912,7 @@ async function lookupPublisherPagesFromBackend({ isbn, title, author }) {
             "&_=" + Date.now();
 
         s.onerror = function () {
-            cleanup();
+            try { delete window[callbackName]; } catch (e) { }
             reject(new Error("Publisher script betöltési hiba"));
         };
 
@@ -1034,7 +950,6 @@ function mergeLookupItemFields(base, incoming) {
         "series",
         "number",
         "year",
-        "publicationDate",
         "location",
         "shelf",
         "pageCount",
@@ -1073,7 +988,7 @@ function mergeLookupItemFields(base, incoming) {
     return result;
 }
 
-function mergeLookupResults(publisherItems, googleItems) {
+function mergeLookupResults(googleItems, publisherItems) {
     const merged = [];
     const byKey = new Map();
 
@@ -1091,10 +1006,7 @@ function mergeLookupResults(publisherItems, googleItems) {
         ].join("|");
     }
 
-    // A források sorrendje egyben prioritás is: az első találat adatai
-    // maradnak meg, a későbbiek csak az üres mezőket egészítik ki.
-    // A Google Books ezért szándékosan az utolsó tartalékforrás.
-    [...(publisherItems || []), ...(googleItems || [])].forEach(item => {
+    [...(googleItems || []), ...(publisherItems || [])].forEach(item => {
         if (!item) return;
 
         const key = makeKey(item);
@@ -1145,30 +1057,24 @@ async function lookupBookMetadataFromModal() {
     showLoading(lookupButton);
 
     try {
+        const googleResults = await lookupGoogleBooksFromFrontend({ isbn, title, author });
+
         let publisherResults = [];
-        let googleResults = [];
-
-        try {
-            publisherResults = await lookupPublisherPagesFromBackend({
-                isbn,
-                title,
-                author
-            });
-        } catch (e) {
-            log("Publisher lookup hiba: " + (e && e.message ? e.message : String(e)));
+        if (isbn || title || author) {
+            try {
+                publisherResults = await lookupPublisherPagesFromBackend({
+                    isbn,
+                    title,
+                    author
+                });
+            } catch (e) {
+                log("Publisher lookup hiba: " + (e && e.message ? e.message : String(e)));
+            }
         }
 
-        // A Google Books az utolsó, opcionális tartalékforrás. A hibája nem
-        // akadályozhatja a korábban lekért webshop/kiadói találatok megjelenését.
-        try {
-            googleResults = await lookupGoogleBooksFromFrontend({ isbn, title, author });
-        } catch (e) {
-            log("Google Books frontend hiba: " + (e && e.message ? e.message : String(e)));
-        }
-
-        lastLookupResults = mergeLookupResults(publisherResults, googleResults);
+        lastLookupResults = mergeLookupResults(googleResults, publisherResults);
         if (!Array.isArray(lastLookupResults) || lastLookupResults.length === 0) {
-            alert("Nem érkezett találat a kiadói/webshop forrásokból vagy a Google Booksból.");
+            alert("Nem érkezett találat sem Google Booksból, sem kiadói/webshop forrásból.");
             log("Összesített lookup: nincs találat.");
             return;
         }
@@ -1177,8 +1083,8 @@ async function lookupBookMetadataFromModal() {
         log("Összesített lookup kész. Találatok száma: " + lastLookupResults.length);
     } catch (err) {
         const msg = err && err.message ? err.message : String(err);
-        alert("A könyvadatok keresése sikertelen:\n" + msg);
-        log("Összesített lookup hiba: " + msg);
+        alert("Google Books frontend hiba:\n" + msg);
+        log("Google Books frontend hiba: " + msg);
     } finally {
         hideLoading(lookupButton);
     }
@@ -1195,19 +1101,6 @@ function saveBookFromModal() {
         return;
     }
 
-    const loanedTo = document.getElementById("bm_kolcsonvevo").value.trim();
-    const loanedDate = loanedTo
-        ? document.getElementById("bm_kolcson_datum").value.trim()
-        : "";
-    const loanDueDate = loanedTo
-        ? document.getElementById("bm_kolcson_hatarido").value.trim()
-        : "";
-
-    if (loanedDate && loanDueDate && loanDueDate < loanedDate) {
-        alert("A visszahozási határidő nem lehet korábbi a kölcsönadás dátumánál.");
-        return;
-    }
-
     const bookData = {
         Author: szerzo,
         Title: document.getElementById("bm_cim").value.trim(),
@@ -1216,10 +1109,6 @@ function saveBookFromModal() {
         Series: document.getElementById("bm_sorozat").value.trim(),
         Number: document.getElementById("bm_ssz").value.trim(),
         Year: document.getElementById("bm_ev").value.trim(),
-        Publication_Date: document.getElementById("bm_megjelenes").value.trim(),
-        Loaned_To: loanedTo,
-        Loaned_Date: loanedDate,
-        Loan_Due_Date: loanDueDate,
         Location: document.getElementById("bm_helyszin").value.trim(),
         Shelf: document.getElementById("bm_polc").value.trim(),
         Page_Count: document.getElementById("bm_oldalszam").value.trim(),
@@ -1273,10 +1162,6 @@ function finalizeSaveBook(kepUrl) {
             "&ssz=" + encodeURIComponent(d.Number) +
             "&url=" + encodeURIComponent(kepUrl) +
             "&ev=" + encodeURIComponent(d.Year) +
-            "&megjelenes=" + encodeURIComponent(d.Publication_Date) +
-            "&kolcsonvevo=" + encodeURIComponent(d.Loaned_To) +
-            "&kolcson_datum=" + encodeURIComponent(d.Loaned_Date) +
-            "&kolcson_hatarido=" + encodeURIComponent(d.Loan_Due_Date) +
             "&helyszin=" + encodeURIComponent(d.Location) +
             "&polc=" + encodeURIComponent(d.Shelf) +
             "&oldalszam=" + encodeURIComponent(d.Page_Count) +
@@ -1306,10 +1191,6 @@ function finalizeSaveBook(kepUrl) {
             "&ssz=" + encodeURIComponent(d.Number) +
             "&url=" + encodeURIComponent(kepUrl) +
             "&ev=" + encodeURIComponent(d.Year) +
-            "&megjelenes=" + encodeURIComponent(d.Publication_Date) +
-            "&kolcsonvevo=" + encodeURIComponent(d.Loaned_To) +
-            "&kolcson_datum=" + encodeURIComponent(d.Loaned_Date) +
-            "&kolcson_hatarido=" + encodeURIComponent(d.Loan_Due_Date) +
             "&helyszin=" + encodeURIComponent(d.Location) +
             "&polc=" + encodeURIComponent(d.Shelf) +
             "&oldalszam=" + encodeURIComponent(d.Page_Count) +
@@ -1449,200 +1330,6 @@ function listaValasz(data) {
     });
 
     listaMegjelenites();
-    kolcsonMegjelenites();
-    dashboardMegjelenites();
-}
-
-function dashboardMegjelenites() {
-    const totalEl = document.getElementById("dash_total");
-    if (!totalEl) return;
-
-    const total = lista.length;
-    const purchased = lista.filter(item => item["Purchased"] === "x").length;
-    const loaned = lista.filter(item => String(item["Loaned_To"] || "").trim()).length;
-    const forSale = lista.filter(item => item["For_sale"] === "x").length;
-    const today = getTodayIsoDate();
-    const overdue = lista.filter(item =>
-        String(item["Loaned_To"] || "").trim() &&
-        item["Loan_Due_Date"] &&
-        item["Loan_Due_Date"] < today
-    ).length;
-    const purchasedPercent = total ? Math.round((purchased / total) * 100) : 0;
-
-    totalEl.textContent = total;
-    document.getElementById("dash_purchased").textContent = purchased;
-    document.getElementById("dash_loaned").textContent = loaned;
-    document.getElementById("dash_for_sale").textContent = forSale;
-    document.getElementById("dash_purchased_note").textContent = purchasedPercent + "% a listából";
-    document.getElementById("dash_overdue_note").textContent = overdue
-        ? overdue + " lejárt határidő"
-        : "nincs lejárt határidő";
-
-    const progressRing = document.getElementById("dashboardProgressRing");
-    document.getElementById("dashboardProgressValue").textContent = purchasedPercent + "%";
-    progressRing.style.background =
-        "conic-gradient(var(--forest) 0 " + purchasedPercent + "%, var(--paper-soft) " + purchasedPercent + "% 100%)";
-
-    const genreCounts = new Map();
-    lista.forEach(item => {
-        String(item["Genre"] || "")
-            .split(/[,;]/)
-            .map(genre => genre.trim())
-            .filter(Boolean)
-            .forEach(genre => genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1));
-    });
-
-    const topGenres = Array.from(genreCounts.entries())
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "hu"))
-        .slice(0, 4);
-    const genreMax = topGenres.length ? topGenres[0][1] : 1;
-    const genreContainer = document.getElementById("dashboardGenres");
-
-    genreContainer.innerHTML = topGenres.length
-        ? topGenres.map(([genre, count]) =>
-            '<div class="dashboard-bar">' +
-                '<span>' + escapeLookupHtml(genre) + '</span>' +
-                '<div class="dashboard-bar-track"><div class="dashboard-bar-fill" style="width:' +
-                    Math.round((count / genreMax) * 100) + '%"></div></div>' +
-                '<span class="dashboard-bar-value">' + count + '</span>' +
-            '</div>'
-        ).join("")
-        : '<p class="dashboard-empty">Még nincs megadott műfaj.</p>';
-
-    const recentContainer = document.getElementById("dashboardRecent");
-    const recentBooks = lista.slice(-3).reverse();
-    recentContainer.innerHTML = recentBooks.length
-        ? recentBooks.map(item =>
-            '<div class="dashboard-list-row">' +
-                '<div><strong>' + escapeLookupHtml(item["Title"] || "Nincs cím") + '</strong>' +
-                '<span>' + escapeLookupHtml(item["Author"] || "Nincs szerző") + '</span></div>' +
-                '<span class="dashboard-tag">' + escapeLookupHtml(item["Year"] || "Könyv") + '</span>' +
-            '</div>'
-        ).join("")
-        : '<p class="dashboard-empty">Még nincs könyv a gyűjteményben.</p>';
-
-    const loansContainer = document.getElementById("dashboardLoans");
-    const loanedBooks = lista.filter(item => String(item["Loaned_To"] || "").trim()).slice(0, 3);
-    loansContainer.innerHTML = loanedBooks.length
-        ? loanedBooks.map(item =>
-            '<div class="dashboard-list-row">' +
-                '<div><strong>' + escapeLookupHtml(item["Title"] || "Nincs cím") + '</strong>' +
-                '<span>' + escapeLookupHtml(item["Loaned_To"]) + '</span></div>' +
-                '<span class="dashboard-tag">' + escapeLookupHtml(formatLoanDate(item["Loan_Due_Date"]) || "nincs határidő") + '</span>' +
-            '</div>'
-        ).join("")
-        : '<p class="dashboard-empty">Jelenleg nincs kölcsönadott könyv.</p>';
-}
-
-function formatLoanDate(value) {
-    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    return match ? match[1] + ". " + match[2] + ". " + match[3] + "." : String(value || "");
-}
-
-function getTodayIsoDate() {
-    const today = new Date();
-    return today.getFullYear() + "-" +
-        String(today.getMonth() + 1).padStart(2, "0") + "-" +
-        String(today.getDate()).padStart(2, "0");
-}
-
-function kolcsonMegjelenites() {
-    const container = document.getElementById("loanCardContainer");
-    const emptyState = document.getElementById("loanEmptyState");
-    const totalEl = document.getElementById("loan_stat_total");
-    const overdueEl = document.getElementById("loan_stat_overdue");
-
-    if (!container || !emptyState || !totalEl || !overdueEl) return;
-
-    const today = getTodayIsoDate();
-    const loanedBooks = lista
-        .filter(item => String(item["Loaned_To"] || "").trim() !== "")
-        .sort((a, b) => {
-            const aDue = a["Loan_Due_Date"] || "9999-12-31";
-            const bDue = b["Loan_Due_Date"] || "9999-12-31";
-            return aDue.localeCompare(bDue) ||
-                String(a["Author"] || "").localeCompare(String(b["Author"] || ""), "hu");
-        });
-
-    const overdueCount = loanedBooks.filter(item =>
-        item["Loan_Due_Date"] && item["Loan_Due_Date"] < today
-    ).length;
-
-    totalEl.textContent = loanedBooks.length;
-    overdueEl.textContent = overdueCount;
-    container.innerHTML = "";
-    emptyState.style.display = loanedBooks.length ? "none" : "block";
-
-    loanedBooks.forEach(item => {
-        const isOverdue = item["Loan_Due_Date"] && item["Loan_Due_Date"] < today;
-        const card = document.createElement("article");
-        card.className = "loan-card";
-
-        const imageHtml = item["URL"]
-            ? '<img class="loan-card-image" src="' + escapeLookupHtml(normalizeCoverUrl(item["URL"])) + '" alt="Borító">'
-            : '<div class="loan-card-image-placeholder" aria-hidden="true">📖</div>';
-
-        card.innerHTML =
-            imageHtml +
-            '<div>' +
-                '<h3>' + escapeLookupHtml(item["Title"] || "Nincs cím") + '</h3>' +
-                '<p>' + escapeLookupHtml(item["Author"] || "Nincs szerző") + '</p>' +
-                '<p class="loan-borrower">Kölcsönvevő: ' + escapeLookupHtml(item["Loaned_To"]) + '</p>' +
-                '<p>Kölcsönadva: ' + escapeLookupHtml(formatLoanDate(item["Loaned_Date"]) || "Nincs megadva") + '</p>' +
-                '<p class="' + (isOverdue ? 'loan-overdue' : '') + '">Határidő: ' +
-                    escapeLookupHtml(formatLoanDate(item["Loan_Due_Date"]) || "Nincs megadva") +
-                    (isOverdue ? ' · lejárt' : '') +
-                '</p>' +
-                '<div class="card-actions">' +
-                    '<button class="btn btn-primary" type="button" data-return-loan>✅ Visszavéve</button>' +
-                    '<button class="btn btn-secondary" type="button" data-edit-loan>✏️ Szerkesztés</button>' +
-                '</div>' +
-            '</div>';
-
-        card.querySelector("[data-return-loan]").addEventListener("click", function () {
-            returnLoan(item["ID"]);
-        });
-        card.querySelector("[data-edit-loan]").addEventListener("click", function () {
-            openBookModal("edit", item["ID"]);
-        });
-
-        container.appendChild(card);
-    });
-}
-
-function returnLoan(id) {
-    if (!confirm("Biztosan visszakerült hozzád ez a könyv?")) return;
-
-    const callbackName = "returnLoanCallback_" + Date.now();
-    const script = document.createElement("script");
-
-    function cleanup() {
-        try { delete window[callbackName]; } catch (e) { }
-        if (script.parentNode) script.parentNode.removeChild(script);
-    }
-
-    window[callbackName] = function (data) {
-        cleanup();
-        if (data && data.success) {
-            log("✔ A könyv visszavéve.");
-            betoltesLista();
-        } else {
-            alert("A visszavétel mentése nem sikerült.");
-            log("❌ Visszavételi hiba: " + (data && data.error ? data.error : "Ismeretlen hiba"));
-        }
-    };
-
-    script.onerror = function () {
-        cleanup();
-        alert("A visszavétel mentése nem sikerült.");
-    };
-
-    script.src = API_URL +
-        "?action=returnLoan" +
-        "&ID=" + encodeURIComponent(id) +
-        "&callback=" + encodeURIComponent(callbackName) +
-        "&_=" + Date.now();
-    document.body.appendChild(script);
 }
 
 
@@ -1784,11 +1471,6 @@ function listaMegjelenites() {
                 <div class="card-row">
                     <span class="label">Cím:</span>
                     <span class="value">${item["Title"] || ""}</span>
-                </div>
-
-                <div class="card-row">
-                    <span class="label">Megjelenés:</span>
-                    <span class="value">${item["Publication_Date"] || ""}</span>
                 </div>
             
                 <div class="card-row">
@@ -1932,28 +1614,20 @@ function importCsv() {
 
         const header = parseLine(rows[0]).map(h => h.trim());
         const expected = ["ID", "Author", "Title", "Original_Title", "Previous_Title", "Series", "Number", "URL", "Year", "Location", "Shelf", "Page_Count", "ISBN", "Publisher", "Translator", "Genre", "Purchased", "For_sale", "Price", "Comment"];
-        const expectedWithPublicationDate = expected.concat("Publication_Date");
-        const expectedWithLoans = expectedWithPublicationDate.concat(
-            "Loaned_To",
-            "Loaned_Date",
-            "Loan_Due_Date"
-        );
-
-        function headerMatches(columns) {
-            return header.length === columns.length &&
-                columns.every((column, index) => header[index] === column);
+        let headerOk = (header.length === expected.length);
+        if (headerOk) {
+            for (let i = 0; i < expected.length; i++) {
+                if (header[i] !== expected[i]) {
+                    headerOk = false;
+                    break;
+                }
+            }
         }
-
-        // A korábbi exportok továbbra is importálhatók; azoknál a megjelenési
-        // dátum egyszerűen üres marad.
-        const headerOk = headerMatches(expected) ||
-            headerMatches(expectedWithPublicationDate) ||
-            headerMatches(expectedWithLoans);
 
         if (!headerOk) {
             const msg = "HIBA: A CSV/TSV fejléc nem egyezik a List fül szerkezetével!<br>" +
                 "Elvárt fejléc:<br>" +
-                expectedWithLoans.join(", ");
+                expected.join(", ");
             document.getElementById("importResult").innerHTML = msg;
             log("Import leállt: hibás fejléc.");
             return;
@@ -1967,10 +1641,6 @@ function importCsv() {
         const idxNumber = header.indexOf("Number");
         const idxURL = header.indexOf("URL");
         const idxYear = header.indexOf("Year");
-        const idxPublicationDate = header.indexOf("Publication_Date");
-        const idxLoanedTo = header.indexOf("Loaned_To");
-        const idxLoanedDate = header.indexOf("Loaned_Date");
-        const idxLoanDueDate = header.indexOf("Loan_Due_Date");
         const idxLocation = header.indexOf("Location");
         const idxShelf = header.indexOf("Shelf");
         const idxPageCount = header.indexOf("Page_Count");
@@ -2024,10 +1694,6 @@ function importCsv() {
                 Number: (cols[idxNumber] || "").trim(),
                 URL: (cols[idxURL] || "").trim(),
                 Year: (cols[idxYear] || "").trim(),
-                Publication_Date: (cols[idxPublicationDate] || "").trim(),
-                Loaned_To: (cols[idxLoanedTo] || "").trim(),
-                Loaned_Date: (cols[idxLoanedDate] || "").trim(),
-                Loan_Due_Date: (cols[idxLoanDueDate] || "").trim(),
                 Location: (cols[idxLocation] || "").trim(),
                 Shelf: (cols[idxShelf] || "").trim(),
                 Page_Count: (cols[idxPageCount] || "").trim(),
@@ -2091,10 +1757,6 @@ function importCsv() {
                 "&Number=" + encodeURIComponent(book.Number) +
                 "&URL=" + encodeURIComponent(book.URL) +
                 "&Year=" + encodeURIComponent(book.Year) +
-                "&Publication_Date=" + encodeURIComponent(book.Publication_Date) +
-                "&Loaned_To=" + encodeURIComponent(book.Loaned_To) +
-                "&Loaned_Date=" + encodeURIComponent(book.Loaned_Date) +
-                "&Loan_Due_Date=" + encodeURIComponent(book.Loan_Due_Date) +
                 "&Location=" + encodeURIComponent(book.Location) +
                 "&Shelf=" + encodeURIComponent(book.Shelf) +
                 "&Page_Count=" + encodeURIComponent(book.Page_Count) +
@@ -2224,7 +1886,6 @@ function tablaMegjelenites() {
             <td data-label="Cím">${item["Title"] || ""}</td>
             <td data-label="Sorozat">${item["Series"] || ""}</td>
 <td data-label="Év">${item["Year"] || ""}</td>
-<td data-label="Megjelenés dátuma">${item["Publication_Date"] || ""}</td>
 <td data-label="Helyszín">${item["Location"] || ""}</td>
 <td data-label="Polc">${item["Shelf"] || ""}</td>
 <td data-label="Oldalszám">${item["Page_Count"] || ""}</td>
@@ -2411,807 +2072,6 @@ function togglePurchaseFilter() {
     // Mindkét nézet újraszűrése
     listaSzures();
     tablaSzures();
-}
-
-/********** KÍVÁNSÁGLISTA **********/
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-function wishlistApiCall(action, params, onSuccess, timeoutMs) {
-    const callbackName = "wishlistCallback_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
-    const script = document.createElement("script");
-    let settled = false;
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
-function wishlistApiCall(action, params, onSuccess) {
-    const callbackName = "wishlistCallback_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
-    const script = document.createElement("script");
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
-function wishlistApiCall(action, params, onSuccess) {
-    const callbackName = "wishlistCallback_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
-    const script = document.createElement("script");
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-    const query = Object.keys(params || {}).map(key =>
-        encodeURIComponent(key) + "=" + encodeURIComponent(params[key] == null ? "" : params[key])
-    ).join("&");
-
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-    function finish(data) {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        delete window[callbackName];
-        script.remove();
-        onSuccess(data || { success: false, error: "Üres válasz érkezett." });
-    }
-
-    window[callbackName] = function (data) {
-        finish(data);
-    };
-    script.onerror = function () {
-        finish({ success: false, error: "A kívánságlista szolgáltatás nem érhető el." });
-    };
-    script.src = API_URL + "?action=" + encodeURIComponent(action) +
-        (query ? "&" + query : "") + "&callback=" + encodeURIComponent(callbackName) +
-        "&_=" + Date.now();
-    document.body.appendChild(script);
-    const timer = setTimeout(function () {
-        finish({
-            success: false,
-            error: "Az árlekérés nem válaszolt időben. Ellenőrizd az Apps Script telepítését és hozzáférését."
-        });
-    }, timeoutMs || 30000);
-}
-
-function loadWishlist(forceRefresh) {
-    const notice = document.getElementById("wishlistNotice");
-    if (notice) {
-        notice.textContent = "Kívánságlista betöltése…";
-        notice.className = "wishlist-notice";
-        notice.hidden = false;
-    }
-    wishlistApiCall("getWishlistData", { refresh: "0" }, function (data) {
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
-    window[callbackName] = function (data) {
-        delete window[callbackName];
-        script.remove();
-        onSuccess(data || { success: false, error: "Üres válasz érkezett." });
-    };
-    script.onerror = function () {
-        delete window[callbackName];
-        script.remove();
-        onSuccess({ success: false, error: "A kívánságlista szolgáltatás nem érhető el." });
-    };
-    script.src = API_URL + "?action=" + encodeURIComponent(action) +
-        (query ? "&" + query : "") + "&callback=" + encodeURIComponent(callbackName);
-    document.body.appendChild(script);
-}
-
-function loadWishlist() {
-    const notice = document.getElementById("wishlistNotice");
-    if (notice) notice.hidden = true;
-    wishlistApiCall("getWishlistData", {}, function (data) {
-<<<<<<< HEAD
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-        if (!data.success) {
-            showWishlistNotice(data.error || "A kívánságlista nem tölthető be.", true);
-            return;
-        }
-        wishlistData = {
-            items: Array.isArray(data.items) ? data.items : [],
-            offers: Array.isArray(data.offers) ? data.offers : [],
-            discounts: Array.isArray(data.discounts) ? data.discounts : []
-        };
-        renderWishlist();
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-        refreshWishlistPrices(Boolean(forceRefresh));
-    }, 30000);
-}
-
-function mergeWishlistOffersClient(currentOffers, newOffers) {
-    const merged = new Map();
-    (currentOffers || []).forEach(offer => {
-        merged.set(String(offer.Wishlist_ID) + "|" + wishlistRetailerKey(offer.Retailer), offer);
-    });
-    (newOffers || []).forEach(offer => {
-        merged.set(String(offer.Wishlist_ID) + "|" + wishlistRetailerKey(offer.Retailer), offer);
-    });
-    return Array.from(merged.values());
-}
-
-function refreshWishlistPrices(forceRefresh) {
-    const queue = (wishlistData.items || []).slice();
-    if (!queue.length) {
-        const notice = document.getElementById("wishlistNotice");
-        if (notice) notice.hidden = true;
-        return;
-    }
-
-    let nextIndex = 0;
-    let active = 0;
-    let completed = 0;
-    let pricesFound = 0;
-    const failures = [];
-    const concurrency = 2;
-
-    function updateProgress() {
-        showWishlistNotice("Kereskedői árak frissítése: " + completed + "/" + queue.length + " könyv…", false);
-    }
-
-    function launchNext() {
-        while (active < concurrency && nextIndex < queue.length) {
-            const item = queue[nextIndex++];
-            active++;
-            wishlistApiCall("getWishlistItemOffers", {
-                ID: item.ID,
-                force: forceRefresh ? "1" : "0"
-            }, function (data) {
-                active--;
-                completed++;
-                if (data.success) {
-                    wishlistData.offers = mergeWishlistOffersClient(wishlistData.offers, data.offers);
-                    pricesFound += (data.offers || []).length;
-                    (data.offerErrors || []).forEach(error => failures.push(
-                        (error.Retailer || "Ismeretlen kereskedő") + ": " +
-                        (error.Error || "nem található ár")
-                    ));
-                    renderWishlist();
-                } else {
-                    failures.push(data.error || "ismeretlen hiba");
-                }
-
-                if (completed === queue.length) {
-                    if (!pricesFound) {
-                        showWishlistNotice("A webshopok válaszoltak, de egyik könyvhöz sem találtak megjeleníthető árat. Ellenőrizd az ISBN-t, illetve hogy a teljes backend új verziója van-e telepítve.", true);
-                    } else if (failures.length) {
-                        showWishlistNotice("Az árfrissítés részben sikertelen: " + Array.from(new Set(failures)).join(", ") + ".", true);
-                    } else {
-                        showWishlistNotice("A kereskedői árak frissültek (" + pricesFound + " ajánlat).", false);
-                    }
-                    return;
-                }
-                updateProgress();
-                launchNext();
-            }, 90000);
-        }
-    }
-
-    updateProgress();
-    launchNext();
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
-    });
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
-    });
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-}
-
-function showWishlistNotice(message, isError) {
-    const notice = document.getElementById("wishlistNotice");
-    if (!notice) return;
-    notice.textContent = message;
-    notice.className = "wishlist-notice" + (isError ? " is-error" : " is-success");
-    notice.hidden = false;
-}
-
-function wishlistText(value) {
-    return escapeLookupHtml(value == null ? "" : String(value));
-}
-
-function wishlistSafeUrl(value) {
-    const url = String(value || "").trim();
-    return /^https?:\/\//i.test(url) ? url : "";
-}
-
-function wishlistPriceNumber(value) {
-    if (typeof value === "number") return value;
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-    let clean = String(value || "").trim().replace(/[^0-9,.-]/g, "");
-    if (/^-?\d{1,3}(?:[.\s]\d{3})+$/.test(clean)) {
-        clean = clean.replace(/[.\s]/g, "");
-    } else if (clean.includes(",") && clean.includes(".")) {
-        clean = clean.lastIndexOf(",") > clean.lastIndexOf(".")
-            ? clean.replace(/\./g, "").replace(",", ".")
-            : clean.replace(/,/g, "");
-    } else {
-        clean = clean.replace(",", ".");
-    }
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
-    const clean = String(value || "").replace(/\s/g, "").replace(/[^0-9,.-]/g, "").replace(",", ".");
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
-    const clean = String(value || "").replace(/\s/g, "").replace(/[^0-9,.-]/g, "").replace(",", ".");
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-    const parsed = Number(clean);
-    return Number.isFinite(parsed) ? parsed : null;
-}
-
-function wishlistFormatPrice(value) {
-    const number = wishlistPriceNumber(value);
-    return number == null ? "—" : Math.round(number).toLocaleString("hu-HU") + " Ft";
-}
-
-function wishlistNormalized(value) {
-    return String(value || "").trim().toLocaleLowerCase("hu-HU");
-}
-
-function wishlistIsTruthy(value) {
-    return ["x", "1", "true", "igen", "aktív", "aktiv"].includes(wishlistNormalized(value));
-}
-
-function wishlistOfferAvailable(offer) {
-    const value = wishlistNormalized(offer.Availability);
-    if (!value || value.includes("nem elérhető") || value.includes("elfogyott") || value.includes("nincs")) return false;
-    return value.includes("elérhető") || value.includes("készlet") || value.includes("raktár") ||
-        value.includes("rendelhető") || value === "igen" || value === "x";
-}
-
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-function wishlistRetailerKey(value) {
-    const retailer = wishlistNormalized(value);
-    if (retailer.includes("bookline")) return "bookline";
-    if (retailer.includes("libri")) return "libri";
-    if (retailer.includes("líra") || retailer.includes("lira")) return "lira";
-    if (retailer.includes("alexandra")) return "alexandra";
-    return retailer;
-}
-
-function wishlistDiscountIsActive(discount) {
-    const activeValue = wishlistNormalized(discount.Active);
-    if (activeValue && !wishlistIsTruthy(activeValue)) return false;
-    const today = new Date().toISOString().slice(0, 10);
-    if (discount.Valid_From && String(discount.Valid_From).slice(0, 10) > today) return false;
-    if (discount.Valid_To && String(discount.Valid_To).slice(0, 10) < today) return false;
-    return true;
-}
-
-function wishlistDiscountedPrice(item, offer) {
-    const basePrice = wishlistPriceNumber(offer.Price);
-    if (basePrice == null) return null;
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
-function wishlistDiscountedPrice(item, offer) {
-    const basePrice = wishlistPriceNumber(offer.Price);
-    if (basePrice == null) return null;
-    const today = new Date().toISOString().slice(0, 10);
-<<<<<<< HEAD
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-    const retailer = wishlistNormalized(offer.Retailer);
-    const publisher = wishlistNormalized(item.Publisher);
-
-    const matches = wishlistData.discounts.filter(discount => {
-<<<<<<< HEAD
-        if (!wishlistDiscountIsActive(discount)) return false;
-=======
-<<<<<<< HEAD
-        if (!wishlistDiscountIsActive(discount)) return false;
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-        if (!wishlistDiscountIsActive(discount)) return false;
-=======
-<<<<<<< HEAD
-        if (!wishlistDiscountIsActive(discount)) return false;
-=======
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
-        const activeValue = wishlistNormalized(discount.Active);
-        if (activeValue && !wishlistIsTruthy(activeValue)) return false;
-        if (discount.Valid_From && String(discount.Valid_From).slice(0, 10) > today) return false;
-        if (discount.Valid_To && String(discount.Valid_To).slice(0, 10) < today) return false;
-<<<<<<< HEAD
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-        if (discount.Retailer && wishlistNormalized(discount.Retailer) !== retailer) return false;
-        if (discount.Publisher && wishlistNormalized(discount.Publisher) !== publisher) return false;
-        const minimum = wishlistPriceNumber(discount.Min_Order);
-        return minimum == null || basePrice >= minimum;
-    });
-    if (!matches.length) return { price: basePrice, applied: [] };
-
-    function applyOne(price, discount) {
-        const value = wishlistPriceNumber(discount.Discount_Value) || 0;
-        const type = wishlistNormalized(discount.Discount_Type);
-        return type.includes("%") || type.includes("százal") || type.includes("percent")
-            ? price * (1 - value / 100)
-            : Math.max(0, price - value);
-    }
-
-    if (matches.length > 1 && matches.every(discount => wishlistIsTruthy(discount.Stackable))) {
-        return { price: matches.reduce(applyOne, basePrice), applied: matches };
-    }
-
-    let best = { price: basePrice, applied: [] };
-    matches.forEach(discount => {
-        const calculated = applyOne(basePrice, discount);
-        if (calculated < best.price) best = { price: calculated, applied: [discount] };
-    });
-    return best;
-}
-
-function renderWishlist() {
-    const container = document.getElementById("wishlistContainer");
-    const empty = document.getElementById("wishlistEmptyState");
-    if (!container || !empty) return;
-
-    const query = wishlistNormalized(document.getElementById("wishSearch")?.value);
-    const priority = document.getElementById("wishPriorityFilter")?.value || "";
-    const allItems = wishlistData.items || [];
-    const filtered = allItems.filter(item => {
-        const haystack = wishlistNormalized([item.Author, item.Title, item.ISBN, item.Publisher].join(" "));
-        return (!query || haystack.includes(query)) && (!priority || item.Priority === priority);
-    });
-
-    const availableIds = new Set((wishlistData.offers || []).filter(wishlistOfferAvailable).map(offer => String(offer.Wishlist_ID)));
-    document.getElementById("wish_stat_total").textContent = allItems.length;
-    document.getElementById("wish_stat_available").textContent = allItems.filter(item => availableIds.has(String(item.ID))).length;
-    document.getElementById("wish_stat_high").textContent = allItems.filter(item => wishlistNormalized(item.Priority) === "magas").length;
-    document.getElementById("wish_stat_offers").textContent = wishlistData.offers.length;
-<<<<<<< HEAD
-    renderWishlistDiscountSummary();
-=======
-<<<<<<< HEAD
-    renderWishlistDiscountSummary();
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-    renderWishlistDiscountSummary();
-=======
-<<<<<<< HEAD
-    renderWishlistDiscountSummary();
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-
-    empty.style.display = filtered.length ? "none" : "block";
-    empty.textContent = allItems.length ? "Nincs a szűrésnek megfelelő könyv." : "A kívánságlista még üres.";
-    container.innerHTML = filtered.map(item => renderWishlistCard(item)).join("");
-}
-
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-function renderWishlistDiscountSummary() {
-    const container = document.getElementById("wishlistDiscountSummary");
-    if (!container) return;
-    const activeDiscounts = (wishlistData.discounts || []).filter(wishlistDiscountIsActive);
-    if (!activeDiscounts.length) {
-        container.innerHTML = `<p class="wishlist-discount-empty">Nincs rögzített aktív kedvezmény.</p>`;
-        return;
-    }
-
-    container.innerHTML = activeDiscounts.map(discount => {
-        const target = [discount.Retailer, discount.Publisher].filter(Boolean).map(wishlistText).join(" · ") || "Általános";
-        const type = wishlistNormalized(discount.Discount_Type);
-        const value = wishlistPriceNumber(discount.Discount_Value) || 0;
-        const amount = type.includes("%") || type.includes("százal") || type.includes("percent")
-            ? value + "%"
-            : wishlistFormatPrice(value);
-        return `<span class="wishlist-discount-chip">${target}: −${wishlistText(amount)}</span>`;
-    }).join("");
-}
-
-function renderWishlistCard(item) {
-    const recordedOffers = (wishlistData.offers || []).filter(offer => String(offer.Wishlist_ID) === String(item.ID));
-    const offerSlots = new Map();
-    WISHLIST_PREFERRED_RETAILERS.forEach(retailer => {
-        offerSlots.set(wishlistRetailerKey(retailer), { Retailer: retailer, Availability: "Nincs adat" });
-    });
-    recordedOffers.forEach(offer => offerSlots.set(wishlistRetailerKey(offer.Retailer), offer));
-    const ranked = Array.from(offerSlots.values())
-        .map(offer => ({ offer, calculation: wishlistDiscountedPrice(item, offer) }))
-        .sort((a, b) => {
-            const availabilityDifference = Number(wishlistOfferAvailable(b.offer)) - Number(wishlistOfferAvailable(a.offer));
-            return availabilityDifference || (a.calculation?.price ?? Infinity) - (b.calculation?.price ?? Infinity);
-        });
-    const imageUrl = wishlistSafeUrl(item.URL);
-    const purchaseLink = wishlistSafeUrl(item.Purchase_Link);
-    const priorityClass = wishlistNormalized(item.Priority) === "magas" ? "high" :
-        wishlistNormalized(item.Priority) === "alacsony" ? "low" : "medium";
-
-    const bestPrice = ranked.filter(entry => wishlistOfferAvailable(entry.offer) && entry.calculation?.price != null)
-        .reduce((best, entry) => Math.min(best, entry.calculation.price), Infinity);
-    const offerRows = ranked.map(entry => {
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
-function renderWishlistCard(item) {
-    const offers = (wishlistData.offers || []).filter(offer => String(offer.Wishlist_ID) === String(item.ID));
-    const ranked = offers.map(offer => ({ offer, calculation: wishlistDiscountedPrice(item, offer) }))
-        .sort((a, b) => (a.calculation?.price ?? Infinity) - (b.calculation?.price ?? Infinity));
-    const imageUrl = wishlistSafeUrl(item.URL);
-    const priorityClass = wishlistNormalized(item.Priority) === "magas" ? "high" :
-        wishlistNormalized(item.Priority) === "alacsony" ? "low" : "medium";
-
-    const offerRows = ranked.length ? ranked.map((entry, index) => {
-<<<<<<< HEAD
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-        const offer = entry.offer;
-        const calculation = entry.calculation;
-        const hasDiscount = calculation && calculation.applied.length > 0;
-        const productUrl = wishlistSafeUrl(offer.Product_URL);
-        const retailer = wishlistText(offer.Retailer || "Kereskedő");
-<<<<<<< HEAD
-        const isBest = wishlistOfferAvailable(offer) && calculation?.price === bestPrice;
-        return `<div class="wishlist-offer${isBest ? " is-best" : ""}">
-=======
-<<<<<<< HEAD
-        const isBest = wishlistOfferAvailable(offer) && calculation?.price === bestPrice;
-        return `<div class="wishlist-offer${isBest ? " is-best" : ""}">
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-        const isBest = wishlistOfferAvailable(offer) && calculation?.price === bestPrice;
-        return `<div class="wishlist-offer${isBest ? " is-best" : ""}">
-=======
-<<<<<<< HEAD
-        const isBest = wishlistOfferAvailable(offer) && calculation?.price === bestPrice;
-        return `<div class="wishlist-offer${isBest ? " is-best" : ""}">
-=======
-        return `<div class="wishlist-offer${index === 0 && wishlistOfferAvailable(offer) ? " is-best" : ""}">
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
-        return `<div class="wishlist-offer${index === 0 && wishlistOfferAvailable(offer) ? " is-best" : ""}">
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-            <div><strong>${retailer}</strong><span class="availability ${wishlistOfferAvailable(offer) ? "available" : "unavailable"}">${wishlistText(offer.Availability || "Nincs adat")}</span></div>
-            <div class="wishlist-offer-price">
-                ${hasDiscount ? `<s>${wishlistFormatPrice(offer.Price)}</s><strong>${wishlistFormatPrice(calculation.price)}</strong><small>saját ár</small>` : `<strong>${wishlistFormatPrice(offer.Price)}</strong>`}
-                ${offer.Shipping ? `<small>Szállítás: ${wishlistText(offer.Shipping)}</small>` : ""}
-            </div>
-            ${productUrl ? `<a class="text-action" href="${wishlistText(productUrl)}" target="_blank" rel="noopener">Megnézem ↗</a>` : ""}
-        </div>`;
-<<<<<<< HEAD
-    }).join("");
-=======
-<<<<<<< HEAD
-    }).join("");
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-    }).join("");
-=======
-<<<<<<< HEAD
-    }).join("");
-=======
-    }).join("") : `<p class="wishlist-no-offer">Még nincs rögzített kereskedői ajánlat.</p>`;
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
-    }).join("") : `<p class="wishlist-no-offer">Még nincs rögzített kereskedői ajánlat.</p>`;
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-
-    return `<article class="wishlist-card">
-        <div class="wishlist-book">
-            <div class="wishlist-cover">${imageUrl ? `<img src="${wishlistText(imageUrl)}" alt="${wishlistText(item.Title)} borító">` : `<span>📖</span>`}</div>
-            <div class="wishlist-book-info">
-                <span class="wishlist-priority ${priorityClass}">${wishlistText(item.Priority || "Közepes")}</span>
-                <h2>${wishlistText(item.Title)}</h2>
-                <p class="wishlist-author">${wishlistText(item.Author)}</p>
-                <div class="wishlist-meta">
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-                    ${item.Original_Title ? `<span>Eredeti cím: ${wishlistText(item.Original_Title)}</span>` : ""}
-                    ${item.Publisher ? `<span>${wishlistText(item.Publisher)}</span>` : ""}
-                    ${item.Publication_Date ? `<span>Megjelenés: ${wishlistText(item.Publication_Date)}</span>` : ""}
-                    ${item.ISBN ? `<span>ISBN: ${wishlistText(item.ISBN)}</span>` : ""}
-                    ${item.Genre ? `<span>Műfaj: ${wishlistText(item.Genre)}</span>` : ""}
-                    ${item.Desired_Format ? `<span>Formátum: ${wishlistText(item.Desired_Format)}</span>` : ""}
-                    ${item.Added_Date ? `<span>Felvéve: ${wishlistText(item.Added_Date)}</span>` : ""}
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
-                    ${item.Publisher ? `<span>${wishlistText(item.Publisher)}</span>` : ""}
-                    ${item.Publication_Date ? `<span>Megjelenés: ${wishlistText(item.Publication_Date)}</span>` : ""}
-                    ${item.ISBN ? `<span>ISBN: ${wishlistText(item.ISBN)}</span>` : ""}
-                    ${item.Desired_Format ? `<span>Formátum: ${wishlistText(item.Desired_Format)}</span>` : ""}
-<<<<<<< HEAD
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-                </div>
-                ${item.Note ? `<p class="wishlist-note">${wishlistText(item.Note)}</p>` : ""}
-            </div>
-        </div>
-        <div class="wishlist-offers"><h3>Kereskedői ajánlatok</h3>${offerRows}</div>
-        <div class="wishlist-actions">
-<<<<<<< HEAD
-            ${purchaseLink ? `<a class="btn btn-secondary" href="${wishlistText(purchaseLink)}" target="_blank" rel="noopener">Vásárlási link ↗</a>` : ""}
-=======
-<<<<<<< HEAD
-            ${purchaseLink ? `<a class="btn btn-secondary" href="${wishlistText(purchaseLink)}" target="_blank" rel="noopener">Vásárlási link ↗</a>` : ""}
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-            ${purchaseLink ? `<a class="btn btn-secondary" href="${wishlistText(purchaseLink)}" target="_blank" rel="noopener">Vásárlási link ↗</a>` : ""}
-=======
-<<<<<<< HEAD
-            ${purchaseLink ? `<a class="btn btn-secondary" href="${wishlistText(purchaseLink)}" target="_blank" rel="noopener">Vásárlási link ↗</a>` : ""}
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-            <button class="btn btn-secondary" onclick="openWishlistModal('edit', '${wishlistText(item.ID)}')">Szerkesztés</button>
-            <button class="btn btn-secondary" onclick="purchaseWishlistItem('${wishlistText(item.ID)}')">✓ Megvettem</button>
-            <button class="btn btn-danger" onclick="deleteWishlistItem('${wishlistText(item.ID)}')">Törlés</button>
-        </div>
-    </article>`;
-}
-
-function openWishlistModal(mode, id) {
-    const item = mode === "edit" ? wishlistData.items.find(row => String(row.ID) === String(id)) : null;
-    document.getElementById("wishlistModalTitle").textContent = item ? "Kívánság szerkesztése" : "Új kívánság";
-    const values = item || {};
-    const fields = {
-        wm_id: values.ID, wm_added_date: values.Added_Date, wm_author: values.Author,
-        wm_title: values.Title, wm_original_title: values.Original_Title, wm_isbn: values.ISBN,
-        wm_publisher: values.Publisher, wm_publication_date: values.Publication_Date,
-        wm_genre: values.Genre, wm_priority: values.Priority || "Közepes", wm_format: values.Desired_Format,
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-        wm_url: values.URL, wm_purchase_link: values.Purchase_Link,
-        wm_bookline_url: values.Bookline_URL, wm_libri_url: values.Libri_URL,
-        wm_lira_url: values.Lira_URL, wm_alexandra_url: values.Alexandra_URL,
-        wm_note: values.Note
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
-        wm_url: values.URL, wm_purchase_link: values.Purchase_Link, wm_note: values.Note
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
-        wm_url: values.URL, wm_purchase_link: values.Purchase_Link, wm_note: values.Note
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-    };
-    Object.keys(fields).forEach(id => { document.getElementById(id).value = fields[id] || ""; });
-    document.getElementById("wishlistModal").style.display = "flex";
-}
-
-function closeWishlistModal() {
-    document.getElementById("wishlistModal").style.display = "none";
-}
-
-function saveWishlistItem() {
-    const item = {
-        ID: document.getElementById("wm_id").value.trim(),
-        Added_Date: document.getElementById("wm_added_date").value.trim(),
-        Author: document.getElementById("wm_author").value.trim(),
-        Title: document.getElementById("wm_title").value.trim(),
-        Original_Title: document.getElementById("wm_original_title").value.trim(),
-        ISBN: document.getElementById("wm_isbn").value.trim(),
-        Publisher: document.getElementById("wm_publisher").value.trim(),
-        Publication_Date: document.getElementById("wm_publication_date").value,
-        Genre: document.getElementById("wm_genre").value.trim(),
-        Priority: document.getElementById("wm_priority").value,
-        Desired_Format: document.getElementById("wm_format").value.trim(),
-        URL: document.getElementById("wm_url").value.trim(),
-        Purchase_Link: document.getElementById("wm_purchase_link").value.trim(),
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
->>>>>>> Stashed changes
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-        Bookline_URL: document.getElementById("wm_bookline_url").value.trim(),
-        Libri_URL: document.getElementById("wm_libri_url").value.trim(),
-        Lira_URL: document.getElementById("wm_lira_url").value.trim(),
-        Alexandra_URL: document.getElementById("wm_alexandra_url").value.trim(),
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
-        Note: document.getElementById("wm_note").value.trim()
-    };
-    if (!item.Author || !item.Title) {
-        showWishlistNotice("A szerző és a cím megadása kötelező.", true);
-        return;
-    }
-    const action = item.ID ? "updateWishlistItem" : "addWishlistItem";
-    wishlistApiCall(action, item, function (data) {
-        if (!data.success) return showWishlistNotice(data.error || "A mentés nem sikerült.", true);
-        closeWishlistModal();
-        showWishlistNotice("A kívánságlista frissült.", false);
-        loadWishlist();
-    });
-}
-
-function deleteWishlistItem(id) {
-    if (!confirm("Biztosan törlöd ezt a könyvet a kívánságlistáról?")) return;
-    wishlistApiCall("deleteWishlistItem", { ID: id }, function (data) {
-        if (!data.success) return showWishlistNotice(data.error || "A törlés nem sikerült.", true);
-        loadWishlist();
-    });
-}
-
-function purchaseWishlistItem(id) {
-    if (!confirm("A könyv átkerüljön a Könyveim közé megvásároltként?")) return;
-    wishlistApiCall("purchaseWishlistItem", { ID: id }, function (data) {
-        if (!data.success) return showWishlistNotice(data.error || "Az áthelyezés nem sikerült.", true);
-        wishlistData.items = wishlistData.items.filter(item => String(item.ID) !== String(id));
-        betoltesLista();
-        loadWishlist();
-    });
 }
 
 

@@ -139,12 +139,7 @@ function addBookToLista_(book) {
   }
 
   const sheet = getSheet_(SHEET_LISTA);
-  const map = ensureHeaderColumns_(sheet, [
-    "Publication_Date",
-    "Loaned_To",
-    "Loaned_Date",
-    "Loan_Due_Date"
-  ]);
+  const map = getHeaderMap_(sheet);
   const row = new Array(sheet.getLastColumn()).fill("");
 
   if (map["ID"]) {
@@ -236,12 +231,6 @@ function getLista_() {
  */
 function updateLista_(book) {
   const sheet = getSheet_(SHEET_LISTA);
-  ensureHeaderColumns_(sheet, [
-    "Publication_Date",
-    "Loaned_To",
-    "Loaned_Date",
-    "Loan_Due_Date"
-  ]);
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
 
@@ -322,27 +311,4 @@ function deleteLista_(id) {
     success: false,
     error: "ID nem található."
   };
-}
-
-/** Kölcsönadási adatok törlése, amikor a könyv visszakerült. */
-function returnLoan_(id) {
-  const sheet = getSheet_(SHEET_LISTA);
-  const map = ensureHeaderColumns_(sheet, ["Loaned_To", "Loaned_Date", "Loan_Due_Date"]);
-  const data = sheet.getDataRange().getValues();
-  const idCol = map["ID"];
-
-  if (!idCol) {
-    return { success: false, error: "Nincs ID oszlop!" };
-  }
-
-  for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
-    if (String(data[rowIndex][idCol - 1]) === String(id)) {
-      sheet.getRange(rowIndex + 1, map["Loaned_To"]).setValue("");
-      sheet.getRange(rowIndex + 1, map["Loaned_Date"]).setValue("");
-      sheet.getRange(rowIndex + 1, map["Loan_Due_Date"]).setValue("");
-      return { success: true };
-    }
-  }
-
-  return { success: false, error: "ID nem található." };
 }

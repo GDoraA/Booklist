@@ -51,7 +51,6 @@
  */
 function parseAlexandraProductPage_(productUrl) {
   const productHtml = fetchPublisherHtml_(productUrl);
-  const commerceOffer = extractCommerceOffer_(productHtml);
 
 const rawTitle =
   extractFirstMatch_(productHtml, /<span[^>]*class=["'][^"']*\balexwebdatainfogrid_name\b[^"']*["'][^>]*>([\s\S]*?)<\/span>/i) ||
@@ -85,14 +84,11 @@ if (alexandraTitleMatch) {
     .replace(/,\s*[12][0-9]{3}\.?\s*$/, "")
     .trim();
 
-  const issueDateRaw =
-    extractFirstMatch_(productHtml, /<div[^>]*class=["'][^"']*\balexwebdatainfogrid_issuedate\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
-
   const year =
-    extractYear_(issueDateRaw) ||
+    extractYear_(
+      extractFirstMatch_(productHtml, /<div[^>]*class=["'][^"']*\balexwebdatainfogrid_issuedate\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i)
+    ) ||
     extractFirstMatch_(productHtml, /Kiadás éve[\s\S]{0,120}?([12][0-9]{3})/i);
-
-  const publicationDate = normalizePublicationDate_(issueDateRaw);
 
   const pageCount =
     extractFirstMatch_(productHtml, /<div[^>]*class=["'][^"']*\balexwebdatainfogrid_pagenumber\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i) ||
@@ -125,7 +121,6 @@ if (alexandraTitleMatch) {
     series: "",
     number: "",
     year: year,
-    publicationDate: publicationDate,
     location: "",
     shelf: "",
     pageCount: pageCount,
@@ -134,10 +129,7 @@ if (alexandraTitleMatch) {
     translator: "",
     genre: "",
     coverUrl: imageUrl,
-    language: "hu",
-    price: commerceOffer.price,
-    availability: commerceOffer.availability,
-    productUrl: productUrl
+    language: "hu"
   };
 }
 /**

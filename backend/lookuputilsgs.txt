@@ -357,6 +357,10 @@ function scoreLookupCandidate_(candidate, queryContext) {
     if (candidateIsbn && candidateIsbn === wantedIsbn) {
       score += 1000;
     }
+
+    if (candidate.source === "google_books") {
+      score += 50;
+    }
   } else {
     if (wantedTitle && candidateTitle === wantedTitle) {
       score += 300;
@@ -390,40 +394,4 @@ function scoreLookupCandidate_(candidate, queryContext) {
   }
 
   return score;
-}
-
-/** Teljes megjelenési dátum egységesítése YYYY-MM-DD formátumra. */
-function normalizePublicationDate_(value) {
-  const text = String(value || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-  let match = text.match(/\b(\d{4})[-./]\s*(\d{1,2})[-./]\s*(\d{1,2})\.?\b/);
-
-  if (!match) {
-    const normalized = normalizeText_(text);
-    const months = {
-      januar: 1, februar: 2, marcius: 3, aprilis: 4, majus: 5, junius: 6,
-      julius: 7, augusztus: 8, szeptember: 9, oktober: 10, november: 11, december: 12
-    };
-    match = normalized.match(/\b(\d{4})\.?\s+([a-z]+)\s+(\d{1,2})\.?\b/);
-
-    if (match && months[match[2]]) {
-      match = [match[0], match[1], String(months[match[2]]), match[3]];
-    } else {
-      match = null;
-    }
-  }
-
-  if (!match) return "";
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = new Date(Date.UTC(year, month - 1, day));
-
-  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
-    return "";
-  }
-
-  return String(year).padStart(4, "0") + "-" +
-    String(month).padStart(2, "0") + "-" +
-    String(day).padStart(2, "0");
 }

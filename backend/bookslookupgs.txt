@@ -30,9 +30,9 @@
  * - keresési kontextust épít a bemenetből
  * - ha van ISBN, ISBN alapú keresésként kezeli a kérést
  * - ha nincs ISBN, cím/szerző alapú keresésként kezeli
+ * - meghívja a Google Books keresőt
  * - meghívja az Open Library keresőt
  * - ISBN esetén meghívja a Bookline, Libri és Alexandra ISBN keresőket
- * - utolsó tartalékforrásként meghívja a Google Books keresőt
  * - minden forrást külön try/catch blokkban kezel, hogy egy hibás külső forrás
  *   ne állítsa le a teljes lookup folyamatot
  * - ISBN keresésnél a webshop találatokat visszaszűri a kért ISBN-re
@@ -118,6 +118,13 @@ function lookupBookMetadata_(params) {
   let libriError = "";
   let alexandraError = "";
 
+  try {
+    googleResults = searchGoogleBooks_(queryContext);
+  } catch (err) {
+    googleError = err && err.message ? err.message : String(err);
+    googleResults = [];
+  }
+
   let openLibraryDebug = [];
   let openLibraryUnavailable = false;
 
@@ -166,36 +173,18 @@ function lookupBookMetadata_(params) {
     }
   }
 
-  // A Google Books szándékosan az utolsó tartalékforrás. Egy esetleges
-  // elérhetetlensége nem akadályozza a többi forrás feldolgozását.
-  try {
-    googleResults = searchGoogleBooks_(queryContext);
-  } catch (err) {
-    googleError = err && err.message ? err.message : String(err);
-    googleResults = [];
-  }
-
   const merged = dedupeLookupCandidates_(
-    openLibraryResults
+    googleResults
+      .concat(openLibraryResults)
       .concat(booklineResults)
       .concat(libriResults)
       .concat(alexandraResults)
-      .concat(googleResults)
   )
     .map(item => {
       item.score = scoreLookupCandidate_(item, queryContext);
       return item;
     })
-    .sort((a, b) => {
-      const aIsGoogle = a.source === "google_books";
-      const bIsGoogle = b.source === "google_books";
-
-      if (aIsGoogle !== bIsGoogle) {
-        return aIsGoogle ? 1 : -1;
-      }
-
-      return b.score - a.score;
-    })
+    .sort((a, b) => b.score - a.score)
     .slice(0, BOOK_LOOKUP_MAX_RESULTS);
 
   return {

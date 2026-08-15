@@ -4,34 +4,13 @@ self.addEventListener('install', (event) => {
 });
 
 // Cache verzió
-<<<<<<< HEAD
-const CACHE_NAME = "gda-cache-v45";
-=======
-<<<<<<< HEAD
-const CACHE_NAME = "gda-cache-v45";
-=======
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-const CACHE_NAME = "gda-cache-v45";
-=======
-<<<<<<< HEAD
-const CACHE_NAME = "gda-cache-v45";
-=======
-const CACHE_NAME = "gda-cache-v37";
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> Stashed changes
-=======
-const CACHE_NAME = "gda-cache-v37";
->>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
->>>>>>> 7f9eef387d22e3db393e321d697a9cd955d5b864
->>>>>>> c731738e0e439144b18e52b4b4aa58e28af2303c
+const CACHE_NAME = "gda-cache-v32";
 
 // Cache-elendő statikus fájlok
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
   "./styles.css",
-  "./theme.css",
   "./app.js",
   "./manifest.json",
 
@@ -80,25 +59,6 @@ self.addEventListener("fetch", event => {
     request.url.includes("script.google.com") ||
     request.url.includes("googleusercontent.com")
   ) {
-    return;
-  }
-
-  // A saját HTML/JS/CSS fájloknál mindig a friss helyi verziót kérjük először.
-  // Így fejlesztés közben nem marad bent egy korábbi app.js a cache-ben.
-  const isAppShellRequest =
-    url.origin === self.location.origin &&
-    (request.mode === "navigate" || /\.(?:html|js|css)$/.test(requestPath));
-
-  if (isAppShellRequest) {
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-          return response;
-        })
-        .catch(() => caches.match(request).then(cached => cached || caches.match("./index.html")))
-    );
     return;
   }
 

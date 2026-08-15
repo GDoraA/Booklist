@@ -151,7 +151,6 @@ function normalizeLibriLanguage_(value) {
 }
 function parseLibriProductPage_(productUrl) {
   const productHtml = fetchLibriHtml_(productUrl);
-  const commerceOffer = extractCommerceOffer_(productHtml);
 
   const title =
     extractFirstMatch_(productHtml, /<h1[^>]*itemprop=["']name["'][^>]*>([\s\S]*?)<\/h1>/i) ||
@@ -186,11 +185,6 @@ function parseLibriProductPage_(productUrl) {
     extractLibriDatasField_(productHtml, "Kiadás éve") ||
     "";
 
-  const publicationDate = normalizePublicationDate_(
-    extractLibriDatasField_(productHtml, "Megjelenés") ||
-    extractFirstMatch_(productHtml, /Megjelenés[\s\S]{0,160}?([12][0-9]{3}[.\/-][^<]{2,30})/i)
-  );
-
   const pageCount =
     extractLibriDatasField_(productHtml, "Oldalak száma") ||
     "";
@@ -222,7 +216,6 @@ function parseLibriProductPage_(productUrl) {
     series: "",
     number: "",
     year: year,
-    publicationDate: publicationDate,
     location: "",
     shelf: "",
     pageCount: pageCount,
@@ -231,10 +224,7 @@ function parseLibriProductPage_(productUrl) {
     translator: translator,
     genre: "",
     coverUrl: imageUrl,
-    language: language,
-    price: commerceOffer.price,
-    availability: commerceOffer.availability,
-    productUrl: productUrl
+    language: language
   };
 }
 
@@ -345,19 +335,22 @@ function searchLibriByIsbn_(isbn) {
     return [];
   }
 
-  const productUrls = extractLibriProductUrls_(searchHtml);
-  const results = [];
+  const productMatch =
+    searchHtml.match(/https:\/\/www\.libri\.hu\/konyv\/[^"' ]+/i);
 
-  productUrls.slice(0, 5).forEach(function(productUrl) {
-    try {
-      const item = parseLibriProductPage_(productUrl);
-      if (item) results.push(item);
-    } catch (err) {
-      // Egy hibás termékoldal ne állítsa le a többi ISBN-találat feldolgozását.
-    }
-  });
+  if (!productMatch) {
+    return [];
+  }
 
-  return dedupeItemsByIsbnOrSourceId_(results);
+  const productUrl = productMatch[0];
+
+  const item = parseLibriProductPage_(productUrl);
+
+  if (!item) {
+    return [];
+  }
+
+  return [item];
 
 }
 
@@ -727,7 +720,6 @@ function searchLibriByTitleAuthor_(title, author) {
   uniqueUrls.slice(0, 5).forEach(function (productUrl) {
     try {
       const productHtml = fetchPublisherHtml_(productUrl);
-      const commerceOffer = extractCommerceOffer_(productHtml);
 
       const title =
         extractFirstMatch_(productHtml, /<meta property="og:title" content="([^"]+)"/i) ||
@@ -742,10 +734,6 @@ function searchLibriByTitleAuthor_(title, author) {
 
       const year =
         extractFirstMatch_(productHtml, /Kiadás éve[\s\S]{0,120}?([12][0-9]{3})/i);
-
-      const publicationDate = normalizePublicationDate_(
-        extractFirstMatch_(productHtml, /Megjelenés[\s\S]{0,160}?([12][0-9]{3}[.\/-][^<]{2,30})/i)
-      );
 
       const pageCount =
         extractFirstMatch_(productHtml, /Oldalszám[\s\S]{0,120}?([0-9]+)/i);
@@ -767,7 +755,6 @@ function searchLibriByTitleAuthor_(title, author) {
           series: "",
           number: "",
           year: year,
-          publicationDate: publicationDate,
           location: "",
           shelf: "",
           pageCount: pageCount,
@@ -776,10 +763,7 @@ function searchLibriByTitleAuthor_(title, author) {
           translator: "",
           genre: "",
           coverUrl: imageUrl,
-          language: "hu",
-          price: commerceOffer.price,
-          availability: commerceOffer.availability,
-          productUrl: productUrl
+          language: "hu"
         };
 
         if (

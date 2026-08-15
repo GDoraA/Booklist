@@ -81,25 +81,6 @@ function getHeaderMap_(sheet) {
 }
 
 /**
- * Hiányzó fejlécoszlopok hozzáadása a munkalap végéhez.
- * A már létező oszlopokat és azok sorrendjét nem módosítja.
- */
-function ensureHeaderColumns_(sheet, requiredHeaders) {
-  const map = getHeaderMap_(sheet);
-  let nextColumn = sheet.getLastColumn() + 1;
-
-  (requiredHeaders || []).forEach(function(header) {
-    if (!map[header]) {
-      sheet.getRange(1, nextColumn).setValue(header);
-      map[header] = nextColumn;
-      nextColumn++;
-    }
-  });
-
-  return map;
-}
-
-/**
  * Beolvassa egy munkalap adatsorait objektumlistába.
  *
  * Bemenet:
@@ -146,24 +127,10 @@ function readSheet_(sheetName) {
 
     headers.forEach((h, i) => {
       if (h) {
-        if (["Publication_Date", "Loaned_Date", "Loan_Due_Date", "Added_Date", "Valid_From", "Valid_To"].indexOf(h) !== -1 && row[i] instanceof Date) {
-          o[h] = Utilities.formatDate(
-            row[i],
-            Session.getScriptTimeZone(),
-            "yyyy-MM-dd"
-          );
-        } else if (h === "Checked_At" && row[i] instanceof Date) {
-          o[h] = Utilities.formatDate(
-            row[i],
-            Session.getScriptTimeZone(),
-            "yyyy-MM-dd HH:mm"
-          );
-        } else {
-          o[h] =
-            row[i] === null || row[i] === undefined
-              ? ""
-              : String(row[i]);
-        }
+        o[h] =
+          row[i] === null || row[i] === undefined
+            ? ""
+            : String(row[i]);
       }
     });
 
