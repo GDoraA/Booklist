@@ -171,6 +171,7 @@ function doGet(e) {
      * KÍVÁNSÁGLISTA
      ***********************************************************/
     else if (action === "getWishlistData") {
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
 <<<<<<< HEAD
@@ -191,6 +192,9 @@ function doGet(e) {
       result = getWishlistData_();
 >>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
 >>>>>>> Stashed changes
+=======
+      result = getWishlistData_();
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
     }
     else if (action === "addWishlistItem") {
       result = addWishlistItem_(mapWishlistFromParams_(p, false));
