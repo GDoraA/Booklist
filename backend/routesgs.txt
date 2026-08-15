@@ -171,6 +171,10 @@ function doGet(e) {
      * KÍVÁNSÁGLISTA
      ***********************************************************/
     else if (action === "getWishlistData") {
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
       result = getWishlistData_(
         String(p.refresh || "") === "1",
         String(p.force || "") === "1"
@@ -181,6 +185,12 @@ function doGet(e) {
         p.ID || "",
         String(p.force || "") === "1"
       );
+<<<<<<< Updated upstream
+=======
+=======
+      result = getWishlistData_();
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
     }
     else if (action === "addWishlistItem") {
       result = addWishlistItem_(mapWishlistFromParams_(p, false));

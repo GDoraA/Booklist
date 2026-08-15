@@ -3,11 +3,24 @@
 Az alap kívánságlista működéséhez a Google-táblázatban hozz létre egy `Wishlist` nevű munkalapot. Az első sorba, egymás mellé másold be az alábbi fejléceket:
 
 ```text
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
 ID	Author	Title	Original_Title	ISBN	Publisher	Publication_Date	Genre	URL	Priority	Note	Added_Date	Desired_Format	Purchase_Link	Bookline_URL	Libri_URL	Lira_URL	Alexandra_URL
 ```
 
 Az alkalmazás az `ID` és `Added_Date` mezőket új könyvnél automatikusan kitölti. A `Priority` javasolt értékei: `Magas`, `Közepes`, `Alacsony`.
 A négy kereskedői URL mező opcionális, de közvetlen terméklinkkel pontosabb és stabilabb az árlekérés.
+<<<<<<< Updated upstream
+=======
+=======
+ID	Author	Title	Original_Title	ISBN	Publisher	Publication_Date	Genre	URL	Priority	Note	Added_Date	Desired_Format	Purchase_Link
+```
+
+Az alkalmazás az `ID` és `Added_Date` mezőket új könyvnél automatikusan kitölti. A `Priority` javasolt értékei: `Magas`, `Közepes`, `Alacsony`.
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
 
 ## Kereskedői ajánlatok
 
@@ -44,4 +57,12 @@ ID	Retailer	Publisher	Discount_Type	Discount_Value	Price_Base	Stackable	Min_Orde
 - `Valid_From`, `Valid_To`: `ÉÉÉÉ-HH-NN` formátum; üresen időkorlát nélkül érvényes.
 - `Active`: `x` az aktív kedvezményhez.
 
+<<<<<<< Updated upstream
 A kereskedő és kiadó nevét minden lapon azonos írásmóddal add meg. A kívánságlista megnyitásakor az alkalmazás automatikusan lekéri a Bookline, Libri és Alexandra aktuális árait. A `WishlistOffers` lap továbbra is használható kézi ajánlatokhoz (például Líra vagy kiadói webshop); az élő találat azonos könyv és kereskedő esetén felülírja a kézi sort a megjelenítésben.
+=======
+<<<<<<< HEAD
+A kereskedő és kiadó nevét minden lapon azonos írásmóddal add meg. A kívánságlista megnyitásakor az alkalmazás automatikusan lekéri a Bookline, Libri és Alexandra aktuális árait. A `WishlistOffers` lap továbbra is használható kézi ajánlatokhoz (például Líra vagy kiadói webshop); az élő találat azonos könyv és kereskedő esetén felülírja a kézi sort a megjelenítésben.
+=======
+A kereskedő és kiadó nevét minden lapon azonos írásmóddal add meg. A `WishlistOffers` és `Discounts` lap kézzel is tölthető; később az automatikus árfigyelés ugyanezeket a mezőket használhatja.
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes

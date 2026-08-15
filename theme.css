@@ -36,12 +36,23 @@ body { background: var(--paper-bg); color: var(--ink); }
 button, input, select, textarea { font-family: var(--body-font-family); }
 
 #appContent {
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
   display: grid;
   width: 100%;
   min-height: 100vh;
   grid-template-columns: 210px minmax(0, 1fr);
   align-items: start;
   overflow-x: clip;
+<<<<<<< Updated upstream
+=======
+=======
+  min-height: 100vh;
+  grid-template-columns: 210px minmax(0, 1fr);
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
   background: var(--paper-bg);
 }
 
@@ -50,9 +61,18 @@ button, input, select, textarea { font-family: var(--body-font-family); }
   top: 0;
   z-index: 30;
   display: flex;
+<<<<<<< Updated upstream
   grid-column: 1;
   width: 210px;
   min-width: 0;
+=======
+<<<<<<< HEAD
+  grid-column: 1;
+  width: 210px;
+  min-width: 0;
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
   height: 100vh;
   flex-direction: column;
   padding: 22px 16px;
@@ -139,8 +159,18 @@ button, input, select, textarea { font-family: var(--body-font-family); }
 .app-sidebar nav button.active { color: var(--ink); background: var(--forest-soft); border: 0; }
 .app-sidebar nav .sidebar-logout { margin-top: auto !important; color: var(--danger-ink) !important; }
 
+<<<<<<< Updated upstream
 .app-main { grid-column: 2; width: 100%; min-width: 0; max-width: 100%; overflow: hidden; }
 .app-main > .container { width: 100%; max-width: 1440px; margin: 0 auto; padding: 26px 28px 44px; }
+=======
+<<<<<<< HEAD
+.app-main { grid-column: 2; width: 100%; min-width: 0; max-width: 100%; overflow: hidden; }
+.app-main > .container { width: 100%; max-width: 1440px; margin: 0 auto; padding: 26px 28px 44px; }
+=======
+.app-main { min-width: 0; }
+.container { max-width: 1440px; margin: 0 auto; padding: 26px 28px 44px; }
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
 .page { margin: 0; padding: 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
 .page h1 { margin-bottom: 6px; color: var(--ink); font-size: 27px; font-weight: 600; }
 .page h2 { color: var(--ink); font-size: 17px; font-weight: 600; }
@@ -344,11 +374,20 @@ tbody tr:hover { background: var(--forest-soft); }
 .wishlist-notice { margin-bottom: 14px; padding: 11px 13px; border-radius: 8px; font-size: 13px; }
 .wishlist-notice.is-error { color: var(--danger-ink); background: var(--danger-soft); }
 .wishlist-notice.is-success { color: var(--forest-dark); background: var(--forest-soft); }
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
 .wishlist-discount-panel { margin-bottom: 16px; padding: 15px 16px; background: var(--paper-surface); border: 1px solid var(--line-soft); border-radius: 10px; }
 .wishlist-discount-panel h2 { margin: 0 0 10px; }
 .wishlist-discount-summary { display: flex; flex-wrap: wrap; gap: 7px; }
 .wishlist-discount-chip { padding: 6px 9px; color: var(--forest-dark); background: var(--forest-soft); border-radius: 99px; font-size: 11px; }
 .wishlist-discount-empty { margin: 0; color: var(--ink-muted); font-size: 12px; }
+<<<<<<< Updated upstream
+=======
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
 .wishlist-container { display: grid; gap: 14px; }
 .wishlist-card { padding: 18px; background: var(--paper-surface); border: 1px solid var(--line-soft); border-radius: 11px; }
 .wishlist-book { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 16px; }
@@ -391,8 +430,17 @@ tbody tr:hover { background: var(--forest-soft); }
 
 @media (max-width: 900px) {
   #appContent { grid-template-columns: 1fr; }
+<<<<<<< Updated upstream
   .app-sidebar { position: relative; top: auto; grid-column: 1; width: 100%; max-width: 100%; height: auto; padding: 12px 14px; border-right: 0; border-bottom: 1px solid var(--line-soft); }
   .app-main { grid-column: 1; width: 100%; max-width: 100%; }
+=======
+<<<<<<< HEAD
+  .app-sidebar { position: relative; top: auto; grid-column: 1; width: 100%; max-width: 100%; height: auto; padding: 12px 14px; border-right: 0; border-bottom: 1px solid var(--line-soft); }
+  .app-main { grid-column: 1; width: 100%; max-width: 100%; }
+=======
+  .app-sidebar { position: sticky; height: auto; padding: 12px 14px; border-right: 0; border-bottom: 1px solid var(--line-soft); }
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
   .header { padding: 0; }
   .header-subtitle { display: none; }
   .app-sidebar nav { flex-direction: row; margin-top: 10px; overflow-x: auto; }

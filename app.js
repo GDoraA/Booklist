@@ -1,6 +1,14 @@
 
 /********** API URL **********/
+<<<<<<< Updated upstream
 const API_URL = "https://script.google.com/macros/s/AKfycbwCcZ92080d5odA5G0k6Kdae1YB80pwrXK7nL7d0VQ7vph2E8dZC3LH6gMUyJsV9EfI7w/exec";
+=======
+<<<<<<< HEAD
+const API_URL = "https://script.google.com/macros/s/AKfycbwCcZ92080d5odA5G0k6Kdae1YB80pwrXK7nL7d0VQ7vph2E8dZC3LH6gMUyJsV9EfI7w/exec";
+=======
+const API_URL = "https://script.google.com/macros/s/AKfycbzEmLf-Pd8WTxF6IOW-U-jNzQP1G7Conk9SJc0iQPIcPn5eKhkqlMBlPZA3ollOzH_ing/exec";
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -10,7 +18,14 @@ const GOOGLE_BOOKS_MAX_RESULTS = 10;
 /********** LOGIN ÁLLAPOT **********/
 let currentUserEmail = null;
 let wishlistData = { items: [], offers: [], discounts: [] };
+<<<<<<< Updated upstream
 const WISHLIST_PREFERRED_RETAILERS = ["Libri", "Bookline", "Líra", "Alexandra"];
+=======
+<<<<<<< HEAD
+const WISHLIST_PREFERRED_RETAILERS = ["Libri", "Bookline", "Líra", "Alexandra"];
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
 // ---------- VERZIÓ INFORMÁCIÓK ----------
 const APP_VERSION = "2026-08-15 12:00";  // Deploykor frissítendő
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
@@ -2376,14 +2391,30 @@ function togglePurchaseFilter() {
 }
 
 /********** KÍVÁNSÁGLISTA **********/
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
 function wishlistApiCall(action, params, onSuccess, timeoutMs) {
     const callbackName = "wishlistCallback_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
     const script = document.createElement("script");
     let settled = false;
+<<<<<<< Updated upstream
+=======
+=======
+function wishlistApiCall(action, params, onSuccess) {
+    const callbackName = "wishlistCallback_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+    const script = document.createElement("script");
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
     const query = Object.keys(params || {}).map(key =>
         encodeURIComponent(key) + "=" + encodeURIComponent(params[key] == null ? "" : params[key])
     ).join("&");
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
     function finish(data) {
         if (settled) return;
         settled = true;
@@ -2419,6 +2450,30 @@ function loadWishlist(forceRefresh) {
         notice.hidden = false;
     }
     wishlistApiCall("getWishlistData", { refresh: "0" }, function (data) {
+<<<<<<< Updated upstream
+=======
+=======
+    window[callbackName] = function (data) {
+        delete window[callbackName];
+        script.remove();
+        onSuccess(data || { success: false, error: "Üres válasz érkezett." });
+    };
+    script.onerror = function () {
+        delete window[callbackName];
+        script.remove();
+        onSuccess({ success: false, error: "A kívánságlista szolgáltatás nem érhető el." });
+    };
+    script.src = API_URL + "?action=" + encodeURIComponent(action) +
+        (query ? "&" + query : "") + "&callback=" + encodeURIComponent(callbackName);
+    document.body.appendChild(script);
+}
+
+function loadWishlist() {
+    const notice = document.getElementById("wishlistNotice");
+    if (notice) notice.hidden = true;
+    wishlistApiCall("getWishlistData", {}, function (data) {
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
         if (!data.success) {
             showWishlistNotice(data.error || "A kívánságlista nem tölthető be.", true);
             return;
@@ -2429,6 +2484,10 @@ function loadWishlist(forceRefresh) {
             discounts: Array.isArray(data.discounts) ? data.discounts : []
         };
         renderWishlist();
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
         refreshWishlistPrices(Boolean(forceRefresh));
     }, 30000);
 }
@@ -2503,6 +2562,12 @@ function refreshWishlistPrices(forceRefresh) {
 
     updateProgress();
     launchNext();
+<<<<<<< Updated upstream
+=======
+=======
+    });
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
 }
 
 function showWishlistNotice(message, isError) {
@@ -2524,6 +2589,10 @@ function wishlistSafeUrl(value) {
 
 function wishlistPriceNumber(value) {
     if (typeof value === "number") return value;
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
     let clean = String(value || "").trim().replace(/[^0-9,.-]/g, "");
     if (/^-?\d{1,3}(?:[.\s]\d{3})+$/.test(clean)) {
         clean = clean.replace(/[.\s]/g, "");
@@ -2534,6 +2603,12 @@ function wishlistPriceNumber(value) {
     } else {
         clean = clean.replace(",", ".");
     }
+<<<<<<< Updated upstream
+=======
+=======
+    const clean = String(value || "").replace(/\s/g, "").replace(/[^0-9,.-]/g, "").replace(",", ".");
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
     const parsed = Number(clean);
     return Number.isFinite(parsed) ? parsed : null;
 }
@@ -2558,6 +2633,10 @@ function wishlistOfferAvailable(offer) {
         value.includes("rendelhető") || value === "igen" || value === "x";
 }
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
 function wishlistRetailerKey(value) {
     const retailer = wishlistNormalized(value);
     if (retailer.includes("bookline")) return "bookline";
@@ -2579,11 +2658,31 @@ function wishlistDiscountIsActive(discount) {
 function wishlistDiscountedPrice(item, offer) {
     const basePrice = wishlistPriceNumber(offer.Price);
     if (basePrice == null) return null;
+<<<<<<< Updated upstream
+=======
+=======
+function wishlistDiscountedPrice(item, offer) {
+    const basePrice = wishlistPriceNumber(offer.Price);
+    if (basePrice == null) return null;
+    const today = new Date().toISOString().slice(0, 10);
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
     const retailer = wishlistNormalized(offer.Retailer);
     const publisher = wishlistNormalized(item.Publisher);
 
     const matches = wishlistData.discounts.filter(discount => {
+<<<<<<< Updated upstream
         if (!wishlistDiscountIsActive(discount)) return false;
+=======
+<<<<<<< HEAD
+        if (!wishlistDiscountIsActive(discount)) return false;
+=======
+        const activeValue = wishlistNormalized(discount.Active);
+        if (activeValue && !wishlistIsTruthy(activeValue)) return false;
+        if (discount.Valid_From && String(discount.Valid_From).slice(0, 10) > today) return false;
+        if (discount.Valid_To && String(discount.Valid_To).slice(0, 10) < today) return false;
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
         if (discount.Retailer && wishlistNormalized(discount.Retailer) !== retailer) return false;
         if (discount.Publisher && wishlistNormalized(discount.Publisher) !== publisher) return false;
         const minimum = wishlistPriceNumber(discount.Min_Order);
@@ -2629,13 +2728,24 @@ function renderWishlist() {
     document.getElementById("wish_stat_available").textContent = allItems.filter(item => availableIds.has(String(item.ID))).length;
     document.getElementById("wish_stat_high").textContent = allItems.filter(item => wishlistNormalized(item.Priority) === "magas").length;
     document.getElementById("wish_stat_offers").textContent = wishlistData.offers.length;
+<<<<<<< Updated upstream
     renderWishlistDiscountSummary();
+=======
+<<<<<<< HEAD
+    renderWishlistDiscountSummary();
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
 
     empty.style.display = filtered.length ? "none" : "block";
     empty.textContent = allItems.length ? "Nincs a szűrésnek megfelelő könyv." : "A kívánságlista még üres.";
     container.innerHTML = filtered.map(item => renderWishlistCard(item)).join("");
 }
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
 function renderWishlistDiscountSummary() {
     const container = document.getElementById("wishlistDiscountSummary");
     if (!container) return;
@@ -2677,13 +2787,36 @@ function renderWishlistCard(item) {
     const bestPrice = ranked.filter(entry => wishlistOfferAvailable(entry.offer) && entry.calculation?.price != null)
         .reduce((best, entry) => Math.min(best, entry.calculation.price), Infinity);
     const offerRows = ranked.map(entry => {
+<<<<<<< Updated upstream
+=======
+=======
+function renderWishlistCard(item) {
+    const offers = (wishlistData.offers || []).filter(offer => String(offer.Wishlist_ID) === String(item.ID));
+    const ranked = offers.map(offer => ({ offer, calculation: wishlistDiscountedPrice(item, offer) }))
+        .sort((a, b) => (a.calculation?.price ?? Infinity) - (b.calculation?.price ?? Infinity));
+    const imageUrl = wishlistSafeUrl(item.URL);
+    const priorityClass = wishlistNormalized(item.Priority) === "magas" ? "high" :
+        wishlistNormalized(item.Priority) === "alacsony" ? "low" : "medium";
+
+    const offerRows = ranked.length ? ranked.map((entry, index) => {
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
         const offer = entry.offer;
         const calculation = entry.calculation;
         const hasDiscount = calculation && calculation.applied.length > 0;
         const productUrl = wishlistSafeUrl(offer.Product_URL);
         const retailer = wishlistText(offer.Retailer || "Kereskedő");
+<<<<<<< Updated upstream
         const isBest = wishlistOfferAvailable(offer) && calculation?.price === bestPrice;
         return `<div class="wishlist-offer${isBest ? " is-best" : ""}">
+=======
+<<<<<<< HEAD
+        const isBest = wishlistOfferAvailable(offer) && calculation?.price === bestPrice;
+        return `<div class="wishlist-offer${isBest ? " is-best" : ""}">
+=======
+        return `<div class="wishlist-offer${index === 0 && wishlistOfferAvailable(offer) ? " is-best" : ""}">
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
             <div><strong>${retailer}</strong><span class="availability ${wishlistOfferAvailable(offer) ? "available" : "unavailable"}">${wishlistText(offer.Availability || "Nincs adat")}</span></div>
             <div class="wishlist-offer-price">
                 ${hasDiscount ? `<s>${wishlistFormatPrice(offer.Price)}</s><strong>${wishlistFormatPrice(calculation.price)}</strong><small>saját ár</small>` : `<strong>${wishlistFormatPrice(offer.Price)}</strong>`}
@@ -2691,7 +2824,15 @@ function renderWishlistCard(item) {
             </div>
             ${productUrl ? `<a class="text-action" href="${wishlistText(productUrl)}" target="_blank" rel="noopener">Megnézem ↗</a>` : ""}
         </div>`;
+<<<<<<< Updated upstream
     }).join("");
+=======
+<<<<<<< HEAD
+    }).join("");
+=======
+    }).join("") : `<p class="wishlist-no-offer">Még nincs rögzített kereskedői ajánlat.</p>`;
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
 
     return `<article class="wishlist-card">
         <div class="wishlist-book">
@@ -2701,6 +2842,10 @@ function renderWishlistCard(item) {
                 <h2>${wishlistText(item.Title)}</h2>
                 <p class="wishlist-author">${wishlistText(item.Author)}</p>
                 <div class="wishlist-meta">
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
                     ${item.Original_Title ? `<span>Eredeti cím: ${wishlistText(item.Original_Title)}</span>` : ""}
                     ${item.Publisher ? `<span>${wishlistText(item.Publisher)}</span>` : ""}
                     ${item.Publication_Date ? `<span>Megjelenés: ${wishlistText(item.Publication_Date)}</span>` : ""}
@@ -2708,13 +2853,29 @@ function renderWishlistCard(item) {
                     ${item.Genre ? `<span>Műfaj: ${wishlistText(item.Genre)}</span>` : ""}
                     ${item.Desired_Format ? `<span>Formátum: ${wishlistText(item.Desired_Format)}</span>` : ""}
                     ${item.Added_Date ? `<span>Felvéve: ${wishlistText(item.Added_Date)}</span>` : ""}
+<<<<<<< Updated upstream
+=======
+=======
+                    ${item.Publisher ? `<span>${wishlistText(item.Publisher)}</span>` : ""}
+                    ${item.Publication_Date ? `<span>Megjelenés: ${wishlistText(item.Publication_Date)}</span>` : ""}
+                    ${item.ISBN ? `<span>ISBN: ${wishlistText(item.ISBN)}</span>` : ""}
+                    ${item.Desired_Format ? `<span>Formátum: ${wishlistText(item.Desired_Format)}</span>` : ""}
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
                 </div>
                 ${item.Note ? `<p class="wishlist-note">${wishlistText(item.Note)}</p>` : ""}
             </div>
         </div>
         <div class="wishlist-offers"><h3>Kereskedői ajánlatok</h3>${offerRows}</div>
         <div class="wishlist-actions">
+<<<<<<< Updated upstream
             ${purchaseLink ? `<a class="btn btn-secondary" href="${wishlistText(purchaseLink)}" target="_blank" rel="noopener">Vásárlási link ↗</a>` : ""}
+=======
+<<<<<<< HEAD
+            ${purchaseLink ? `<a class="btn btn-secondary" href="${wishlistText(purchaseLink)}" target="_blank" rel="noopener">Vásárlási link ↗</a>` : ""}
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
             <button class="btn btn-secondary" onclick="openWishlistModal('edit', '${wishlistText(item.ID)}')">Szerkesztés</button>
             <button class="btn btn-secondary" onclick="purchaseWishlistItem('${wishlistText(item.ID)}')">✓ Megvettem</button>
             <button class="btn btn-danger" onclick="deleteWishlistItem('${wishlistText(item.ID)}')">Törlés</button>
@@ -2731,10 +2892,20 @@ function openWishlistModal(mode, id) {
         wm_title: values.Title, wm_original_title: values.Original_Title, wm_isbn: values.ISBN,
         wm_publisher: values.Publisher, wm_publication_date: values.Publication_Date,
         wm_genre: values.Genre, wm_priority: values.Priority || "Közepes", wm_format: values.Desired_Format,
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
         wm_url: values.URL, wm_purchase_link: values.Purchase_Link,
         wm_bookline_url: values.Bookline_URL, wm_libri_url: values.Libri_URL,
         wm_lira_url: values.Lira_URL, wm_alexandra_url: values.Alexandra_URL,
         wm_note: values.Note
+<<<<<<< Updated upstream
+=======
+=======
+        wm_url: values.URL, wm_purchase_link: values.Purchase_Link, wm_note: values.Note
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
     };
     Object.keys(fields).forEach(id => { document.getElementById(id).value = fields[id] || ""; });
     document.getElementById("wishlistModal").style.display = "flex";
@@ -2759,10 +2930,19 @@ function saveWishlistItem() {
         Desired_Format: document.getElementById("wm_format").value.trim(),
         URL: document.getElementById("wm_url").value.trim(),
         Purchase_Link: document.getElementById("wm_purchase_link").value.trim(),
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
         Bookline_URL: document.getElementById("wm_bookline_url").value.trim(),
         Libri_URL: document.getElementById("wm_libri_url").value.trim(),
         Lira_URL: document.getElementById("wm_lira_url").value.trim(),
         Alexandra_URL: document.getElementById("wm_alexandra_url").value.trim(),
+<<<<<<< Updated upstream
+=======
+=======
+>>>>>>> 7654f5bb8a3159357d04d2d9d70e8caaed1e181c
+>>>>>>> Stashed changes
         Note: document.getElementById("wm_note").value.trim()
     };
     if (!item.Author || !item.Title) {
