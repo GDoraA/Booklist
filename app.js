@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbzwUziY1ef4b-RVJ7rmyIyZLBn43pDlg4wbKwtJTMQJCb0BpOOUmEFcKTWyqpKGWcX_dA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxcRKoJorBN008-rVnGe9qhsdcI-uC4C_y92Ii6Nb_lkuZUkLiiuYB3Ptzt2hFqnOCMKg/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
