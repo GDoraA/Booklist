@@ -4,7 +4,7 @@ self.addEventListener('install', (event) => {
 });
 
 // Cache verzió
-const CACHE_NAME = "gda-cache-v45";
+const CACHE_NAME = "gda-cache-v46";
 
 // Cache-elendő statikus fájlok
 const ASSETS_TO_CACHE = [

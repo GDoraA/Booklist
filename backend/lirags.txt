@@ -4,6 +4,15 @@
  ***********************************************************/
 
 function extractLiraOnlinePrice_(html) {
+  const priceElement = extractFirstMatch_(
+    html,
+    /<div[^>]*class=["'][^"']*\bonline-price\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i
+  );
+  if (priceElement) {
+    const elementMatch = String(priceElement).match(/([0-9]{3,})/);
+    if (elementMatch) return elementMatch[1];
+  }
+
   const text = decodeHtmlEntities_(stripHtml_(html))
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ");
@@ -36,4 +45,3 @@ function parseLiraProductPage_(productUrl) {
     shipping: shipping, productUrl: productUrl
   };
 }
-

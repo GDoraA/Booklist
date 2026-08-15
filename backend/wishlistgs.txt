@@ -104,7 +104,9 @@ function wishlistRetailerSearch_(retailer, item) {
     Bookline: item.Bookline_URL, Libri: item.Libri_URL,
     "Líra": item.Lira_URL, Alexandra: item.Alexandra_URL
   };
-  const directUrl = String(retailerUrls[retailer] || item.Purchase_Link || "").trim();
+  const directUrl = decodeHtmlEntities_(
+    String(retailerUrls[retailer] || item.Purchase_Link || "").trim()
+  );
 
   // A közvetlen vásárlási link pontosabb, mint a webshop keresőoldala.
   if (retailer === "Bookline" && /^https?:\/\/(?:www\.)?bookline\.hu\/product\/home\.action/i.test(directUrl)) {

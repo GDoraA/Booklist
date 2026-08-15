@@ -60,6 +60,7 @@
 function parseBooklineProductPage_(productUrl) {
   const productHtml = fetchHtml_(productUrl);
   const commerceOffer = extractCommerceOffer_(productHtml);
+  const displayedPrice = extractLabeledCommercePrice_(productHtml);
 
   const title =
     extractFirstMatch_(productHtml, /<h1[^>]*class=["'][^"']*\bc-product__title\b[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i) ||
@@ -138,7 +139,7 @@ function parseBooklineProductPage_(productUrl) {
     genre: "",
     coverUrl: imageUrl,
     language: "hu",
-    price: commerceOffer.price,
+    price: displayedPrice || commerceOffer.price,
     availability: commerceOffer.availability,
     productUrl: productUrl
   };
