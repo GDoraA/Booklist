@@ -3,10 +3,39 @@
  * Közvetlen Líra termékoldal feldolgozása.
  ***********************************************************/
 
+/**
+ * A Líra a saját alkalmazásazonosító User-Agentet Cloudflare-oldallal
+ * blokkolja, ezért a keresési és termékoldalakat valós böngészőhöz
+ * hasonló fejlécekkel kérjük le.
+ */
+function fetchLiraHtml_(url) {
+  const response = UrlFetchApp.fetch(url, {
+    muteHttpExceptions: true,
+    followRedirects: true,
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.7",
+      "Referer": "https://www.lira.hu/hu/cimlap"
+    }
+  });
+
+  const code = response.getResponseCode();
+  const html = response.getContentText("UTF-8");
+  if (code < 200 || code >= 300) {
+    throw new Error("Líra oldal letöltési hiba: " + code + " - " + url);
+  }
+  if (/Sorry, you have been blocked|Attention Required!\s*\|\s*Cloudflare/i.test(html)) {
+    throw new Error("A Líra Cloudflare-védelme blokkolta a lekérést.");
+  }
+  return html;
+}
+
 function extractLiraOnlinePrice_(html) {
   const priceElement = extractFirstMatch_(
     html,
-    /<div[^>]*class=["'][^"']*\bonline-price\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i
+    /<div[^>]*class=["'](?:[^"']*\s)?online-price(?:\s[^"']*)?["'][^>]*>([\s\S]*?)<\/div>/i
   );
   if (priceElement) {
     const elementMatch = String(priceElement).match(
@@ -25,7 +54,7 @@ function extractLiraOnlinePrice_(html) {
 }
 
 function parseLiraProductPage_(productUrl) {
-  const productHtml = fetchPublisherHtml_(productUrl);
+  const productHtml = fetchLiraHtml_(productUrl);
   const plainText = decodeHtmlEntities_(stripHtml_(productHtml))
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ");
@@ -81,7 +110,7 @@ function buildLiraSearchUrl_(query) {
 function searchLira_(query, title, author) {
   if (!String(query || "").trim()) return [];
 
-  const searchHtml = fetchPublisherHtml_(buildLiraSearchUrl_(query));
+  const searchHtml = fetchLiraHtml_(buildLiraSearchUrl_(query));
   const productUrls = extractLiraProductUrls_(searchHtml);
   const results = [];
 
