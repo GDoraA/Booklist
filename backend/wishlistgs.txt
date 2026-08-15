@@ -6,8 +6,9 @@
  ***********************************************************/
 
 const WISHLIST_HEADERS = [
-  "ID", "Author", "Title", "Original_Title", "ISBN", "Publisher",
-  "Publication_Date", "Genre", "URL", "Priority", "Note",
+  "ID", "Author", "Title", "Original_Title", "Previous_Title",
+  "Series", "Number", "Year", "Page_Count", "ISBN", "Publisher",
+  "Translator", "Publication_Date", "Genre", "URL", "Priority", "Note",
   "Added_Date", "Desired_Format", "Purchase_Link", "Bookline_URL",
   "Libri_URL", "Lira_URL", "Alexandra_URL"
 ];
@@ -33,8 +34,14 @@ function mapWishlistFromParams_(p, includeId) {
     "Author": p.Author || p.author || "",
     "Title": p.Title || p.title || "",
     "Original_Title": p.Original_Title || "",
+    "Previous_Title": p.Previous_Title || "",
+    "Series": p.Series || "",
+    "Number": p.Number || "",
+    "Year": p.Year || "",
+    "Page_Count": p.Page_Count || "",
     "ISBN": p.ISBN || p.isbn || "",
     "Publisher": p.Publisher || "",
+    "Translator": p.Translator || "",
     "Publication_Date": p.Publication_Date || "",
     "Genre": p.Genre || "",
     "URL": p.URL || "",
@@ -79,6 +86,7 @@ function getWishlistItemOffers_(wishlistId, forceRefresh) {
   return {
     success: true,
     Wishlist_ID: item.ID,
+    item: result.items && result.items[0] ? result.items[0] : item,
     offers: result.offers,
     offerErrors: result.errors
   };
@@ -144,7 +152,7 @@ function wishlistRetailerSearch_(retailer, item) {
   const candidate = (candidates || []).filter(function(row) { return row && row.price; })[0];
   if (!candidate) return null;
 
-  return {
+  const offer = {
     ID: "live-" + item.ID + "-" + retailer.toLowerCase(),
     Wishlist_ID: item.ID,
     Retailer: retailer,
@@ -154,6 +162,81 @@ function wishlistRetailerSearch_(retailer, item) {
     Product_URL: candidate.productUrl || candidate.sourceId || "",
     Checked_At: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm")
   };
+  offer.Metadata = wishlistMetadataFromCandidate_(candidate);
+  const retailerUrlFields = {
+    Bookline: "Bookline_URL",
+    Libri: "Libri_URL",
+    "Líra": "Lira_URL",
+    Alexandra: "Alexandra_URL"
+  };
+  if (retailerUrlFields[retailer] && offer.Product_URL) {
+    offer.Metadata[retailerUrlFields[retailer]] = offer.Product_URL;
+    offer.Metadata.Purchase_Link = offer.Product_URL;
+  }
+  return offer;
+}
+
+function wishlistMetadataFromCandidate_(candidate) {
+  candidate = candidate || {};
+  return {
+    Author: candidate.authors || "",
+    Title: candidate.title || "",
+    Original_Title: candidate.originalTitle || "",
+    Previous_Title: candidate.previousTitle || "",
+    Series: candidate.series || "",
+    Number: candidate.number || "",
+    Year: candidate.year || "",
+    Page_Count: candidate.pageCount || "",
+    ISBN: candidate.isbn || "",
+    Publisher: candidate.publisher || "",
+    Translator: candidate.translator || "",
+    Publication_Date: candidate.publicationDate || "",
+    Genre: candidate.genre || "",
+    URL: candidate.coverUrl || ""
+  };
+}
+
+/**
+ * A kereskedői találatok metaadataiból csak a kívánságlista üres mezőit
+ * egészíti ki, majd egyetlen sorírással elmenti a változást.
+ */
+function enrichWishlistItemFromOffers_(item, offers) {
+  const metadataList = (offers || []).map(function(offer) {
+    return offer && offer.Metadata ? offer.Metadata : {};
+  });
+  if (!metadataList.length || !item || !item.ID) return item;
+
+  const sheet = getSheet_(SHEET_WISHLIST);
+  const map = ensureHeaderColumns_(sheet, WISHLIST_HEADERS);
+  const data = sheet.getDataRange().getValues();
+  const idColumn = map.ID;
+  if (!idColumn) return item;
+
+  for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+    if (String(data[rowIndex][idColumn - 1]) !== String(item.ID)) continue;
+
+    let changed = false;
+    const row = data[rowIndex].slice();
+    WISHLIST_HEADERS.forEach(function(field) {
+      if (field === "ID" || !map[field] || String(item[field] || "").trim()) return;
+
+      let value = "";
+      for (let i = 0; i < metadataList.length && !value; i++) {
+        value = String(metadataList[i][field] || "").trim();
+      }
+      if (!value) return;
+
+      item[field] = value;
+      row[map[field] - 1] = value;
+      changed = true;
+    });
+
+    if (changed) {
+      sheet.getRange(rowIndex + 1, 1, 1, sheet.getLastColumn()).setValues([row]);
+    }
+    return item;
+  }
+  return item;
 }
 
 function wishlistOfferCacheKey_(item) {
@@ -166,6 +249,7 @@ function wishlistOfferCacheKey_(item) {
 function refreshWishlistOffers_(items, forceRefresh) {
   const offers = [];
   const errors = [];
+  const refreshedItems = [];
   const retailers = ["Bookline", "Libri", "Líra", "Alexandra"];
   const cache = CacheService.getScriptCache();
 
@@ -174,7 +258,9 @@ function refreshWishlistOffers_(items, forceRefresh) {
     const cached = forceRefresh ? null : cache.get(cacheKey);
     if (cached !== null) {
       try {
-        JSON.parse(cached).forEach(function(offer) { offers.push(offer); });
+        const cachedOffers = JSON.parse(cached);
+        cachedOffers.forEach(function(offer) { offers.push(offer); });
+        refreshedItems.push(enrichWishlistItemFromOffers_(item, cachedOffers));
         return;
       } catch (err) {
         // Sérült cache esetén az élő keresés folytatódik.
@@ -203,10 +289,11 @@ function refreshWishlistOffers_(items, forceRefresh) {
         });
       }
     });
+    refreshedItems.push(enrichWishlistItemFromOffers_(item, itemOffers));
     cache.put(cacheKey, JSON.stringify(itemOffers), 600);
   });
 
-  return { offers: offers, errors: errors };
+  return { offers: offers, errors: errors, items: refreshedItems };
 }
 
 function isWishlistDuplicate_(item, ignoreId) {
@@ -315,9 +402,15 @@ function purchaseWishlistItem_(id) {
     "Author": wishlistItem.Author || "",
     "Title": wishlistItem.Title || "",
     "Original_Title": wishlistItem.Original_Title || "",
+    "Previous_Title": wishlistItem.Previous_Title || "",
+    "Series": wishlistItem.Series || "",
+    "Number": wishlistItem.Number || "",
     "URL": wishlistItem.URL || "",
+    "Year": wishlistItem.Year || "",
+    "Page_Count": wishlistItem.Page_Count || "",
     "ISBN": wishlistItem.ISBN || "",
     "Publisher": wishlistItem.Publisher || "",
+    "Translator": wishlistItem.Translator || "",
     "Publication_Date": wishlistItem.Publication_Date || "",
     "Genre": wishlistItem.Genre || "",
     "Purchased": "x",
@@ -326,6 +419,7 @@ function purchaseWishlistItem_(id) {
 
   if (!result.success) return result;
   updateUniqueList_(SHEET_AUTHORS, "Author", wishlistItem.Author || "");
+  updateUniqueList_(SHEET_SERIES, "Series", wishlistItem.Series || "");
   deleteWishlistItem_(id);
   return { success: true };
 }

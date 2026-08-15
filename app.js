@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbySxDDD-etRGy0v9XnDJynFFPnumoRbE_WH4eaOYC3Oi3xPSD4mCjfgBs-Un-52QuDdhA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwmj7wnDSjzKZIHKEzpr-YMQW1cDYbjg-VuUHSswN5wLTY7nbPL6PLGjHpDXmRxbeWX5Q/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -2474,6 +2474,13 @@ function refreshWishlistPrices(forceRefresh) {
                 completed++;
                 if (data.success) {
                     wishlistData.offers = mergeWishlistOffersClient(wishlistData.offers, data.offers);
+                    if (data.item) {
+                        wishlistData.items = wishlistData.items.map(currentItem =>
+                            String(currentItem.ID) === String(data.item.ID)
+                                ? Object.assign({}, currentItem, data.item)
+                                : currentItem
+                        );
+                    }
                     pricesFound += (data.offers || []).length;
                     (data.offerErrors || []).forEach(error => failures.push(
                         (error.Retailer || "Ismeretlen kereskedő") + ": " +
@@ -2704,7 +2711,12 @@ function renderWishlistCard(item) {
                 <p class="wishlist-author">${wishlistText(item.Author)}</p>
                 <div class="wishlist-meta">
                     ${item.Original_Title ? `<span>Eredeti cím: ${wishlistText(item.Original_Title)}</span>` : ""}
+                    ${item.Previous_Title ? `<span>Korábbi cím: ${wishlistText(item.Previous_Title)}</span>` : ""}
+                    ${item.Series ? `<span>Sorozat: ${wishlistText(item.Series)}${item.Number ? " · " + wishlistText(item.Number) : ""}</span>` : ""}
+                    ${item.Year ? `<span>Kiadás éve: ${wishlistText(item.Year)}</span>` : ""}
+                    ${item.Page_Count ? `<span>${wishlistText(item.Page_Count)} oldal</span>` : ""}
                     ${item.Publisher ? `<span>${wishlistText(item.Publisher)}</span>` : ""}
+                    ${item.Translator ? `<span>Fordító: ${wishlistText(item.Translator)}</span>` : ""}
                     ${item.Publication_Date ? `<span>Megjelenés: ${wishlistText(item.Publication_Date)}</span>` : ""}
                     ${item.ISBN ? `<span>ISBN: ${wishlistText(item.ISBN)}</span>` : ""}
                     ${item.Genre ? `<span>Műfaj: ${wishlistText(item.Genre)}</span>` : ""}
@@ -2731,7 +2743,10 @@ function openWishlistModal(mode, id) {
     const fields = {
         wm_id: values.ID, wm_added_date: values.Added_Date, wm_author: values.Author,
         wm_title: values.Title, wm_original_title: values.Original_Title, wm_isbn: values.ISBN,
+        wm_previous_title: values.Previous_Title, wm_series: values.Series,
+        wm_number: values.Number, wm_year: values.Year, wm_page_count: values.Page_Count,
         wm_publisher: values.Publisher, wm_publication_date: values.Publication_Date,
+        wm_translator: values.Translator,
         wm_genre: values.Genre, wm_priority: values.Priority || "Közepes", wm_format: values.Desired_Format,
         wm_url: values.URL, wm_purchase_link: values.Purchase_Link,
         wm_bookline_url: values.Bookline_URL, wm_libri_url: values.Libri_URL,
@@ -2753,8 +2768,14 @@ function saveWishlistItem() {
         Author: document.getElementById("wm_author").value.trim(),
         Title: document.getElementById("wm_title").value.trim(),
         Original_Title: document.getElementById("wm_original_title").value.trim(),
+        Previous_Title: document.getElementById("wm_previous_title").value.trim(),
+        Series: document.getElementById("wm_series").value.trim(),
+        Number: document.getElementById("wm_number").value.trim(),
+        Year: document.getElementById("wm_year").value.trim(),
+        Page_Count: document.getElementById("wm_page_count").value.trim(),
         ISBN: document.getElementById("wm_isbn").value.trim(),
         Publisher: document.getElementById("wm_publisher").value.trim(),
+        Translator: document.getElementById("wm_translator").value.trim(),
         Publication_Date: document.getElementById("wm_publication_date").value,
         Genre: document.getElementById("wm_genre").value.trim(),
         Priority: document.getElementById("wm_priority").value,
