@@ -303,7 +303,13 @@
 
                 <div id="wishlistNotice" class="wishlist-notice" hidden></div>
                 <section class="wishlist-discount-panel" aria-labelledby="wishlistDiscountTitle">
-                    <h2 id="wishlistDiscountTitle">Aktív kedvezményeim</h2>
+                    <div class="wishlist-discount-header">
+                        <div>
+                            <h2 id="wishlistDiscountTitle">Kedvezményeim</h2>
+                            <p>Itt adhatsz meg kereskedői vagy kiadói kedvezményeket.</p>
+                        </div>
+                        <button class="btn btn-secondary" type="button" onclick="openDiscountModal('new')">＋ Új kedvezmény</button>
+                    </div>
                     <div id="wishlistDiscountSummary" class="wishlist-discount-summary"></div>
                 </section>
                 <div id="wishlistEmptyState" class="loan-empty-state">A kívánságlista még üres.</div>
@@ -479,6 +485,56 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" type="button" onclick="closeWishlistModal()">Mégse</button>
                 <button class="btn btn-primary" type="button" onclick="saveWishlistItem()">Mentés</button>
+            </div>
+        </div>
+    </div>
+    <!-- MODAL: kedvezmény -->
+    <div id="discountModal" class="modal-overlay">
+        <div class="modal discount-modal">
+            <div class="modal-header">
+                <h2 id="discountModalTitle">Új kedvezmény</h2>
+                <button class="modal-close-btn" type="button" onclick="closeDiscountModal()">&times;</button>
+            </div>
+            <input type="hidden" id="dm_id">
+            <div class="modal-grid">
+                <select id="dm_retailer" aria-label="Kereskedő">
+                    <option value="">Minden kereskedő</option>
+                    <option value="Alexandra">Alexandra</option>
+                    <option value="Bookline">Bookline</option>
+                    <option value="Libri">Libri</option>
+                    <option value="Líra">Líra</option>
+                </select>
+                <input id="dm_publisher" placeholder="Kiadó (nem kötelező)">
+                <select id="dm_type" aria-label="Kedvezmény típusa">
+                    <option value="%">Százalékos (%)</option>
+                    <option value="Fix">Fix összeg (Ft)</option>
+                </select>
+                <input id="dm_value" type="number" min="0.01" step="0.01" placeholder="Kedvezmény értéke *">
+                <input id="dm_min_order" type="number" min="0" step="1" placeholder="Minimum rendelés (Ft)">
+                <select id="dm_price_base" aria-label="Kedvezmény alapja">
+                    <option value="Online_Price">Online ár</option>
+                </select>
+                <label class="modal-date-field" for="dm_valid_from">
+                    <span>Érvényes ettől</span>
+                    <input id="dm_valid_from" type="date">
+                </label>
+                <label class="modal-date-field" for="dm_valid_to">
+                    <span>Érvényes eddig</span>
+                    <input id="dm_valid_to" type="date">
+                </label>
+                <div class="modal-checkbox-row">
+                    <input id="dm_stackable" type="checkbox">
+                    <label for="dm_stackable">Más kedvezménnyel összevonható</label>
+                </div>
+                <div class="modal-checkbox-row">
+                    <input id="dm_active" type="checkbox" checked>
+                    <label for="dm_active">Aktív kedvezmény</label>
+                </div>
+                <textarea id="dm_note" rows="3" placeholder="Megjegyzés"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeDiscountModal()">Mégse</button>
+                <button class="btn btn-primary" type="button" onclick="saveDiscount()">Mentés</button>
             </div>
         </div>
     </div>

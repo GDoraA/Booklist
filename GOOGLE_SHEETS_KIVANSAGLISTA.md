@@ -28,7 +28,9 @@ ID	Wishlist_ID	Retailer	Availability	Price	Shipping	Product_URL	Checked_At
 
 ## Személyes kedvezmények
 
-A kedvezményes ár számításához hozz létre egy `Discounts` nevű munkalapot ezzel a fejlécsorral:
+A kedvezményeket a webes felületen, a **Kívánságlista → Kedvezményeim → Új kedvezmény** gombbal lehet rögzíteni, szerkeszteni és törölni. Az alkalmazás az első mentéskor automatikusan létrehozza a `Discounts` munkalapot és a szükséges fejlécet.
+
+Ha mégis közvetlenül a Google Sheetsben szeretnéd kezelni, a fejlécsor a következő:
 
 ```text
 ID	Retailer	Publisher	Discount_Type	Discount_Value	Price_Base	Stackable	Min_Order	Valid_From	Valid_To	Note	Active

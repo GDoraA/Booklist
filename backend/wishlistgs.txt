@@ -60,6 +60,89 @@ function mapWishlistFromParams_(p, includeId) {
   return item;
 }
 
+function mapDiscountFromParams_(p, includeId) {
+  const discount = {
+    "Retailer": p.Retailer || "",
+    "Publisher": p.Publisher || "",
+    "Discount_Type": p.Discount_Type || "%",
+    "Discount_Value": p.Discount_Value || "",
+    "Price_Base": p.Price_Base || "Online_Price",
+    "Stackable": String(p.Stackable || "").toLowerCase() === "x" ? "x" : "",
+    "Min_Order": p.Min_Order || "",
+    "Valid_From": p.Valid_From || "",
+    "Valid_To": p.Valid_To || "",
+    "Note": p.Note || "",
+    "Active": String(p.Active || "").toLowerCase() === "x" ? "x" : "0"
+  };
+  if (includeId) discount.ID = p.ID || "";
+  return discount;
+}
+
+function getOrCreateDiscountSheet_() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = spreadsheet.getSheetByName(SHEET_DISCOUNTS) || spreadsheet.insertSheet(SHEET_DISCOUNTS);
+  ensureHeaderColumns_(sheet, DISCOUNT_HEADERS);
+  return sheet;
+}
+
+function validateDiscount_(discount) {
+  const value = Number(String(discount.Discount_Value || "").replace(",", "."));
+  if (!isFinite(value) || value <= 0) return "A kedvezmény értéke legyen nullánál nagyobb szám.";
+  if (discount.Discount_Type === "%" && value > 100) return "A százalékos kedvezmény legfeljebb 100% lehet.";
+  const minimum = String(discount.Min_Order || "").trim();
+  if (minimum && (!isFinite(Number(minimum.replace(",", "."))) || Number(minimum.replace(",", ".")) < 0)) {
+    return "A minimum rendelési összeg nem lehet negatív.";
+  }
+  if (discount.Valid_From && discount.Valid_To && discount.Valid_From > discount.Valid_To) {
+    return "Az érvényesség kezdete nem lehet későbbi a záró dátumnál.";
+  }
+  return "";
+}
+
+function addDiscount_(discount) {
+  const validationError = validateDiscount_(discount);
+  if (validationError) return { success: false, error: validationError };
+  const sheet = getOrCreateDiscountSheet_();
+  const map = getHeaderMap_(sheet);
+  discount.ID = generateId_();
+  const row = new Array(sheet.getLastColumn()).fill("");
+  DISCOUNT_HEADERS.forEach(function(header) {
+    if (map[header]) row[map[header] - 1] = discount[header] || "";
+  });
+  sheet.appendRow(row);
+  return { success: true, discount: discount };
+}
+
+function updateDiscount_(discount) {
+  if (!discount.ID) return { success: false, error: "Hiányzó kedvezmény ID." };
+  const validationError = validateDiscount_(discount);
+  if (validationError) return { success: false, error: validationError };
+  const sheet = getOrCreateDiscountSheet_();
+  const map = getHeaderMap_(sheet);
+  const data = sheet.getDataRange().getValues();
+  for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+    if (String(data[rowIndex][map.ID - 1]) !== String(discount.ID)) continue;
+    DISCOUNT_HEADERS.forEach(function(header) {
+      if (header !== "ID" && map[header]) sheet.getRange(rowIndex + 1, map[header]).setValue(discount[header] || "");
+    });
+    return { success: true, discount: discount };
+  }
+  return { success: false, error: "A kedvezmény nem található." };
+}
+
+function deleteDiscount_(id) {
+  if (!id) return { success: false, error: "Hiányzó kedvezmény ID." };
+  const sheet = getOrCreateDiscountSheet_();
+  const map = getHeaderMap_(sheet);
+  const data = sheet.getDataRange().getValues();
+  for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+    if (String(data[rowIndex][map.ID - 1]) !== String(id)) continue;
+    sheet.deleteRow(rowIndex + 1);
+    return { success: true };
+  }
+  return { success: false, error: "A kedvezmény nem található." };
+}
+
 function getWishlistData_(refreshOffers, forceRefresh) {
   const items = readSheet_(SHEET_WISHLIST);
   const storedOffers = readOptionalSheet_(SHEET_WISHLIST_OFFERS);

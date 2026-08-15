@@ -194,6 +194,15 @@ function doGet(e) {
     else if (action === "purchaseWishlistItem") {
       result = purchaseWishlistItem_(p.ID || "");
     }
+    else if (action === "addDiscount") {
+      result = addDiscount_(mapDiscountFromParams_(p, false));
+    }
+    else if (action === "updateDiscount") {
+      result = updateDiscount_(mapDiscountFromParams_(p, true));
+    }
+    else if (action === "deleteDiscount") {
+      result = deleteDiscount_(p.ID || "");
+    }
 
     /***********************************************************
      * REKORD FRISSÍTÉSE

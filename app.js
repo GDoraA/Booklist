@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbwmj7wnDSjzKZIHKEzpr-YMQW1cDYbjg-VuUHSswN5wLTY7nbPL6PLGjHpDXmRxbeWX5Q/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbw_56zBhuLKHmGzLvbgCc657DVZ2EslXkaRab7rEdEdA6rGW9n3e2p-6f5KRrAo0Gvy7w/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -2648,21 +2648,115 @@ function renderWishlist() {
 function renderWishlistDiscountSummary() {
     const container = document.getElementById("wishlistDiscountSummary");
     if (!container) return;
-    const activeDiscounts = (wishlistData.discounts || []).filter(wishlistDiscountIsActive);
-    if (!activeDiscounts.length) {
-        container.innerHTML = `<p class="wishlist-discount-empty">Nincs rögzített aktív kedvezmény.</p>`;
+    const discounts = wishlistData.discounts || [];
+    if (!discounts.length) {
+        container.innerHTML = `<p class="wishlist-discount-empty">Még nincs rögzített kedvezmény. Az „Új kedvezmény” gombbal vehetsz fel egyet.</p>`;
         return;
     }
 
-    container.innerHTML = activeDiscounts.map(discount => {
+    container.innerHTML = discounts.map(discount => {
         const target = [discount.Retailer, discount.Publisher].filter(Boolean).map(wishlistText).join(" · ") || "Általános";
         const type = wishlistNormalized(discount.Discount_Type);
         const value = wishlistPriceNumber(discount.Discount_Value) || 0;
         const amount = type.includes("%") || type.includes("százal") || type.includes("percent")
             ? value + "%"
             : wishlistFormatPrice(value);
-        return `<span class="wishlist-discount-chip">${target}: −${wishlistText(amount)}</span>`;
+        const active = wishlistDiscountIsActive(discount);
+        const validity = [discount.Valid_From, discount.Valid_To].filter(Boolean).map(value => wishlistText(wishlistDateInputValue(value))).join(" – ");
+        return `<div class="wishlist-discount-chip${active ? "" : " is-inactive"}">
+            <span><strong>${target}: −${wishlistText(amount)}</strong>${validity ? `<small>${validity}</small>` : ""}</span>
+            <span class="wishlist-discount-status">${active ? "Aktív" : "Inaktív"}</span>
+            <button type="button" title="Szerkesztés" aria-label="Kedvezmény szerkesztése" onclick="openDiscountModal('edit', '${wishlistText(discount.ID)}')">✎</button>
+            <button type="button" title="Törlés" aria-label="Kedvezmény törlése" onclick="deleteDiscount('${wishlistText(discount.ID)}')">×</button>
+        </div>`;
     }).join("");
+}
+
+function wishlistDateInputValue(value) {
+    if (!value) return "";
+    const direct = String(value).match(/^\d{4}-\d{2}-\d{2}/);
+    if (direct) return direct[0];
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+}
+
+function openDiscountModal(mode, id) {
+    const discount = mode === "edit"
+        ? (wishlistData.discounts || []).find(row => String(row.ID) === String(id))
+        : null;
+    const values = discount || {};
+    document.getElementById("discountModalTitle").textContent = discount ? "Kedvezmény szerkesztése" : "Új kedvezmény";
+    document.getElementById("dm_id").value = values.ID || "";
+    document.getElementById("dm_retailer").value = values.Retailer || "";
+    document.getElementById("dm_publisher").value = values.Publisher || "";
+    document.getElementById("dm_type").value = values.Discount_Type || "%";
+    document.getElementById("dm_value").value = values.Discount_Value || "";
+    document.getElementById("dm_min_order").value = values.Min_Order || "";
+    document.getElementById("dm_price_base").value = values.Price_Base || "Online_Price";
+    document.getElementById("dm_valid_from").value = wishlistDateInputValue(values.Valid_From);
+    document.getElementById("dm_valid_to").value = wishlistDateInputValue(values.Valid_To);
+    document.getElementById("dm_stackable").checked = wishlistIsTruthy(values.Stackable);
+    const activeValue = wishlistNormalized(values.Active);
+    document.getElementById("dm_active").checked = discount ? (!activeValue || wishlistIsTruthy(activeValue)) : true;
+    document.getElementById("dm_note").value = values.Note || "";
+    document.getElementById("discountModal").style.display = "flex";
+}
+
+function closeDiscountModal() {
+    document.getElementById("discountModal").style.display = "none";
+}
+
+function saveDiscount() {
+    const discount = {
+        ID: document.getElementById("dm_id").value.trim(),
+        Retailer: document.getElementById("dm_retailer").value,
+        Publisher: document.getElementById("dm_publisher").value.trim(),
+        Discount_Type: document.getElementById("dm_type").value,
+        Discount_Value: document.getElementById("dm_value").value,
+        Price_Base: document.getElementById("dm_price_base").value,
+        Stackable: document.getElementById("dm_stackable").checked ? "x" : "",
+        Min_Order: document.getElementById("dm_min_order").value,
+        Valid_From: document.getElementById("dm_valid_from").value,
+        Valid_To: document.getElementById("dm_valid_to").value,
+        Note: document.getElementById("dm_note").value.trim(),
+        Active: document.getElementById("dm_active").checked ? "x" : "0"
+    };
+    const value = Number(discount.Discount_Value);
+    if (!Number.isFinite(value) || value <= 0) {
+        showWishlistNotice("Add meg a kedvezmény nullánál nagyobb értékét.", true);
+        return;
+    }
+    if (discount.Discount_Type === "%" && value > 100) {
+        showWishlistNotice("A százalékos kedvezmény legfeljebb 100% lehet.", true);
+        return;
+    }
+    if (discount.Valid_From && discount.Valid_To && discount.Valid_From > discount.Valid_To) {
+        showWishlistNotice("Az érvényesség kezdete nem lehet későbbi a záró dátumnál.", true);
+        return;
+    }
+    const action = discount.ID ? "updateDiscount" : "addDiscount";
+    wishlistApiCall(action, discount, function(data) {
+        if (!data.success) return showWishlistNotice(data.error || "A kedvezmény mentése nem sikerült.", true);
+        const saved = data.discount || discount;
+        const existingIndex = (wishlistData.discounts || []).findIndex(row => String(row.ID) === String(saved.ID));
+        if (existingIndex >= 0) wishlistData.discounts[existingIndex] = saved;
+        else wishlistData.discounts.push(saved);
+        closeDiscountModal();
+        renderWishlist();
+        showWishlistNotice("A kedvezmény mentve.", false);
+    });
+}
+
+function deleteDiscount(id) {
+    if (!confirm("Biztosan törlöd ezt a kedvezményt?")) return;
+    wishlistApiCall("deleteDiscount", { ID: id }, function(data) {
+        if (!data.success) return showWishlistNotice(data.error || "A kedvezmény törlése nem sikerült.", true);
+        wishlistData.discounts = (wishlistData.discounts || []).filter(row => String(row.ID) !== String(id));
+        renderWishlist();
+        showWishlistNotice("A kedvezmény törölve.", false);
+    });
 }
 
 function renderWishlistCard(item) {
