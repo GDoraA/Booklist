@@ -119,8 +119,12 @@ function wishlistRetailerSearch_(retailer, item) {
     const directAlexandraItem = parseAlexandraProductPage_(directUrl);
     if (directAlexandraItem && directAlexandraItem.price) candidates = [directAlexandraItem];
   } else if (retailer === "Líra" && /^https?:\/\/(?:www\.)?lira\.hu\/hu\/konyv\//i.test(directUrl)) {
-    const directLiraItem = parseLiraProductPage_(directUrl);
-    if (directLiraItem && directLiraItem.price) candidates = [directLiraItem];
+    try {
+      const directLiraItem = parseLiraProductPage_(directUrl);
+      if (directLiraItem && directLiraItem.price) candidates = [directLiraItem];
+    } catch (err) {
+      // A kanonikus cím+szerző fallback még megpróbálhatja másik útvonalon.
+    }
   }
 
   if (!candidates.length && retailer === "Bookline") {

@@ -32,6 +32,21 @@ function fetchLiraHtml_(url) {
   return html;
 }
 
+/**
+ * A hirdetési és követési paraméterek (gclid, gbraid, kampany stb.)
+ * gyakran Cloudflare 403-at okoznak szerveroldali lekérésnél. A Líra
+ * termékazonosítója az útvonalban van, ezért a query és fragment elhagyható.
+ */
+function canonicalizeLiraProductUrl_(url) {
+  const cleanUrl = decodeHtmlEntities_(String(url || "").trim())
+    .split("#")[0]
+    .split("?")[0]
+    .replace(/^http:\/\/(?:www\.)?lira\.hu/i, "https://www.lira.hu")
+    .replace(/^https:\/\/lira\.hu/i, "https://www.lira.hu");
+
+  return cleanUrl;
+}
+
 function extractLiraOnlinePrice_(html) {
   const priceElement = extractFirstMatch_(
     html,
@@ -54,7 +69,8 @@ function extractLiraOnlinePrice_(html) {
 }
 
 function parseLiraProductPage_(productUrl) {
-  const productHtml = fetchLiraHtml_(productUrl);
+  const canonicalProductUrl = canonicalizeLiraProductUrl_(productUrl);
+  const productHtml = fetchLiraHtml_(canonicalProductUrl);
   const plainText = decodeHtmlEntities_(stripHtml_(productHtml))
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ");
@@ -72,10 +88,10 @@ function parseLiraProductPage_(productUrl) {
 
   if (!title) return null;
   return {
-    source: "lira", sourceId: productUrl, title: title, authors: author,
+    source: "lira", sourceId: canonicalProductUrl, title: title, authors: author,
     isbn: foundIsbn, publisher: publisher, coverUrl: imageUrl, language: "hu",
     price: price, availability: price ? "Rendelhető" : "Nincs adat",
-    shipping: shipping, productUrl: productUrl
+    shipping: shipping, productUrl: canonicalProductUrl
   };
 }
 
@@ -107,10 +123,61 @@ function buildLiraSearchUrl_(query) {
     encodeURIComponent(String(query || "").trim());
 }
 
+function slugifyLiraTitle_(title) {
+  return String(title || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-+/g, "-");
+}
+
+/**
+ * Ha a Líra keresőoldalát a Cloudflare blokkolja, néhány gyakori
+ * könyvkategória kanonikus címútvonalát próbáljuk meg. Az újabb Líra
+ * termékeknél a `-1` végződés a leggyakoribb, ezért az kerül előre.
+ */
+function searchLiraByDirectCandidates_(title, author) {
+  const slug = slugifyLiraTitle_(title);
+  if (!slug) return [];
+
+  const categoryPaths = [
+    "/hu/konyv/szepirodalom/",
+    "/hu/konyv/szepirodalom/sci-fi-fantasy-krimi/",
+    "/hu/konyv/szepirodalom/felnottirodalom/regenyek/",
+    "/hu/konyv/ismeretterjeszto-1/",
+    "/hu/konyv/tovabbi-konyveink/"
+  ];
+  const suffixes = ["-1", ""];
+
+  for (let pathIndex = 0; pathIndex < categoryPaths.length; pathIndex++) {
+    for (let suffixIndex = 0; suffixIndex < suffixes.length; suffixIndex++) {
+      const url = "https://www.lira.hu" + categoryPaths[pathIndex] + slug + suffixes[suffixIndex];
+      try {
+        const item = parseLiraProductPage_(url);
+        if (item && item.price && isRelevantTitleAuthorMatch_(item, title, author)) {
+          return [item];
+        }
+      } catch (err) {
+        // 404, 403 vagy nem megfelelő útvonal esetén próbáljuk a következőt.
+      }
+    }
+  }
+  return [];
+}
+
 function searchLira_(query, title, author) {
   if (!String(query || "").trim()) return [];
 
-  const searchHtml = fetchLiraHtml_(buildLiraSearchUrl_(query));
+  let searchHtml = "";
+  try {
+    searchHtml = fetchLiraHtml_(buildLiraSearchUrl_(query));
+  } catch (err) {
+    if (title) return searchLiraByDirectCandidates_(title, author);
+    return [];
+  }
   const productUrls = extractLiraProductUrls_(searchHtml);
   const results = [];
 
