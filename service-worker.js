@@ -4,13 +4,14 @@ self.addEventListener('install', (event) => {
 });
 
 // Cache verzió
-const CACHE_NAME = "gda-cache-v32";
+const CACHE_NAME = "gda-cache-v45";
 
 // Cache-elendő statikus fájlok
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
   "./styles.css",
+  "./theme.css",
   "./app.js",
   "./manifest.json",
 
@@ -59,6 +60,25 @@ self.addEventListener("fetch", event => {
     request.url.includes("script.google.com") ||
     request.url.includes("googleusercontent.com")
   ) {
+    return;
+  }
+
+  // A saját HTML/JS/CSS fájloknál mindig a friss helyi verziót kérjük először.
+  // Így fejlesztés közben nem marad bent egy korábbi app.js a cache-ben.
+  const isAppShellRequest =
+    url.origin === self.location.origin &&
+    (request.mode === "navigate" || /\.(?:html|js|css)$/.test(requestPath));
+
+  if (isAppShellRequest) {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+          return response;
+        })
+        .catch(() => caches.match(request).then(cached => cached || caches.match("./index.html")))
+    );
     return;
   }
 

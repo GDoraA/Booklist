@@ -1,10 +1,10 @@
 {
-  "name": "GDA könyvei",
-  "short_name": "GDA könyvei",
+  "name": "Könyvtáram",
+  "short_name": "Könyvtáram",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f9e5ef",
-  "theme_color": "#a7c7ff",
+  "background_color": "#f5f1e8",
+  "theme_color": "#365c49",
 
   "orientation": "portrait",
 
