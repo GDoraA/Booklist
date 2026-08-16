@@ -95,6 +95,22 @@ function normalizeLooseMatch_(value) {
     .replace(/[^a-z0-9]+/g, "");
 }
 
+/** A „Vezetéknév, Keresztnév” alakot kereséshez „Keresztnév Vezetéknév” alakra rendezi. */
+function normalizeAuthorForSearchOrder_(author) {
+  const value = String(author || "").trim();
+  if (!value || value.indexOf(",") === -1) return value.replace(/\s+/g, " ");
+  const parts = value.split(",").map(function(part) { return part.trim(); }).filter(Boolean);
+  return parts.length > 1 ? parts.slice(1).join(" ") + " " + parts[0] : value;
+}
+
+/** Ékezet-, írásjel- és szórendfüggetlen részszavas egyezés. */
+function isPartialTextMatch_(candidate, wanted) {
+  const candidateText = normalizeText_(candidate).replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  const wantedText = normalizeText_(wanted).replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!wantedText) return false;
+  return wantedText.split(" ").every(function(part) { return candidateText.indexOf(part) !== -1; });
+}
+
 /**
  * ISBN normalizálása összehasonlításhoz.
  *
@@ -147,17 +163,19 @@ function normalizeIsbnForCompare_(value) {
  */
 function isRelevantTitleAuthorMatch_(item, wantedTitle, wantedAuthor) {
   const wantedTitleNorm = normalizeText_(wantedTitle);
-  const wantedAuthorNorm = normalizeText_(wantedAuthor);
+  const wantedAuthorSearch = normalizeAuthorForSearchOrder_(wantedAuthor);
+  const wantedAuthorNorm = normalizeText_(wantedAuthorSearch);
 
   const itemTitleNorm = normalizeText_(item && item.title);
-  const itemAuthorsNorm = normalizeText_(item && item.authors);
+  const itemAuthorSearch = normalizeAuthorForSearchOrder_(item && item.authors);
+  const itemAuthorsNorm = normalizeText_(itemAuthorSearch);
   const itemSourceIdNorm = normalizeText_(item && item.sourceId);
 
   const wantedTitleLoose = normalizeLooseMatch_(wantedTitle);
-  const wantedAuthorLoose = normalizeLooseMatch_(wantedAuthor);
+  const wantedAuthorLoose = normalizeLooseMatch_(wantedAuthorSearch);
 
   const itemTitleLoose = normalizeLooseMatch_(item && item.title);
-  const itemAuthorsLoose = normalizeLooseMatch_(item && item.authors);
+  const itemAuthorsLoose = normalizeLooseMatch_(itemAuthorSearch);
   const itemSourceIdLoose = normalizeLooseMatch_(item && item.sourceId);
 
   if (!wantedTitleNorm && !wantedAuthorNorm) {
@@ -169,6 +187,7 @@ function isRelevantTitleAuthorMatch_(item, wantedTitle, wantedAuthor) {
 
   if (wantedTitleNorm) {
     titleMatches =
+      isPartialTextMatch_(item && item.title, wantedTitle) ||
       itemTitleNorm.indexOf(wantedTitleNorm) !== -1 ||
       wantedTitleNorm.indexOf(itemTitleNorm) !== -1 ||
       itemSourceIdNorm.indexOf(wantedTitleNorm) !== -1 ||
@@ -178,6 +197,7 @@ function isRelevantTitleAuthorMatch_(item, wantedTitle, wantedAuthor) {
 
 if (wantedAuthorNorm) {
   authorMatches =
+    isPartialTextMatch_(itemAuthorSearch, wantedAuthorSearch) ||
     itemAuthorsNorm.indexOf(wantedAuthorNorm) !== -1 ||
     wantedAuthorNorm.indexOf(itemAuthorsNorm) !== -1 ||
     itemAuthorsLoose.indexOf(wantedAuthorLoose) !== -1 ||

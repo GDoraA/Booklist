@@ -29,9 +29,27 @@ function readOptionalSheet_(sheetName) {
   return sheet ? readSheet_(sheetName) : [];
 }
 
+/** A szerzőt az Authors értékkészletben használt kanonikus alakra igazítja. */
+function normalizeWishlistAuthor_(author) {
+  const cleanAuthor = String(author || "").split(",").map(function(part) {
+    return part.trim();
+  }).filter(Boolean).join(", ");
+  if (!cleanAuthor) return "";
+
+  const wantedIdentity = normalizeLooseMatch_(normalizeAuthorForSearchOrder_(cleanAuthor));
+  try {
+    const knownAuthor = readSheet_(SHEET_AUTHORS).find(function(row) {
+      return normalizeLooseMatch_(normalizeAuthorForSearchOrder_(row.Author)) === wantedIdentity;
+    });
+    return knownAuthor && knownAuthor.Author ? String(knownAuthor.Author).trim() : cleanAuthor;
+  } catch (err) {
+    return cleanAuthor;
+  }
+}
+
 function mapWishlistFromParams_(p, includeId) {
   const item = {
-    "Author": p.Author || p.author || "",
+    "Author": normalizeWishlistAuthor_(p.Author || p.author || ""),
     "Title": p.Title || p.title || "",
     "Original_Title": p.Original_Title || "",
     "Previous_Title": p.Previous_Title || "",
@@ -311,6 +329,8 @@ function enrichWishlistItemFromOffers_(item, offers) {
       }
       if (!value) return;
 
+      if (field === "Author") value = normalizeWishlistAuthor_(value);
+
       item[field] = value;
       row[map[field] - 1] = value;
       changed = true;
@@ -318,6 +338,8 @@ function enrichWishlistItemFromOffers_(item, offers) {
 
     if (changed) {
       sheet.getRange(rowIndex + 1, 1, 1, sheet.getLastColumn()).setValues([row]);
+      updateUniqueList_(SHEET_AUTHORS, "Author", item.Author || "");
+      updateUniqueList_(SHEET_SERIES, "Series", item.Series || "");
     }
     return item;
   }
@@ -383,15 +405,15 @@ function refreshWishlistOffers_(items, forceRefresh) {
 
 function isWishlistDuplicate_(item, ignoreId) {
   const isbn = String(item.ISBN || "").replace(/[^0-9X]/gi, "").toLowerCase();
-  const author = String(item.Author || "").trim().toLowerCase();
-  const title = String(item.Title || "").trim().toLowerCase();
+  const author = normalizeLooseMatch_(normalizeAuthorForSearchOrder_(item.Author));
+  const title = normalizeLooseMatch_(item.Title);
 
   return readSheet_(SHEET_WISHLIST).find(function(existing) {
     if (ignoreId && String(existing.ID) === String(ignoreId)) return false;
     const existingIsbn = String(existing.ISBN || "").replace(/[^0-9X]/gi, "").toLowerCase();
     if (isbn && existingIsbn) return isbn === existingIsbn;
-    return author === String(existing.Author || "").trim().toLowerCase() &&
-      title === String(existing.Title || "").trim().toLowerCase();
+    return author === normalizeLooseMatch_(normalizeAuthorForSearchOrder_(existing.Author)) &&
+      title === normalizeLooseMatch_(existing.Title);
   }) || null;
 }
 
@@ -417,6 +439,8 @@ function addWishlistItem_(item) {
     if (map[key]) row[map[key] - 1] = item[key];
   });
   sheet.appendRow(row);
+  updateUniqueList_(SHEET_AUTHORS, "Author", item.Author);
+  updateUniqueList_(SHEET_SERIES, "Series", item.Series);
   return { success: true, item: item };
 }
 
@@ -444,7 +468,9 @@ function updateWishlistItem_(item) {
           sheet.getRange(rowIndex + 1, map[header]).setValue(item[header]);
         }
       });
-      return { success: true };
+      updateUniqueList_(SHEET_AUTHORS, "Author", item.Author);
+      updateUniqueList_(SHEET_SERIES, "Series", item.Series);
+      return { success: true, item: item };
     }
   }
   return { success: false, error: "A kívánságlista-elem nem található." };

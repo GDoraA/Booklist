@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbxN6GsDFU2iVZ6rj6cFbv0mNV6Cn-POXOjsCsjQDe87JragbgQpnzrUdbIcaaHWCyMFVA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxipor6ETShjpcXzPg3KeWqJZbR7z68MDgWulXNqAubu046niUrqMWfm6l8x6QTjh3LOA/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -455,8 +455,11 @@ function loadDropdownLists() {
 }
 
 function dropdownListsCallback(data) {
+    data = data || {};
     fillDatalist(document.getElementById("authors_list_modal"), data.authors, "Author");
     fillDatalist(document.getElementById("series_list_modal"), data.series, "Series");
+    fillDatalist(document.getElementById("authors_list_wishlist"), data.authors, "Author");
+    fillDatalist(document.getElementById("series_list_wishlist"), data.series, "Series");
 
     // Szűrőmezők datalist feltöltése
     fillDatalist(document.getElementById("authors_list_filter"), data.authors, "Author");
@@ -467,6 +470,8 @@ function dropdownListsCallback(data) {
     // fuzzy keresés modal mezőkben
     enableFuzzyDatalist("bm_szerzo", "authors_list_modal");
     enableFuzzyDatalist("bm_sorozat", "series_list_modal");
+    enableFuzzyDatalist("wm_author", "authors_list_wishlist");
+    enableFuzzyDatalist("wm_series", "series_list_wishlist");
 
     // pulse animáció
     document.getElementById("bm_szerzo").classList.add("pulse");
@@ -489,6 +494,7 @@ function dropdownListsCallback(data) {
 
 
 function fillDatalist(dl, list, key) {
+    if (!dl) return;
     dl.innerHTML = "";
 
     // Értékek kigyűjtése
@@ -725,7 +731,7 @@ function buildGoogleBooksQuery({ isbn, title, author }) {
 
     const parts = [];
     if (title) parts.push(`intitle:${title}`);
-    if (author) parts.push(`inauthor:${author}`);
+    if (author) parts.push(`inauthor:${normalizeAuthorNameForLookupFrontend(author)}`);
     return parts.join(" ");
 }
 
@@ -838,6 +844,40 @@ function normalizeAuthorNameForLookupFrontend(author) {
 
     return parts.slice(1).join(" ") + " " + parts[0];
 }
+
+function normalizePartialSearchText(value) {
+    return normalizeLookupTextForFrontend(value)
+        .replace(/[^a-z0-9]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function authorSearchText(value) {
+    return String(value || "") + " " + normalizeAuthorNameForLookupFrontend(value);
+}
+
+function matchesPartialSearch(value, query) {
+    const normalizedQuery = normalizePartialSearchText(query);
+    if (!normalizedQuery) return true;
+    const normalizedValue = normalizePartialSearchText(value);
+    return normalizedQuery.split(" ").every(part => normalizedValue.includes(part));
+}
+
+function resolveValueFromDatalist(value, datalistId, authorMode) {
+    const cleanValue = String(value || "").trim();
+    const datalist = document.getElementById(datalistId);
+    if (!cleanValue || !datalist) return cleanValue;
+    const wanted = authorMode
+        ? normalizePartialSearchText(normalizeAuthorNameForLookupFrontend(cleanValue))
+        : normalizePartialSearchText(cleanValue);
+    const match = Array.from(datalist.options).find(option => {
+        const candidate = authorMode
+            ? normalizePartialSearchText(normalizeAuthorNameForLookupFrontend(option.value))
+            : normalizePartialSearchText(option.value);
+        return candidate === wanted;
+    });
+    return match ? match.value : cleanValue;
+}
 function normalizeLooseLookupTextForFrontend(value) {
     return normalizeLookupTextForFrontend(value)
         .replace(/[^a-z0-9]+/g, "");
@@ -851,13 +891,19 @@ function isRelevantFrontendLookupItem(item, wanted) {
     );
     const itemIsbn = normalizeIsbnForMerge(item && item.isbn);
     const itemTitle = normalizeLookupTextForFrontend(item && item.title);
-    const itemAuthors = normalizeLookupTextForFrontend(item && item.authors);
+    const itemAuthors = normalizeLookupTextForFrontend(
+        normalizeAuthorNameForLookupFrontend(item && item.authors)
+    );
 
     const wantedTitleLoose = normalizeLooseLookupTextForFrontend(wanted && wanted.title);
-    const wantedAuthorLoose = normalizeLooseLookupTextForFrontend(wanted && wanted.author);
+    const wantedAuthorLoose = normalizeLooseLookupTextForFrontend(
+        normalizeAuthorNameForLookupFrontend(wanted && wanted.author)
+    );
 
     const itemTitleLoose = normalizeLooseLookupTextForFrontend(item && item.title);
-    const itemAuthorsLoose = normalizeLooseLookupTextForFrontend(item && item.authors);
+    const itemAuthorsLoose = normalizeLooseLookupTextForFrontend(
+        normalizeAuthorNameForLookupFrontend(item && item.authors)
+    );
 
     if (wantedIsbn) {
         return itemIsbn && itemIsbn === wantedIsbn;
@@ -1150,7 +1196,12 @@ async function lookupBookMetadataFromModal() {
 function saveBookFromModal() {
     log("Könyv mentése modalból...");
 
-    const szerzo = document.getElementById("bm_szerzo").value.trim();
+    const szerzo = resolveValueFromDatalist(
+        document.getElementById("bm_szerzo").value,
+        "authors_list_modal",
+        true
+    );
+    document.getElementById("bm_szerzo").value = szerzo;
     const cim = document.getElementById("bm_cim").value.trim();
 
     if (!szerzo || !cim) {
@@ -1176,7 +1227,7 @@ function saveBookFromModal() {
         Title: document.getElementById("bm_cim").value.trim(),
         Original_Title: document.getElementById("bm_eredeti").value.trim(),
         Previous_Title: document.getElementById("bm_korabbi").value.trim(),
-        Series: document.getElementById("bm_sorozat").value.trim(),
+        Series: resolveValueFromDatalist(document.getElementById("bm_sorozat").value, "series_list_modal", false),
         Number: document.getElementById("bm_ssz").value.trim(),
         Year: document.getElementById("bm_ev").value.trim(),
         Publication_Date: document.getElementById("bm_megjelenes").value.trim(),
@@ -1298,6 +1349,7 @@ function modalAddBookValasz(data) {
         alert("Könyv sikeresen rögzítve.");
         closeBookModal();
         betoltesLista();
+        loadDropdownLists();
     } else if (data && data.error && data.error.indexOf("Duplikált") !== -1) {
         let msg = "Ez a könyv már szerepel a listában.";
         if (data.duplicate) {
@@ -1321,6 +1373,7 @@ function modalUpdateBookValasz(data) {
         alert("Rekord sikeresen frissítve.");
         closeBookModal();
         betoltesLista();
+        loadDropdownLists();
     } else {
         alert("Hiba történt mentés közben!");
         log("❌ Hiba (modal szerkesztés): " + (data && data.error ? data.error : "Ismeretlen hiba"));
@@ -1332,18 +1385,17 @@ function enableFuzzyDatalist(inputId, datalistId) {
     const input = document.getElementById(inputId);
     const dl = document.getElementById(datalistId);
 
+    if (!input || !dl || input.dataset.fuzzyDatalistBound === datalistId) return;
+    input.dataset.fuzzyDatalistBound = datalistId;
+
     input.addEventListener("input", () => {
-        const query = input.value.toLowerCase();
+        const query = input.value;
         const options = [...dl.options];
+        const isAuthorField = inputId.includes("szerzo") || inputId.includes("author");
 
         options.forEach(opt => {
-            const text = opt.value.toLowerCase();
-
-            const normalize = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-            const match =
-                text.includes(query) ||
-                normalize(text).includes(normalize(query));
+            const text = isAuthorField ? authorSearchText(opt.value) : opt.value;
+            const match = matchesPartialSearch(text, query);
 
             opt.style.display = match ? "block" : "none";
         });
@@ -1620,23 +1672,23 @@ function setSort(field) {
 
 function listaMegjelenites() {
 
-    const fszerzo = (document.getElementById("ls_szerzo").value || "").toLowerCase();
-    const fcim = (document.getElementById("ls_cim").value || "").toLowerCase();
-    const fseries = (document.getElementById("ls_sorozat").value || "").toLowerCase();
+    const fszerzo = document.getElementById("ls_szerzo").value || "";
+    const fcim = document.getElementById("ls_cim").value || "";
+    const fseries = document.getElementById("ls_sorozat").value || "";
     const minYear = parseInt(document.getElementById("ls_ev_min").value || "", 10);
     const maxYear = parseInt(document.getElementById("ls_ev_max").value || "", 10);
 
     // --- Lista szűrése a kártyás nézethez ---
     let filtered = lista.filter(item => {
-        const author = String(item["Author"] || "").toLowerCase();
-        const title = String(item["Title"] || "").toLowerCase();
-        const series = String(item["Series"] || "").toLowerCase();
+        const author = authorSearchText(item["Author"]);
+        const title = String(item["Title"] || "");
+        const series = String(item["Series"] || "");
         const year = parseInt(item["Year"] || "", 10);
         const purchased = item["Purchased"] || "";
 
-        if (fszerzo && !author.includes(fszerzo)) return false;
-        if (fcim && !title.includes(fcim)) return false;
-        if (fseries && !series.includes(fseries)) return false;
+        if (!matchesPartialSearch(author, fszerzo)) return false;
+        if (!matchesPartialSearch(title, fcim)) return false;
+        if (!matchesPartialSearch(series, fseries)) return false;
 
         if (!isNaN(minYear)) {
             if (isNaN(year) || year < minYear) return false;
@@ -2133,24 +2185,24 @@ function tablaMegjelenites() {
     tbody.innerHTML = "";
 
     // --- Szűrési mezők ---
-    const fszerzo = (document.getElementById("ts_szerzo").value || "").toLowerCase();
-    const fcim = (document.getElementById("ts_cim").value || "").toLowerCase();
-    const fseries = (document.getElementById("ts_sorozat").value || "").toLowerCase();
+    const fszerzo = document.getElementById("ts_szerzo").value || "";
+    const fcim = document.getElementById("ts_cim").value || "";
+    const fseries = document.getElementById("ts_sorozat").value || "";
     const minYear = parseInt(document.getElementById("ts_ev_min").value || "", 10);
     const maxYear = parseInt(document.getElementById("ts_ev_max").value || "", 10);
 
     // --- Lista szűrése ---
     let filtered = lista.filter(item => {
 
-        const author = String(item["Author"] || "").toLowerCase();
-        const title = String(item["Title"] || "").toLowerCase();
-        const series = String(item["Series"] || "").toLowerCase();
+        const author = authorSearchText(item["Author"]);
+        const title = String(item["Title"] || "");
+        const series = String(item["Series"] || "");
         const year = parseInt(item["Year"] || "", 10);
         const purchased = item["Purchased"] || "";
 
-        if (fszerzo && !author.includes(fszerzo)) return false;
-        if (fcim && !title.includes(fcim)) return false;
-        if (fseries && !series.includes(fseries)) return false;
+        if (!matchesPartialSearch(author, fszerzo)) return false;
+        if (!matchesPartialSearch(title, fcim)) return false;
+        if (!matchesPartialSearch(series, fseries)) return false;
 
         if (!isNaN(minYear)) {
             if (isNaN(year) || year < minYear) return false;
@@ -2642,12 +2694,12 @@ function renderWishlist() {
     const empty = document.getElementById("wishlistEmptyState");
     if (!container || !empty) return;
 
-    const query = wishlistNormalized(document.getElementById("wishSearch")?.value);
+    const query = document.getElementById("wishSearch")?.value || "";
     const priority = document.getElementById("wishPriorityFilter")?.value || "";
     const allItems = wishlistData.items || [];
     const filtered = allItems.filter(item => {
-        const haystack = wishlistNormalized([item.Author, item.Title, item.ISBN, item.Publisher].join(" "));
-        return (!query || haystack.includes(query)) && (!priority || item.Priority === priority);
+        const haystack = [authorSearchText(item.Author), item.Title, item.ISBN, item.Publisher].join(" ");
+        return matchesPartialSearch(haystack, query) && (!priority || item.Priority === priority);
     });
 
     const availableIds = new Set((wishlistData.offers || []).filter(wishlistOfferAvailable).map(offer => String(offer.Wishlist_ID)));
@@ -2884,11 +2936,11 @@ function saveWishlistItem() {
     const item = {
         ID: document.getElementById("wm_id").value.trim(),
         Added_Date: document.getElementById("wm_added_date").value.trim(),
-        Author: document.getElementById("wm_author").value.trim(),
+        Author: resolveValueFromDatalist(document.getElementById("wm_author").value, "authors_list_wishlist", true),
         Title: document.getElementById("wm_title").value.trim(),
         Original_Title: document.getElementById("wm_original_title").value.trim(),
         Previous_Title: document.getElementById("wm_previous_title").value.trim(),
-        Series: document.getElementById("wm_series").value.trim(),
+        Series: resolveValueFromDatalist(document.getElementById("wm_series").value, "series_list_wishlist", false),
         Number: document.getElementById("wm_number").value.trim(),
         Year: document.getElementById("wm_year").value.trim(),
         Page_Count: document.getElementById("wm_page_count").value.trim(),
@@ -2916,6 +2968,7 @@ function saveWishlistItem() {
         if (!data.success) return showWishlistNotice(data.error || "A mentés nem sikerült.", true);
         closeWishlistModal();
         showWishlistNotice("A kívánságlista frissült.", false);
+        loadDropdownLists();
         loadWishlist();
     });
 }

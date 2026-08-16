@@ -302,7 +302,7 @@ function searchBooklineByIsbn_(isbn) {
  */
 function searchBooklineByTitleAuthor_(title, author) {
   const cleanTitle = String(title || "").trim();
-  const cleanAuthor = String(author || "").trim();
+  const cleanAuthor = normalizeAuthorForSearchOrder_(author);
 
   const query = [cleanTitle, cleanAuthor]
     .filter(function(x) {

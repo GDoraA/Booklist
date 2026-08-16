@@ -215,7 +215,7 @@ function searchLiraByIsbn_(isbn) {
 
 function searchLiraByTitleAuthor_(title, author) {
   const cleanTitle = String(title || "").trim();
-  const cleanAuthor = String(author || "").trim();
+  const cleanAuthor = normalizeAuthorForSearchOrder_(author);
   const query = [cleanTitle, cleanAuthor].filter(function(value) { return value; }).join(" ");
   return searchLira_(query, cleanTitle, cleanAuthor);
 }

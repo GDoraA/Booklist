@@ -548,7 +548,7 @@ function buildLibriCandidateUrls_(title, author) {
  */
 function searchLibriProductUrlsViaGoogle_(title, author) {
   const cleanTitle = String(title || "").trim();
-  const cleanAuthor = String(author || "").trim();
+  const cleanAuthor = normalizeAuthorForSearchOrder_(author);
 
   const query = [
     "site:libri.hu/konyv",
@@ -666,7 +666,7 @@ function searchLibriProductUrlsViaGoogle_(title, author) {
  */
 function searchLibriByTitleAuthor_(title, author) {
   const cleanTitle = String(title || "").trim();
-  const cleanAuthor = String(author || "").trim();
+  const cleanAuthor = normalizeAuthorForSearchOrder_(author);
 
   const query = [cleanTitle, cleanAuthor]
     .filter(function (x) {

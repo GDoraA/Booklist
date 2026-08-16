@@ -452,11 +452,13 @@
             <input type="hidden" id="wm_id">
             <input type="hidden" id="wm_added_date">
             <div class="modal-grid">
-                <input id="wm_author" placeholder="Szerző *">
+                <input id="wm_author" list="authors_list_wishlist" placeholder="Szerző *">
+                <datalist id="authors_list_wishlist"></datalist>
                 <input id="wm_title" placeholder="Cím *">
                 <input id="wm_original_title" placeholder="Eredeti cím">
                 <input id="wm_previous_title" placeholder="Korábbi cím">
-                <input id="wm_series" placeholder="Sorozat">
+                <input id="wm_series" list="series_list_wishlist" placeholder="Sorozat">
+                <datalist id="series_list_wishlist"></datalist>
                 <input id="wm_number" placeholder="Sorozatszám">
                 <input id="wm_year" type="number" min="1" max="9999" placeholder="Kiadás éve">
                 <input id="wm_page_count" type="number" min="1" placeholder="Oldalszám">

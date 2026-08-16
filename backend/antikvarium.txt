@@ -134,7 +134,8 @@ function extractAntikvariumProductUrls_(html) {
  * - isRelevantTitleAuthorMatch_()
  */
 function searchAntikvariumByTitleAuthor_(title, author) {
-  const query = [title, author]
+  const normalizedAuthor = normalizeAuthorForSearchOrder_(author);
+  const query = [title, normalizedAuthor]
     .filter(function (x) {
       return String(x || "").trim();
     })
@@ -167,8 +168,8 @@ function searchAntikvariumByTitleAuthor_(title, author) {
 
       if (
         item &&
-        isRelevantTitleAuthorMatch_(item, title, author) &&
-        normalizeText_(item.title) === normalizeText_(title)
+        isRelevantTitleAuthorMatch_(item, title, normalizedAuthor) &&
+        isPartialTextMatch_(item.title, title)
       ) {
         items.push(item);
       }
