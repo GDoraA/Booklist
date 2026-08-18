@@ -320,7 +320,58 @@ function buildLiraSearchUrl_(query) {
   return "https://www.lira.hu/hu/reszletes_kereso" +
     "?listorder=release_date&listdirection=desc" +
     "&listpagenumber=50&listcurrentpage=0&quick_search_txt=" +
-    encodeURIComponent(String(query || "").trim());
+    encodeURIComponent(String(query || "").trim()) +
+    "&quick_search_category_code=001";
+}
+
+/** A Líra gyorskereső teljes folyamatának kézzel futtatható diagnosztikája. */
+function debugLiraSearch_(query, title, author) {
+  const cleanQuery = String(query || "").trim();
+  const result = {
+    query: cleanQuery,
+    searchUrl: buildLiraSearchUrl_(cleanQuery),
+    htmlLength: 0,
+    blocked: false,
+    productUrls: [],
+    parsedItems: [],
+    errors: []
+  };
+
+  if (!cleanQuery) {
+    result.errors.push("Üres keresőkifejezés.");
+    return result;
+  }
+
+  let searchHtml = "";
+  try {
+    searchHtml = fetchLiraHtml_(result.searchUrl);
+    result.htmlLength = searchHtml.length;
+    result.blocked = /Sorry, you have been blocked|Attention Required!\s*\|\s*Cloudflare/i.test(searchHtml);
+    result.productUrls = extractLiraProductUrls_(searchHtml);
+  } catch (err) {
+    result.errors.push("Keresőoldal: " + (err && err.message ? err.message : String(err)));
+    return result;
+  }
+
+  result.productUrls.slice(0, 8).forEach(function(productUrl) {
+    try {
+      const item = parseLiraProductPage_(productUrl);
+      result.parsedItems.push({
+        productUrl: productUrl,
+        title: item && item.title || "",
+        authors: item && item.authors || "",
+        isbn: item && item.isbn || "",
+        price: item && item.price || "",
+        onlinePrice: item && item.onlinePrice || "",
+        fullPrice: item && item.fullPrice || "",
+        relevant: Boolean(item && isRelevantTitleAuthorMatch_(item, title, author))
+      });
+    } catch (err) {
+      result.errors.push(productUrl + ": " + (err && err.message ? err.message : String(err)));
+    }
+  });
+
+  return result;
 }
 
 function slugifyLiraTitle_(title) {

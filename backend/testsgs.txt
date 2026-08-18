@@ -2335,3 +2335,14 @@ function testDebugLiraMillenniumiNaplo() {
   Logger.log(JSON.stringify(result, null, 2));
   return result;
 }
+
+/** A Líra saját quick_search_txt keresési útvonalának élő debugja. */
+function testDebugLiraMillenniumiNaploSearch() {
+  const result = debugLiraSearch_(
+    "Millenniumi napló Fábián Janka",
+    "Millenniumi napló",
+    "Fábián Janka"
+  );
+  Logger.log(JSON.stringify(result, null, 2));
+  return result;
+}
