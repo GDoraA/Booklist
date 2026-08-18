@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbwdtkC6hpWookdVCsE4eNMSWtmLZAvZMjN1cEeI6ngy6-mKI0N-rwE0JCwIZrkF97feDQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwJZ1HHfbWInndlTpslkz6vrCXh7HREbRH7KUb4TXwUU5CIIUZ9lFIqoj6o8uk0O7Qcpg/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -2538,6 +2538,21 @@ function refreshWishlistPrices(forceRefresh) {
                         (error.Retailer || "Ismeretlen kereskedő") + ": " +
                         (error.Error || "nem található ár")
                     ));
+                    (data.offerDebug || []).forEach(debugEntry => {
+                        if (window.console && typeof window.console.debug === "function") {
+                            window.console.debug("Líra árkeresési debug", debugEntry);
+                        }
+                        const trace = debugEntry && debugEntry.Trace;
+                        const summary = trace
+                            ? "siker=" + Boolean(trace.success) +
+                              ", találatok=" + Number(trace.candidateCount || 0) +
+                              (trace.failureReason ? ", ok=" + trace.failureReason : "")
+                            : "cache=" + Boolean(debugEntry && debugEntry.cacheHit) +
+                              ", gyorsítótárazott Líra-ajánlatok=" + Number(debugEntry && debugEntry.cachedOfferCount || 0);
+                        log(escapeLookupHtml(
+                            "Líra árdebug [" + String(debugEntry && debugEntry.Wishlist_ID || item.ID || "") + "]: " + summary
+                        ));
+                    });
                     renderWishlist();
                 } else {
                     failures.push(data.error || "ismeretlen hiba");

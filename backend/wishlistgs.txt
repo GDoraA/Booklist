@@ -164,14 +164,15 @@ function deleteDiscount_(id) {
 function getWishlistData_(refreshOffers, forceRefresh) {
   const items = readSheet_(SHEET_WISHLIST);
   const storedOffers = readOptionalSheet_(SHEET_WISHLIST_OFFERS);
-  const refreshResult = refreshOffers ? refreshWishlistOffers_(items, forceRefresh) : { offers: [], errors: [] };
+  const refreshResult = refreshOffers ? refreshWishlistOffers_(items, forceRefresh) : { offers: [], errors: [], debug: [] };
 
   return {
     success: true,
     items: items,
     offers: mergeWishlistOffers_(storedOffers, refreshResult.offers),
     discounts: readOptionalSheet_(SHEET_DISCOUNTS),
-    offerErrors: refreshResult.errors
+    offerErrors: refreshResult.errors,
+    offerDebug: refreshResult.debug || []
   };
 }
 
@@ -189,7 +190,8 @@ function getWishlistItemOffers_(wishlistId, forceRefresh) {
     Wishlist_ID: item.ID,
     item: result.items && result.items[0] ? result.items[0] : item,
     offers: result.offers,
-    offerErrors: result.errors
+    offerErrors: result.errors,
+    offerDebug: result.debug || []
   };
 }
 
@@ -206,7 +208,22 @@ function mergeWishlistOffers_(storedOffers, liveOffers) {
   return Object.keys(merged).map(function(key) { return merged[key]; });
 }
 
-function wishlistRetailerSearch_(retailer, item) {
+function summarizeWishlistPriceCandidate_(candidate) {
+  if (!candidate) return null;
+  return {
+    source: candidate.source || "",
+    title: candidate.title || "",
+    authors: candidate.authors || "",
+    isbn: candidate.isbn || "",
+    price: candidate.price || "",
+    onlinePrice: candidate.onlinePrice || "",
+    fullPrice: candidate.fullPrice || "",
+    availability: candidate.availability || "",
+    productUrl: candidate.productUrl || candidate.sourceId || ""
+  };
+}
+
+function wishlistRetailerSearch_(retailer, item, trace) {
   const isbn = String(item.ISBN || "").trim();
   let candidates = [];
   const retailerUrls = {
@@ -216,6 +233,18 @@ function wishlistRetailerSearch_(retailer, item) {
   const directUrl = decodeHtmlEntities_(
     String(retailerUrls[retailer] || item.Purchase_Link || "").trim()
   );
+
+  if (trace) {
+    trace.retailer = retailer;
+    trace.input = {
+      id: item.ID || "",
+      title: item.Title || "",
+      author: item.Author || "",
+      isbn: isbn,
+      directUrl: directUrl
+    };
+    trace.steps = [];
+  }
 
   // A közvetlen vásárlási link pontosabb, mint a webshop keresőoldala.
   if (retailer === "Bookline" && /^https?:\/\/(?:www\.)?bookline\.hu\/product\/home\.action/i.test(directUrl)) {
@@ -230,8 +259,18 @@ function wishlistRetailerSearch_(retailer, item) {
   } else if (retailer === "Líra" && /^https?:\/\/(?:www\.)?lira\.hu\/hu\/konyv\//i.test(directUrl)) {
     try {
       const directLiraItem = parseLiraProductPage_(directUrl);
+      if (trace) trace.steps.push({
+        stage: "direct-url",
+        success: Boolean(directLiraItem),
+        candidate: summarizeWishlistPriceCandidate_(directLiraItem)
+      });
       if (directLiraItem && directLiraItem.price) candidates = [directLiraItem];
     } catch (err) {
+      if (trace) trace.steps.push({
+        stage: "direct-url",
+        success: false,
+        error: err && err.message ? err.message : String(err)
+      });
       // A kanonikus cím+szerző fallback még megpróbálhatja másik útvonalon.
     }
   }
@@ -246,11 +285,41 @@ function wishlistRetailerSearch_(retailer, item) {
     candidates = isbn ? filterPublisherItemsByRequestedIsbn_(searchAlexandraByIsbn_(isbn), isbn) : [];
     if (!candidates.length) candidates = searchAlexandraByTitleAuthor_(item.Title, item.Author);
   } else if (!candidates.length && retailer === "Líra") {
-    candidates = isbn ? filterPublisherItemsByRequestedIsbn_(searchLiraByIsbn_(isbn), isbn) : [];
-    if (!candidates.length) candidates = searchLiraByTitleAuthor_(item.Title, item.Author);
+    if (isbn) {
+      const isbnTrace = {};
+      candidates = filterPublisherItemsByRequestedIsbn_(searchLiraByIsbn_(isbn, isbnTrace), isbn);
+      if (trace) trace.steps.push({
+        stage: "isbn-search",
+        query: isbn,
+        count: candidates.length,
+        candidates: candidates.map(summarizeWishlistPriceCandidate_),
+        search: isbnTrace
+      });
+    }
+    if (!candidates.length) {
+      const titleAuthorTrace = {};
+      candidates = searchLiraByTitleAuthor_(item.Title, item.Author, titleAuthorTrace);
+      if (trace) trace.steps.push({
+        stage: "title-author-search",
+        query: [item.Title || "", item.Author || ""].join(" ").trim(),
+        count: candidates.length,
+        candidates: candidates.map(summarizeWishlistPriceCandidate_),
+        search: titleAuthorTrace
+      });
+    }
   }
 
   const candidate = (candidates || []).filter(function(row) { return row && row.price; })[0];
+  if (trace) {
+    trace.candidateCount = candidates.length;
+    trace.selected = summarizeWishlistPriceCandidate_(candidate);
+    trace.success = Boolean(candidate);
+    trace.failureReason = candidate
+      ? ""
+      : candidates.length
+        ? "Volt találat, de egyiknél sem töltődött ki a price mező."
+        : "A közvetlen URL, az ISBN és a cím+szerző keresés sem adott használható találatot.";
+  }
   if (!candidate) return null;
 
   const offer = {
@@ -356,6 +425,7 @@ function wishlistOfferCacheKey_(item) {
 function refreshWishlistOffers_(items, forceRefresh) {
   const offers = [];
   const errors = [];
+  const debug = [];
   const refreshedItems = [];
   const retailers = ["Bookline", "Libri", "Líra", "Alexandra"];
   const cache = CacheService.getScriptCache();
@@ -367,6 +437,13 @@ function refreshWishlistOffers_(items, forceRefresh) {
       try {
         const cachedOffers = JSON.parse(cached);
         cachedOffers.forEach(function(offer) { offers.push(offer); });
+        debug.push({
+          Wishlist_ID: item.ID,
+          Retailer: "Líra",
+          cacheHit: true,
+          forceRefresh: Boolean(forceRefresh),
+          cachedOfferCount: cachedOffers.filter(function(offer) { return offer && offer.Retailer === "Líra"; }).length
+        });
         refreshedItems.push(enrichWishlistItemFromOffers_(item, cachedOffers));
         return;
       } catch (err) {
@@ -376,8 +453,10 @@ function refreshWishlistOffers_(items, forceRefresh) {
 
     const itemOffers = [];
     retailers.forEach(function(retailer) {
+      const trace = retailer === "Líra" ? { cacheHit: false, forceRefresh: Boolean(forceRefresh) } : null;
       try {
-        const offer = wishlistRetailerSearch_(retailer, item);
+        const offer = wishlistRetailerSearch_(retailer, item, trace);
+        if (trace) debug.push({ Wishlist_ID: item.ID, Retailer: retailer, Trace: trace });
         if (offer) {
           offers.push(offer);
           itemOffers.push(offer);
@@ -389,6 +468,11 @@ function refreshWishlistOffers_(items, forceRefresh) {
           });
         }
       } catch (err) {
+        if (trace) {
+          trace.success = false;
+          trace.unhandledError = err && err.message ? err.message : String(err);
+          debug.push({ Wishlist_ID: item.ID, Retailer: retailer, Trace: trace });
+        }
         errors.push({
           Wishlist_ID: item.ID,
           Retailer: retailer,
@@ -400,7 +484,7 @@ function refreshWishlistOffers_(items, forceRefresh) {
     cache.put(cacheKey, JSON.stringify(itemOffers), 600);
   });
 
-  return { offers: offers, errors: errors, items: refreshedItems };
+  return { offers: offers, errors: errors, items: refreshedItems, debug: debug };
 }
 
 function isWishlistDuplicate_(item, ignoreId) {

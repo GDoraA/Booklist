@@ -390,7 +390,7 @@ function slugifyLiraTitle_(title) {
  * könyvkategória kanonikus címútvonalát próbáljuk meg. Az újabb Líra
  * termékeknél a `-1` végződés a leggyakoribb, ezért az kerül előre.
  */
-function searchLiraByDirectCandidates_(title, author) {
+function searchLiraByDirectCandidates_(title, author, trace) {
   const slug = slugifyLiraTitle_(title);
   if (!slug) return [];
 
@@ -408,10 +408,21 @@ function searchLiraByDirectCandidates_(title, author) {
       const url = "https://www.lira.hu" + categoryPaths[pathIndex] + slug + suffixes[suffixIndex];
       try {
         const item = parseLiraProductPage_(url);
+        if (trace) trace.directCandidateAttempts.push({
+          url: url,
+          parsed: Boolean(item),
+          relevant: Boolean(item && isRelevantTitleAuthorMatch_(item, title, author)),
+          price: item && item.price || ""
+        });
         if (item && item.price && isRelevantTitleAuthorMatch_(item, title, author)) {
           return [item];
         }
       } catch (err) {
+        if (trace) trace.directCandidateAttempts.push({
+          url: url,
+          parsed: false,
+          error: err && err.message ? err.message : String(err)
+        });
         // 404, 403 vagy nem megfelelő útvonal esetén próbáljuk a következőt.
       }
     }
@@ -419,17 +430,32 @@ function searchLiraByDirectCandidates_(title, author) {
   return [];
 }
 
-function searchLira_(query, title, author) {
+function searchLira_(query, title, author, trace) {
   if (!String(query || "").trim()) return [];
+
+  if (trace) {
+    trace.query = String(query || "").trim();
+    trace.searchUrl = buildLiraSearchUrl_(query);
+    trace.searchHtmlLength = 0;
+    trace.productUrls = [];
+    trace.productErrors = [];
+    trace.directCandidateAttempts = [];
+  }
 
   let searchHtml = "";
   try {
     searchHtml = fetchLiraHtml_(buildLiraSearchUrl_(query));
+    if (trace) trace.searchHtmlLength = searchHtml.length;
   } catch (err) {
-    if (title) return searchLiraByDirectCandidates_(title, author);
+    if (trace) trace.searchError = err && err.message ? err.message : String(err);
+    if (title) {
+      if (trace) trace.usedDirectCandidateFallback = true;
+      return searchLiraByDirectCandidates_(title, author, trace);
+    }
     return [];
   }
   const productUrls = extractLiraProductUrls_(searchHtml);
+  if (trace) trace.productUrls = productUrls.slice(0, 20);
   const results = [];
 
   productUrls.slice(0, 8).forEach(function(productUrl) {
@@ -439,6 +465,10 @@ function searchLira_(query, title, author) {
         results.push(item);
       }
     } catch (err) {
+      if (trace) trace.productErrors.push({
+        url: productUrl,
+        error: err && err.message ? err.message : String(err)
+      });
       // Egy hibás termékoldal ne állítsa le a többi találat feldolgozását.
     }
   });
@@ -446,15 +476,15 @@ function searchLira_(query, title, author) {
   return dedupeItemsByIsbnOrSourceId_(results);
 }
 
-function searchLiraByIsbn_(isbn) {
+function searchLiraByIsbn_(isbn, trace) {
   const cleanIsbn = String(isbn || "").replace(/[^0-9Xx]/g, "");
   if (!cleanIsbn) return [];
-  return searchLira_(cleanIsbn, "", "");
+  return searchLira_(cleanIsbn, "", "", trace);
 }
 
-function searchLiraByTitleAuthor_(title, author) {
+function searchLiraByTitleAuthor_(title, author, trace) {
   const cleanTitle = String(title || "").trim();
   const cleanAuthor = normalizeAuthorForSearchOrder_(author);
   const query = [cleanTitle, cleanAuthor].filter(function(value) { return value; }).join(" ");
-  return searchLira_(query, cleanTitle, cleanAuthor);
+  return searchLira_(query, cleanTitle, cleanAuthor, trace);
 }
