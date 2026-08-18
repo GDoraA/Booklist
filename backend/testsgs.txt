@@ -2294,3 +2294,44 @@ function testDebugLiraLeleklato() {
   Logger.log(JSON.stringify(result, null, 2));
   return result;
 }
+
+/**
+ * Teljes Líra-folyamat debug: közvetlen oldal-parser és kívánságlista-ajánlat.
+ * Elvárt látható árak: teljes 5499 Ft, online 4950 Ft.
+ */
+function testDebugLiraMillenniumiNaplo() {
+  const productUrl = "https://www.lira.hu/hu/konyv/szepirodalom/millenniumi-naplo-1";
+  const item = {
+    ID: "debug-millenniumi-naplo",
+    Title: "Millenniumi napló",
+    Author: "Fábián Janka",
+    ISBN: "9789636048174",
+    Lira_URL: productUrl,
+    Purchase_Link: ""
+  };
+  const result = {
+    expected: {
+      fullPrice: "5499",
+      onlinePrice: "4950",
+      shipping: "1-2 munkanap"
+    },
+    page: debugLiraProductPage_(productUrl),
+    offer: null,
+    offerError: ""
+  };
+
+  try {
+    result.offer = wishlistRetailerSearch_("Líra", item);
+  } catch (err) {
+    result.offerError = err && err.message ? err.message : String(err);
+  }
+
+  result.success = Boolean(
+    result.offer &&
+    String(result.offer.Price || "") === result.expected.onlinePrice &&
+    String(result.offer.Online_Price || "") === result.expected.onlinePrice &&
+    String(result.offer.Full_Price || "") === result.expected.fullPrice
+  );
+  Logger.log(JSON.stringify(result, null, 2));
+  return result;
+}

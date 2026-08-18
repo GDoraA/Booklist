@@ -161,12 +161,23 @@ function debugLiraProductPage_(productUrl) {
   const plainText = decodeHtmlEntities_(stripHtml_(html))
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ");
+  const debugOnlinePrice = extractLiraOnlinePrice_(html);
+  const debugFullPrice = extractLiraFullPrice_(html);
+  const debugEffectivePrice = debugOnlinePrice || commerceOffer.price || debugFullPrice;
   debug.prices = {
-    onlinePrice: extractLiraOnlinePrice_(html),
-    fullPrice: extractLiraFullPrice_(html),
+    onlinePrice: debugOnlinePrice,
+    fullPrice: debugFullPrice,
     schemaOrLabeledPrice: commerceOffer.price,
     schemaAvailability: commerceOffer.availability,
-    shipping: (plainText.match(/Szállítás:\s*([0-9]+\s*-\s*[0-9]+\s*munkanap)/i) || [])[1] || ""
+    shipping: (plainText.match(/Szállítás:\s*([0-9]+\s*-\s*[0-9]+\s*munkanap)/i) || [])[1] || "",
+    effectivePrice: debugEffectivePrice,
+    effectivePriceSource: debugOnlinePrice
+      ? "online-price vagy sale-price"
+      : commerceOffer.price
+        ? "schema.org / címkézett ajánlati ár"
+        : debugFullPrice
+          ? "teljes ár tartalék"
+          : "nincs"
   };
   debug.snippets = {
     onlinePrice: extractLiraDebugContext_(html, /class=["'][^"']*\bonline-price\b/i),
@@ -175,12 +186,10 @@ function debugLiraProductPage_(productUrl) {
     productData: extractLiraDebugContext_(html, />\s*Cím\s*:/i)
   };
 
-  debug.wishlistAcceptance.accepted = Boolean(debug.prices.onlinePrice);
+  debug.wishlistAcceptance.accepted = Boolean(debug.prices.effectivePrice);
   debug.wishlistAcceptance.reason = debug.wishlistAcceptance.accepted
-    ? "Az online ár kitöltötte a candidate.price mezőt."
-    : debug.prices.fullPrice
-      ? "Csak a teljes ár található meg; a jelenlegi kívánságlista ezt önmagában nem fogadja el candidate.price-ként."
-      : "Sem online ár, sem teljes ár nem volt kinyerhető.";
+    ? "Az effektív ár kitöltheti a candidate.price mezőt: " + debug.prices.effectivePriceSource + "."
+    : "Sem online, strukturált ajánlati, sem teljes ár nem volt kinyerhető.";
 
   return debug;
 }
@@ -265,8 +274,10 @@ function parseLiraProductPage_(productUrl) {
     (plainText.match(/ISBN:\s*([0-9Xx-]{10,20})/i) || [])[1] || ""
   ).replace(/[^0-9Xx]/g, "");
   const productCode = extractLiraProductCode_(productHtml);
-  const price = extractLiraOnlinePrice_(productHtml);
+  const commerceOffer = extractCommerceOffer_(productHtml);
+  const onlinePrice = extractLiraOnlinePrice_(productHtml);
   const fullPrice = extractLiraFullPrice_(productHtml);
+  const price = onlinePrice || commerceOffer.price || fullPrice;
   const shipping = (plainText.match(/Szállítás:\s*([0-9]+\s*-\s*[0-9]+\s*munkanap)/i) || [])[1] || "";
   const imageUrl = extractFirstMatch_(productHtml, /<meta property=["']og:image["'] content=["']([^"']+)/i);
 
@@ -278,8 +289,8 @@ function parseLiraProductPage_(productUrl) {
     location: "", shelf: "", pageCount: "", isbn: foundIsbn,
     publisher: publisher, translator: "", genre: "",
     coverUrl: imageUrl, language: "hu",
-    price: price, onlinePrice: price, fullPrice: fullPrice,
-    availability: price ? "Rendelhető" : "Nincs adat",
+    price: price, onlinePrice: onlinePrice || commerceOffer.price || "", fullPrice: fullPrice,
+    availability: commerceOffer.availability || (price ? "Rendelhető" : "Nincs adat"),
     shipping: shipping, productUrl: canonicalProductUrl
   };
 }

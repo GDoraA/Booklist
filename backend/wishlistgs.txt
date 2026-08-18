@@ -347,7 +347,7 @@ function enrichWishlistItemFromOffers_(item, offers) {
 }
 
 function wishlistOfferCacheKey_(item) {
-  const identity = ["price-bases-v2", item.ID, item.ISBN, item.Title, item.Author, item.Bookline_URL,
+  const identity = ["price-bases-v3-lira", item.ID, item.ISBN, item.Title, item.Author, item.Bookline_URL,
     item.Libri_URL, item.Lira_URL, item.Alexandra_URL].join("|").toLowerCase();
   const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, identity);
   return "wishlist-offers-" + Utilities.base64EncodeWebSafe(digest).replace(/=+$/, "");
