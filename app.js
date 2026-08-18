@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbwJZ1HHfbWInndlTpslkz6vrCXh7HREbRH7KUb4TXwUU5CIIUZ9lFIqoj6o8uk0O7Qcpg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyBt9aFGB0yy3iPLqRJ-ZXUsLj3R2aJqmFh-B0-ZpSlVIp9iObP2_HA-CF4Hx7buhs4-A/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -2546,7 +2546,10 @@ function refreshWishlistPrices(forceRefresh) {
                         const summary = trace
                             ? "siker=" + Boolean(trace.success) +
                               ", találatok=" + Number(trace.candidateCount || 0) +
-                              (trace.failureReason ? ", ok=" + trace.failureReason : "")
+                              (trace.failureReason ? ", ok=" + trace.failureReason : "") +
+                              (Array.isArray(trace.errors) && trace.errors.length
+                                  ? ", hibák=" + trace.errors.join(" | ")
+                                  : "")
                             : "cache=" + Boolean(debugEntry && debugEntry.cacheHit) +
                               ", gyorsítótárazott Líra-ajánlatok=" + Number(debugEntry && debugEntry.cachedOfferCount || 0);
                         log(escapeLookupHtml(

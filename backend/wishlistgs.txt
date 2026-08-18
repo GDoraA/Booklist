@@ -223,6 +223,27 @@ function summarizeWishlistPriceCandidate_(candidate) {
   };
 }
 
+function collectWishlistRetailerTraceErrors_(steps) {
+  const messages = [];
+  function add(message) {
+    const text = String(message || "").trim();
+    if (text && messages.indexOf(text) === -1) messages.push(text);
+  }
+
+  (steps || []).forEach(function(step) {
+    add(step && step.error);
+    const search = step && step.search;
+    add(search && search.searchError);
+    (search && search.productErrors || []).forEach(function(error) {
+      add(error && error.error);
+    });
+    (search && search.directCandidateAttempts || []).forEach(function(attempt) {
+      add(attempt && attempt.error);
+    });
+  });
+  return messages.slice(0, 5);
+}
+
 function wishlistRetailerSearch_(retailer, item, trace) {
   const isbn = String(item.ISBN || "").trim();
   let candidates = [];
@@ -314,11 +335,15 @@ function wishlistRetailerSearch_(retailer, item, trace) {
     trace.candidateCount = candidates.length;
     trace.selected = summarizeWishlistPriceCandidate_(candidate);
     trace.success = Boolean(candidate);
+    trace.errors = collectWishlistRetailerTraceErrors_(trace.steps);
     trace.failureReason = candidate
       ? ""
       : candidates.length
         ? "Volt találat, de egyiknél sem töltődött ki a price mező."
         : "A közvetlen URL, az ISBN és a cím+szerző keresés sem adott használható találatot.";
+    if (!candidate && trace.errors.length) {
+      trace.failureReason += " Technikai hiba: " + trace.errors[0];
+    }
   }
   if (!candidate) return null;
 
