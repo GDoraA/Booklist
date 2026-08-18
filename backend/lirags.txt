@@ -324,6 +324,15 @@ function buildLiraSearchUrl_(query) {
     "&quick_search_category_code=";
 }
 
+/** A Líra gyorskeresőhöz rövid, címközpontú keresőkifejezést készít. */
+function buildLiraTitleSearchQuery_(title) {
+  return String(title || "")
+    .trim()
+    .replace(/^(?:a|az|egy)\s+/i, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
 /** A Líra gyorskereső teljes folyamatának kézzel futtatható diagnosztikája. */
 function debugLiraSearch_(query, title, author) {
   const cleanQuery = String(query || "").trim();
@@ -485,6 +494,6 @@ function searchLiraByIsbn_(isbn, trace) {
 function searchLiraByTitleAuthor_(title, author, trace) {
   const cleanTitle = String(title || "").trim();
   const cleanAuthor = normalizeAuthorForSearchOrder_(author);
-  const query = [cleanTitle, cleanAuthor].filter(function(value) { return value; }).join(" ");
+  const query = buildLiraTitleSearchQuery_(cleanTitle);
   return searchLira_(query, cleanTitle, cleanAuthor, trace);
 }

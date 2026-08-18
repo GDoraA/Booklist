@@ -321,8 +321,8 @@ function wishlistRetailerSearch_(retailer, item, trace) {
       const titleAuthorTrace = {};
       candidates = searchLiraByTitleAuthor_(item.Title, item.Author, titleAuthorTrace);
       if (trace) trace.steps.push({
-        stage: "title-author-search",
-        query: [item.Title || "", item.Author || ""].join(" ").trim(),
+        stage: "title-search",
+        query: titleAuthorTrace.query || buildLiraTitleSearchQuery_(item.Title),
         count: candidates.length,
         candidates: candidates.map(summarizeWishlistPriceCandidate_),
         search: titleAuthorTrace
