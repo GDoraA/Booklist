@@ -1534,7 +1534,15 @@ function dashboardMegjelenites() {
 function loadDashboardWishlist() {
     wishlistApiCall("getWishlistData", { refresh: "0" }, function (data) {
         if (!data || !data.success) {
-            log("A dashboard kívánságlistája nem tölthető be:", data);
+            const errorMessage = data && data.error
+                ? String(data.error)
+                : data
+                    ? "A backend sikertelen választ adott: " + JSON.stringify(data)
+                    : "Nem érkezett válasz a backendtől.";
+            log(escapeLookupHtml("A dashboard kívánságlistája nem tölthető be: " + errorMessage));
+            if (window.console && typeof window.console.error === "function") {
+                window.console.error("Dashboard kívánságlista betöltési hiba", data);
+            }
             return;
         }
         wishlistData = {
