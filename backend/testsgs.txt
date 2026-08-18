@@ -2209,3 +2209,48 @@ function testLookupPublisherPagesKisasszonyok() {
 
   Logger.log(output.getContent());
 }
+
+/** Líra termékoldal mezőblokkok és árak regressziós tesztje. */
+function testExtractLiraProductFields() {
+  const html = [
+    '<div><span class="txt">Cím: </span><span class="data">Viharmadarak [nyári akció]</span>',
+    '<input type="hidden" name="product-akod" value="244848"></div>',
+    '<div><span class="txt">Szerző: </span><span class="data"><a href="/hu/szerzo/karason-einar">Kárason, Einar</a></span></div>',
+    '<div><span class="txt">Kiadó: </span><span class="data"><a href="/hu/kiado/magveto-kiado">Magvető Kiadó</a></span></div>',
+    '<div><span class="txt">Sorozat: </span><span class="data"><a href="/hu/sorozat/amagvetoesavilag">#amagvetőésavilág</a></span></div>',
+    '<div><span class="txt">Megjelenés: </span><span class="data">2020. augusztus 31. </span></div>',
+    '<div><span class="txt">ISBN: </span><span class="data">9789631438901</span></div>',
+    '<div><div class="book-price-action tooltip-div">ár a könyvön:<i></i><span class="tooltiptext">Az eredeti ár.</span></div>',
+    '<div class="book-price-action">2699 Ft</div></div>',
+    '<div class="online-price">5301 Ft<!--DP: 10%--></div>'
+  ].join("");
+
+  const publicationDateRaw = extractLiraDataField_(html, "Megjelenés");
+  const result = {
+    title: cleanLiraTitle_(extractLiraDataField_(html, "Cím")),
+    productCode: extractLiraProductCode_(html),
+    author: normalizeAuthorForSearchOrder_(extractLiraDataField_(html, "Szerző")),
+    publisher: extractLiraDataField_(html, "Kiadó"),
+    series: extractLiraDataField_(html, "Sorozat"),
+    publicationDate: normalizePublicationDate_(publicationDateRaw),
+    isbn: extractLiraDataField_(html, "ISBN").replace(/[^0-9Xx]/g, ""),
+    fullPrice: extractLiraFullPrice_(html),
+    onlinePrice: extractLiraOnlinePrice_(html)
+  };
+
+  const expected = {
+    title: "Viharmadarak",
+    productCode: "244848",
+    author: "Einar Kárason",
+    publisher: "Magvető Kiadó",
+    series: "#amagvetőésavilág",
+    publicationDate: "2020-08-31",
+    isbn: "9789631438901",
+    fullPrice: "2699",
+    onlinePrice: "5301"
+  };
+
+  const success = JSON.stringify(result) === JSON.stringify(expected);
+  Logger.log(JSON.stringify({ success: success, result: result, expected: expected }, null, 2));
+  if (!success) throw new Error("Líra mezőkinyerési regresszió.");
+}

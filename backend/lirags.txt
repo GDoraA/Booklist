@@ -47,6 +47,42 @@ function canonicalizeLiraProductUrl_(url) {
   return cleanUrl;
 }
 
+/** A `Cím:`, `Szerző:` stb. felirat melletti span.data értékét olvassa ki. */
+function extractLiraDataField_(html, fieldName) {
+  const escapedFieldName = String(fieldName || "")
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  if (!escapedFieldName) return "";
+
+  return extractFirstMatch_(
+    html,
+    new RegExp(
+      "<span[^>]*class=[\\\"'][^\\\"']*\\btxt\\b[^\\\"']*[\\\"'][^>]*>" +
+      "\\s*" + escapedFieldName + "\\s*:?\\s*</span>\\s*" +
+      "<span[^>]*class=[\\\"'][^\\\"']*\\bdata\\b[^\\\"']*[\\\"'][^>]*>" +
+      "([\\s\\S]*?)</span>",
+      "i"
+    )
+  );
+}
+
+/** Csak a kampányjellegű szögletes zárójeles utótagokat távolítja el. */
+function cleanLiraTitle_(title) {
+  return String(title || "")
+    .replace(/\s*\[[^\]]*akci[oó][^\]]*\]\s*$/i, "")
+    .trim();
+}
+
+function extractLiraProductCode_(html) {
+  return extractFirstMatch_(
+    html,
+    /<input[^>]*name=["']product-akod["'][^>]*value=["']([^"']+)["'][^>]*>/i
+  ) || extractFirstMatch_(
+    html,
+    /<input[^>]*value=["']([^"']+)["'][^>]*name=["']product-akod["'][^>]*>/i
+  );
+}
+
 function extractLiraOnlinePrice_(html) {
   const priceElement = extractFirstMatch_(
     html,
@@ -69,6 +105,12 @@ function extractLiraOnlinePrice_(html) {
 }
 
 function extractLiraFullPrice_(html) {
+  const structuredPrice = extractFirstMatch_(
+    html,
+    /<div[^>]*class=["'][^"']*\bbook-price-action\b[^"']*["'][^>]*>[\s\S]*?ár\s+a\s+könyvön\s*:[\s\S]*?<\/div>\s*<div[^>]*class=["'][^"']*\bbook-price-action\b[^"']*["'][^>]*>\s*([0-9]{1,3}(?:[ .][0-9]{3})*|[0-9]+)\s*Ft/i
+  );
+  if (structuredPrice) return structuredPrice.replace(/[ .]/g, "");
+
   const text = decodeHtmlEntities_(stripHtml_(html))
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ");
@@ -84,14 +126,30 @@ function parseLiraProductPage_(productUrl) {
   const plainText = decodeHtmlEntities_(stripHtml_(productHtml))
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ");
-  const title =
+  const title = cleanLiraTitle_(
+    extractLiraDataField_(productHtml, "Cím") ||
     extractFirstMatch_(productHtml, /<h1[^>]*>([\s\S]*?)<\/h1>/i) ||
-    extractFirstMatch_(productHtml, /<meta property=["']og:title["'] content=["']([^"']+)/i);
-  const author =
+    extractFirstMatch_(productHtml, /<meta property=["']og:title["'] content=["']([^"']+)/i)
+  );
+  const author = normalizeAuthorForSearchOrder_(
+    extractLiraDataField_(productHtml, "Szerző") ||
     extractFirstMatch_(productHtml, /<h2[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i) ||
-    extractFirstMatch_(productHtml, /Szerző:\s*[\s\S]{0,120}?<a[^>]*>([\s\S]*?)<\/a>/i);
-  const publisher = extractFirstMatch_(productHtml, /Kiadó:\s*[\s\S]{0,120}?<a[^>]*>([\s\S]*?)<\/a>/i);
-  const foundIsbn = (plainText.match(/ISBN:\s*([0-9Xx-]{10,20})/i) || [])[1] || "";
+    extractFirstMatch_(productHtml, /Szerző:\s*[\s\S]{0,120}?<a[^>]*>([\s\S]*?)<\/a>/i)
+  );
+  const publisher =
+    extractLiraDataField_(productHtml, "Kiadó") ||
+    extractFirstMatch_(productHtml, /Kiadó:\s*[\s\S]{0,120}?<a[^>]*>([\s\S]*?)<\/a>/i);
+  const series = extractLiraDataField_(productHtml, "Sorozat");
+  const publicationDateRaw = extractLiraDataField_(productHtml, "Megjelenés");
+  const publicationDate = normalizePublicationDate_(publicationDateRaw);
+  const year = publicationDate
+    ? publicationDate.substring(0, 4)
+    : (String(publicationDateRaw || "").match(/\b(1[0-9]{3}|20[0-9]{2}|2100)\b/) || [])[1] || "";
+  const foundIsbn = String(
+    extractLiraDataField_(productHtml, "ISBN") ||
+    (plainText.match(/ISBN:\s*([0-9Xx-]{10,20})/i) || [])[1] || ""
+  ).replace(/[^0-9Xx]/g, "");
+  const productCode = extractLiraProductCode_(productHtml);
   const price = extractLiraOnlinePrice_(productHtml);
   const fullPrice = extractLiraFullPrice_(productHtml);
   const shipping = (plainText.match(/Szállítás:\s*([0-9]+\s*-\s*[0-9]+\s*munkanap)/i) || [])[1] || "";
@@ -99,8 +157,12 @@ function parseLiraProductPage_(productUrl) {
 
   if (!title) return null;
   return {
-    source: "lira", sourceId: canonicalProductUrl, title: title, authors: author,
-    isbn: foundIsbn, publisher: publisher, coverUrl: imageUrl, language: "hu",
+    source: "lira", sourceId: canonicalProductUrl, productCode: productCode,
+    title: title, authors: author, originalTitle: "", previousTitle: "",
+    series: series, number: "", year: year, publicationDate: publicationDate,
+    location: "", shelf: "", pageCount: "", isbn: foundIsbn,
+    publisher: publisher, translator: "", genre: "",
+    coverUrl: imageUrl, language: "hu",
     price: price, onlinePrice: price, fullPrice: fullPrice,
     availability: price ? "Rendelhető" : "Nincs adat",
     shipping: shipping, productUrl: canonicalProductUrl
