@@ -447,6 +447,14 @@ function wishlistOfferCacheKey_(item) {
   return "wishlist-offers-" + Utilities.base64EncodeWebSafe(digest).replace(/=+$/, "");
 }
 
+function getMissingWishlistRetailers_(retailers, cachedOffers) {
+  return (retailers || []).filter(function(retailer) {
+    return !(cachedOffers || []).some(function(offer) {
+      return offer && String(offer.Retailer || "") === retailer;
+    });
+  });
+}
+
 function refreshWishlistOffers_(items, forceRefresh) {
   const offers = [];
   const errors = [];
@@ -457,27 +465,35 @@ function refreshWishlistOffers_(items, forceRefresh) {
 
   (items || []).forEach(function(item) {
     const cacheKey = wishlistOfferCacheKey_(item);
+    let itemOffers = [];
+    let retailersToSearch = retailers.slice();
     const cached = forceRefresh ? null : cache.get(cacheKey);
     if (cached !== null) {
       try {
         const cachedOffers = JSON.parse(cached);
         cachedOffers.forEach(function(offer) { offers.push(offer); });
+        itemOffers = cachedOffers.slice();
+        retailersToSearch = getMissingWishlistRetailers_(retailers, cachedOffers);
         debug.push({
           Wishlist_ID: item.ID,
           Retailer: "Líra",
           cacheHit: true,
           forceRefresh: Boolean(forceRefresh),
-          cachedOfferCount: cachedOffers.filter(function(offer) { return offer && offer.Retailer === "Líra"; }).length
+          cachedOfferCount: cachedOffers.filter(function(offer) { return offer && offer.Retailer === "Líra"; }).length,
+          missingRetailersRefreshed: retailersToSearch.slice()
         });
-        refreshedItems.push(enrichWishlistItemFromOffers_(item, cachedOffers));
-        return;
+        if (!retailersToSearch.length) {
+          refreshedItems.push(enrichWishlistItemFromOffers_(item, cachedOffers));
+          return;
+        }
       } catch (err) {
         // Sérült cache esetén az élő keresés folytatódik.
+        itemOffers = [];
+        retailersToSearch = retailers.slice();
       }
     }
 
-    const itemOffers = [];
-    retailers.forEach(function(retailer) {
+    retailersToSearch.forEach(function(retailer) {
       const trace = retailer === "Líra" ? { cacheHit: false, forceRefresh: Boolean(forceRefresh) } : null;
       try {
         const offer = wishlistRetailerSearch_(retailer, item, trace);
