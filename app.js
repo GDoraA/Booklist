@@ -1,6 +1,6 @@
 
 /********** API URL **********/
-const API_URL = "https://script.google.com/macros/s/AKfycbzxevGmkEn3KsxqyYSRTCQ1MYhtLuzk78vfLAEviZgBaPmntLesHoULqXxlKeIDogTXag/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyRJlyQHuZvAgGvUsWPyNX-Ql64UCW4qB-L98UEWTqQ6mmJxtttlCq4jPFqK4S77Ch7WQ/exec";
 // Frontend oldali Google Books API kulcs.
 // Fontos: ez böngészőből látható, ezért Google Cloud Console-ban
 // HTTP referrer korlátozással kell védeni.
@@ -12,7 +12,7 @@ let currentUserEmail = null;
 let wishlistData = { items: [], offers: [], discounts: [] };
 const WISHLIST_PREFERRED_RETAILERS = ["Libri", "Bookline", "Líra", "Alexandra"];
 // ---------- VERZIÓ INFORMÁCIÓK ----------
-const APP_VERSION = "2026-08-15 12:00";  // Deploykor frissítendő
+const APP_VERSION = "2026-08-18 16:00";  // Deploykor frissítendő
 const BUILD_TIMESTAMP = Date.now();       // automatikus, a JS fájl betöltési ideje
 // -----------------------------------------
 
