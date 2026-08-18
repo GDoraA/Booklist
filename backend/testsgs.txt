@@ -2235,7 +2235,11 @@ function testExtractLiraProductFields() {
     publicationDate: normalizePublicationDate_(publicationDateRaw),
     isbn: extractLiraDataField_(html, "ISBN").replace(/[^0-9Xx]/g, ""),
     fullPrice: extractLiraFullPrice_(html),
-    onlinePrice: extractLiraOnlinePrice_(html)
+    onlinePrice: extractLiraOnlinePrice_(html),
+    salePriceFallback: extractLiraOnlinePrice_(
+      '<div><div class="tooltip-div sale-price-text orange">akciós ár:</div>' +
+      '<div class="sale-price orange">499 Ft<!--DP: 81.511670989255%--></div></div>'
+    )
   };
 
   const expected = {
@@ -2247,10 +2251,46 @@ function testExtractLiraProductFields() {
     publicationDate: "2020-08-31",
     isbn: "9789631438901",
     fullPrice: "2699",
-    onlinePrice: "5301"
+    onlinePrice: "5301",
+    salePriceFallback: "499"
   };
 
   const success = JSON.stringify(result) === JSON.stringify(expected);
   Logger.log(JSON.stringify({ success: success, result: result, expected: expected }, null, 2));
   if (!success) throw new Error("Líra mezőkinyerési regresszió.");
+}
+
+/**
+ * Élő Líra-debug a jelenlegi Viharmadarak termékoldalhoz.
+ * Az Apps Script szerkesztőből futtatva a teljes eredmény a végrehajtási
+ * naplóban jelenik meg, beleértve a Cloudflare- és árdiagnosztikát.
+ */
+function testDebugLiraViharmadarak() {
+  const result = debugLiraProductPage_(
+    "https://www.lira.hu/hu/konyv/szepirodalom/viharmadarak?recLink=1"
+  );
+  Logger.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+/** Élő árdebug: Réti László – A léleklátó. */
+function testDebugLiraLeleklato() {
+  const result = debugLiraProductPage_(
+    "https://www.lira.hu/hu/konyv/szepirodalom/sci-fi-fantasy-krimi/a-leleklato-1?recLink=1"
+  );
+  result.expectedFromVisiblePage = {
+    title: "A léleklátó",
+    isbn: "9789635806782",
+    fullPrice: "6490",
+    onlinePrice: "5841",
+    shipping: "1-2 munkanap"
+  };
+  result.matchesExpectedVisiblePrices = Boolean(
+    result.prices &&
+    result.prices.fullPrice === result.expectedFromVisiblePage.fullPrice &&
+    result.prices.onlinePrice === result.expectedFromVisiblePage.onlinePrice &&
+    result.prices.shipping.replace(/\s+/g, "") === result.expectedFromVisiblePage.shipping.replace(/\s+/g, "")
+  );
+  Logger.log(JSON.stringify(result, null, 2));
+  return result;
 }

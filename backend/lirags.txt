@@ -8,8 +8,8 @@
  * blokkolja, ezért a keresési és termékoldalakat valós böngészőhöz
  * hasonló fejlécekkel kérjük le.
  */
-function fetchLiraHtml_(url) {
-  const response = UrlFetchApp.fetch(url, {
+function getLiraFetchOptions_() {
+  return {
     muteHttpExceptions: true,
     followRedirects: true,
     headers: {
@@ -19,7 +19,11 @@ function fetchLiraHtml_(url) {
       "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.7",
       "Referer": "https://www.lira.hu/hu/cimlap"
     }
-  });
+  };
+}
+
+function fetchLiraHtml_(url) {
+  const response = UrlFetchApp.fetch(url, getLiraFetchOptions_());
 
   const code = response.getResponseCode();
   const html = response.getContentText("UTF-8");
@@ -83,6 +87,104 @@ function extractLiraProductCode_(html) {
   );
 }
 
+function extractLiraDebugContext_(html, pattern) {
+  const source = String(html || "");
+  const match = source.match(pattern);
+  if (!match) return "";
+
+  const index = typeof match.index === "number" ? match.index : 0;
+  return source
+    .substring(Math.max(0, index - 180), Math.min(source.length, index + 520))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Részletes, nem destruktív diagnosztika egy közvetlen Líra-termékoldalhoz.
+ * Megmutatja a hálózati választ, a blokkolási jeleket, a releváns HTML-
+ * környezetet, a kinyert mezőket és azt is, elfogadná-e az árfigyelés.
+ */
+function debugLiraProductPage_(productUrl) {
+  const requestedUrl = String(productUrl || "").trim();
+  const canonicalUrl = canonicalizeLiraProductUrl_(requestedUrl);
+  const debug = {
+    requestedUrl: requestedUrl,
+    canonicalUrl: canonicalUrl,
+    fetch: {},
+    signals: {},
+    fields: {},
+    prices: {},
+    snippets: {},
+    wishlistAcceptance: {}
+  };
+
+  if (!canonicalUrl) {
+    debug.fetch.error = "Nincs megadva Líra-termékoldal URL.";
+    return debug;
+  }
+
+  let response;
+  let html = "";
+  try {
+    response = UrlFetchApp.fetch(canonicalUrl, getLiraFetchOptions_());
+    debug.fetch.responseCode = response.getResponseCode();
+    debug.fetch.headers = response.getAllHeaders ? response.getAllHeaders() : response.getHeaders();
+    html = response.getContentText("UTF-8");
+    debug.fetch.htmlLength = html.length;
+  } catch (err) {
+    debug.fetch.error = err && err.message ? err.message : String(err);
+    return debug;
+  }
+
+  debug.signals.cloudflareBlocked = /Sorry, you have been blocked|Attention Required!\s*\|\s*Cloudflare/i.test(html);
+  debug.signals.hasOnlinePriceClass = /class=["'][^"']*\bonline-price\b/i.test(html);
+  debug.signals.hasSalePriceClass = /class=["'][^"']*\bsale-price\b(?!-)/i.test(html);
+  debug.signals.hasBookPriceActionClass = /class=["'][^"']*\bbook-price-action\b/i.test(html);
+  debug.signals.hasPriceLabel = /online\s*ár\s*:/i.test(decodeHtmlEntities_(stripHtml_(html)));
+  debug.signals.hasFullPriceLabel = /ár\s+a\s+könyvön\s*:/i.test(decodeHtmlEntities_(stripHtml_(html)));
+
+  const rawTitle = extractLiraDataField_(html, "Cím");
+  const rawPublicationDate = extractLiraDataField_(html, "Megjelenés");
+  debug.fields = {
+    titleRaw: rawTitle,
+    title: cleanLiraTitle_(rawTitle),
+    productCode: extractLiraProductCode_(html),
+    authorRaw: extractLiraDataField_(html, "Szerző"),
+    publisher: extractLiraDataField_(html, "Kiadó"),
+    series: extractLiraDataField_(html, "Sorozat"),
+    publicationDateRaw: rawPublicationDate,
+    publicationDate: normalizePublicationDate_(rawPublicationDate),
+    isbn: String(extractLiraDataField_(html, "ISBN") || "").replace(/[^0-9Xx]/g, "")
+  };
+
+  const commerceOffer = extractCommerceOffer_(html);
+  const plainText = decodeHtmlEntities_(stripHtml_(html))
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ");
+  debug.prices = {
+    onlinePrice: extractLiraOnlinePrice_(html),
+    fullPrice: extractLiraFullPrice_(html),
+    schemaOrLabeledPrice: commerceOffer.price,
+    schemaAvailability: commerceOffer.availability,
+    shipping: (plainText.match(/Szállítás:\s*([0-9]+\s*-\s*[0-9]+\s*munkanap)/i) || [])[1] || ""
+  };
+  debug.snippets = {
+    onlinePrice: extractLiraDebugContext_(html, /class=["'][^"']*\bonline-price\b/i),
+    salePrice: extractLiraDebugContext_(html, /class=["'][^"']*\bsale-price\b(?!-)/i),
+    fullPrice: extractLiraDebugContext_(html, /ár\s+a\s+könyvön\s*:/i),
+    productData: extractLiraDebugContext_(html, />\s*Cím\s*:/i)
+  };
+
+  debug.wishlistAcceptance.accepted = Boolean(debug.prices.onlinePrice);
+  debug.wishlistAcceptance.reason = debug.wishlistAcceptance.accepted
+    ? "Az online ár kitöltötte a candidate.price mezőt."
+    : debug.prices.fullPrice
+      ? "Csak a teljes ár található meg; a jelenlegi kívánságlista ezt önmagában nem fogadja el candidate.price-ként."
+      : "Sem online ár, sem teljes ár nem volt kinyerhető.";
+
+  return debug;
+}
+
 function extractLiraOnlinePrice_(html) {
   const priceElement = extractFirstMatch_(
     html,
@@ -93,6 +195,19 @@ function extractLiraOnlinePrice_(html) {
       /([0-9]{1,3}(?:[ .][0-9]{3})+|[0-9]{3,})/
     );
     if (elementMatch) return elementMatch[1].replace(/[ .]/g, "");
+  }
+
+  // Ha nincs normál online ár, az időszakos akciós ár a sale-price
+  // elemben jelenik meg. Ez szándékosan csak másodlagos forrás.
+  const salePriceElement = extractFirstMatch_(
+    html,
+    /<div[^>]*class=["'][^"']*\bsale-price\b(?!-)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i
+  );
+  if (salePriceElement) {
+    const salePriceMatch = String(salePriceElement).match(
+      /([0-9]{1,3}(?:[ .][0-9]{3})+|[0-9]{1,})\s*(?:Ft|HUF)?/i
+    );
+    if (salePriceMatch) return salePriceMatch[1].replace(/[ .]/g, "");
   }
 
   const text = decodeHtmlEntities_(stripHtml_(html))
