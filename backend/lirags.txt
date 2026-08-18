@@ -321,7 +321,7 @@ function buildLiraSearchUrl_(query) {
     "?listorder=release_date&listdirection=desc" +
     "&listpagenumber=50&listcurrentpage=0&quick_search_txt=" +
     encodeURIComponent(String(query || "").trim()) +
-    "&quick_search_category_code=001";
+    "&quick_search_category_code=";
 }
 
 /** A Líra gyorskereső teljes folyamatának kézzel futtatható diagnosztikája. */
